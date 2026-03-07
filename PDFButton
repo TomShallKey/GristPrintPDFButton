@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+</head>
+<body>
+  <button onclick="window.print()">Drukuj</button>
+  <div id="content"></div>
+  <script>
+    grist.ready({ columns: ['PDF'] });
+    grist.onRecord(function(record) {
+      document.getElementById('content').innerHTML = marked.parse(record.PDF || '');
+    });
+  </script>
+</body>
+</html>
