@@ -6,11 +6,11 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Segoe UI', system-ui, sans-serif; padding: 6px; background: #f8f9fa; }
     
-    .toolbar { display: flex; flex-direction: column; gap: 4px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 4px; }
     
     .btn {
-      display: flex; align-items: center; gap: 5px;
-      width: 100%; padding: 6px 8px;
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 5px 8px;
       font-size: 11px; font-weight: 500;
       border: none; border-radius: 4px; cursor: pointer;
       transition: all 0.15s ease;
@@ -26,8 +26,6 @@
     .btn:active { transform: scale(0.97); }
     .btn svg { width: 12px; height: 12px; flex-shrink: 0; }
 
-    .divider { height: 1px; background: #e5e7eb; margin: 2px 0; }
-
     #preview { 
       margin-top: 8px; padding: 8px; 
       background: white; border: 1px solid #e5e7eb; border-radius: 4px;
@@ -35,7 +33,7 @@
     }
 
     @media print { 
-      .toolbar, .divider { display: none !important; } 
+      .toolbar { display: none !important; } 
       #preview { border: none; margin: 0; padding: 0; }
     }
   </style>
@@ -50,7 +48,6 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
       Certyfikat
     </button>
-    <div class="divider"></div>
     <button class="btn btn-print" id="printBtn" onclick="window.print()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
       Drukuj
@@ -66,7 +63,7 @@
       const preview = document.getElementById('preview');
       preview.innerHTML = currentRecord[field] || 'Brak danych';
       preview.style.display = 'block';
-      document.getElementById('printBtn').style.display = 'flex';
+      document.getElementById('printBtn').style.display = 'inline-flex';
     }
   </script>
 </body>
