@@ -3,19 +3,61 @@
 <head>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
-    body { font-family: sans-serif; padding: 10px; }
-    .btn { padding: 8px 16px; margin: 5px; cursor: pointer; 
-           background: #1a73e8; color: white; border: none; border-radius: 4px; }
-    .btn:hover { background: #1557b0; }
-    #preview { margin-top: 15px; }
-    @media print { .btn, .toolbar { display: none !important; } }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; padding: 8px; background: #f8f9fa; }
+    
+    .toolbar { display: flex; flex-direction: column; gap: 6px; }
+    
+    .btn {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      width: 100%; padding: 10px 12px;
+      font-size: 12px; font-weight: 500; letter-spacing: 0.3px;
+      border: none; border-radius: 6px; cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    
+    .btn-protokol { background: #1a56db; color: white; }
+    .btn-protokol:hover { background: #1e40af; }
+    
+    .btn-cert { background: #047857; color: white; }
+    .btn-cert:hover { background: #065f46; }
+    
+    .btn-print { background: #374151; color: white; display: none; }
+    .btn-print:hover { background: #1f2937; }
+
+    .btn:active { transform: scale(0.97); }
+
+    .btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+    .divider { height: 1px; background: #e5e7eb; margin: 4px 0; }
+
+    #preview { 
+      margin-top: 10px; padding: 10px; 
+      background: white; border: 1px solid #e5e7eb; border-radius: 6px;
+      display: none;
+    }
+
+    @media print { 
+      .toolbar, .divider { display: none !important; } 
+      #preview { border: none; margin: 0; padding: 0; }
+    }
   </style>
 </head>
 <body>
   <div class="toolbar">
-    <button class="btn" onclick="show('PDF')">Generuj Protokół</button>
-    <button class="btn" onclick="show('PDF_Cert')">Generuj Certyfikat</button>
-    <button class="btn" onclick="window.print()" id="printBtn" style="display:none; background:#333;">Drukuj</button>
+    <button class="btn btn-protokol" onclick="show('PDF')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Protokół
+    </button>
+    <button class="btn btn-cert" onclick="show('PDF_Cert')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      Certyfikat
+    </button>
+    <div class="divider"></div>
+    <button class="btn btn-print" id="printBtn" onclick="window.print()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Drukuj
+    </button>
   </div>
   <div id="preview"></div>
   <script>
@@ -24,8 +66,10 @@
     grist.onRecord(function(record) { currentRecord = record; });
 
     function show(field) {
-      document.getElementById('preview').innerHTML = currentRecord[field] || 'Brak danych';
-      document.getElementById('printBtn').style.display = 'inline-block';
+      const preview = document.getElementById('preview');
+      preview.innerHTML = currentRecord[field] || 'Brak danych';
+      preview.style.display = 'block';
+      document.getElementById('printBtn').style.display = 'flex';
     }
   </script>
 </body>
