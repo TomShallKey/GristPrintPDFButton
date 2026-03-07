@@ -4,36 +4,33 @@
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', system-ui, sans-serif; padding: 8px; background: #f8f9fa; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; padding: 6px; background: #f8f9fa; }
     
-    .toolbar { display: flex; flex-direction: column; gap: 6px; }
+    .toolbar { display: flex; flex-direction: column; gap: 4px; }
     
     .btn {
-      display: flex; align-items: center; justify-content: center; gap: 6px;
-      width: 100%; padding: 10px 12px;
-      font-size: 12px; font-weight: 500; letter-spacing: 0.3px;
-      border: none; border-radius: 6px; cursor: pointer;
+      display: flex; align-items: center; gap: 5px;
+      width: 100%; padding: 6px 8px;
+      font-size: 11px; font-weight: 500;
+      border: none; border-radius: 4px; cursor: pointer;
       transition: all 0.15s ease;
+      white-space: nowrap;
     }
     
-    .btn-protokol { background: #1a56db; color: white; }
-    .btn-protokol:hover { background: #1e40af; }
-    
-    .btn-cert { background: #047857; color: white; }
-    .btn-cert:hover { background: #065f46; }
+    .btn-green { background: #047857; color: white; }
+    .btn-green:hover { background: #065f46; }
     
     .btn-print { background: #374151; color: white; display: none; }
     .btn-print:hover { background: #1f2937; }
 
     .btn:active { transform: scale(0.97); }
+    .btn svg { width: 12px; height: 12px; flex-shrink: 0; }
 
-    .btn svg { width: 14px; height: 14px; flex-shrink: 0; }
-
-    .divider { height: 1px; background: #e5e7eb; margin: 4px 0; }
+    .divider { height: 1px; background: #e5e7eb; margin: 2px 0; }
 
     #preview { 
-      margin-top: 10px; padding: 10px; 
-      background: white; border: 1px solid #e5e7eb; border-radius: 6px;
+      margin-top: 8px; padding: 8px; 
+      background: white; border: 1px solid #e5e7eb; border-radius: 4px;
       display: none;
     }
 
@@ -45,11 +42,11 @@
 </head>
 <body>
   <div class="toolbar">
-    <button class="btn btn-protokol" onclick="show('PDF')">
+    <button class="btn btn-green" onclick="show('PDF')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
       Protokół
     </button>
-    <button class="btn btn-cert" onclick="show('PDF_Cert')">
+    <button class="btn btn-green" onclick="show('PDF_Cert')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
       Certyfikat
     </button>
