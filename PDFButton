@@ -1,17 +1,32 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 10px; }
+    .btn { padding: 8px 16px; margin: 5px; cursor: pointer; 
+           background: #1a73e8; color: white; border: none; border-radius: 4px; }
+    .btn:hover { background: #1557b0; }
+    #preview { margin-top: 15px; }
+    @media print { .btn, .toolbar { display: none !important; } }
+  </style>
 </head>
 <body>
-  <button onclick="window.print()">Drukuj</button>
-  <div id="content"></div>
+  <div class="toolbar">
+    <button class="btn" onclick="show('PDF')">Generuj Protokół</button>
+    <button class="btn" onclick="show('PDF_Cert')">Generuj Certyfikat</button>
+    <button class="btn" onclick="window.print()" id="printBtn" style="display:none; background:#333;">Drukuj</button>
+  </div>
+  <div id="preview"></div>
   <script>
-    grist.ready({ columns: ['PDF'] });
-    grist.onRecord(function(record) {
-      document.getElementById('content').innerHTML = marked.parse(record.PDF || '');
-    });
+    let currentRecord = {};
+    grist.ready({ columns: ['PDF', 'PDF_Cert'] });
+    grist.onRecord(function(record) { currentRecord = record; });
+
+    function show(field) {
+      document.getElementById('preview').innerHTML = currentRecord[field] || 'Brak danych';
+      document.getElementById('printBtn').style.display = 'inline-block';
+    }
   </script>
 </body>
 </html>
