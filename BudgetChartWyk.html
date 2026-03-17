@@ -292,34 +292,6 @@ const KONTO_NAMES = {
   '41708005': 'AL – Rozwojowe',
 };
 
-function kontoFromSyg(syg) {
-  if (!syg) return null;
-  const p = syg.split('-');
-  return p.length >= 4 ? '41708' + p[3] : null;
-}
-
-function groupByKonto(records) {
-  const map = new Map();
-  records.forEach(r => {
-    const konto = r.Konto || kontoFromSyg(r.Sygnatura) || '—';
-    const opis  = r.Konto_Opis || r.Admin || '';
-    if (!map.has(konto)) {
-      map.set(konto, { konto, opis, zaks:0, zaang:0, exp:0, trans:0, pozost:0, rp4:0 });
-    }
-    const g = map.get(konto);
-    g.zaks   += pos(r.Zaks);
-    g.zaang  += pos(r.Zaang);
-    g.exp    += pos(r.Expected_Menu);
-    g.trans  += pos(r.wTransferach);
-    g.pozost += pos(r.PozostUwzgTransfery);
-    g.rp4    += pos(r.RP4_x_Transfery);
-    if (!g.opis && opis) g.opis = opis;
-  });
-  return [...map.values()]
-    .filter(g => g.rp4 > 0 || (g.zaks + g.zaang + g.exp + g.trans + g.pozost) > 0)
-    .sort((a, b) => a.konto.localeCompare(b.konto));
-}
-
 function buildRow(g, idx, maxBudget) {
   const { konto, opis, zaks, zaang, exp, trans, pozost, rp4 } = g;
 
@@ -424,18 +396,39 @@ function render(groups) {
 }
 
 // ── Grist ──────────────────────────────────────────────────────────────────────
+// Oczekiwany widok: MAIN [by Rok, Konto, Admin] — summary table
+// Każdy rekord to już jedna grupa (jedno konto, jeden rok).
+// Kolumny summary: Rok, Konto, Admin, Zaks, Zaang, MenuWykonanie,
+//                  Expected_Menu, wTransferach, PozostUwzgTransfery, RP4_x_Transfery
+
+function recordsToGroups(records) {
+  return records
+    .filter(r => String(r.Rok) === '2026')          // tylko bieżący rok
+    .map(r => ({
+      konto:  String(r.Konto  || '—'),
+      opis:   String(r.Admin  || ''),
+      zaks:   pos(r.Zaks),
+      zaang:  pos(r.Zaang),
+      exp:    pos(r.Expected_Menu),
+      trans:  pos(r.wTransferach),
+      pozost: pos(r.PozostUwzgTransfery),
+      rp4:    pos(r.RP4_x_Transfery),
+    }))
+    .filter(g => g.rp4 > 0 || (g.zaks + g.zaang + g.exp + g.trans + g.pozost) > 0)
+    .sort((a, b) => a.konto.localeCompare(b.konto));
+}
+
 if (typeof grist !== 'undefined') {
   grist.ready({ requiredAccess: 'read table' });
-  grist.onRecords(records => render(groupByKonto(records)));
+  grist.onRecords(records => render(recordsToGroups(records)));
 } else {
-  // DEMO
-  render(groupByKonto([
-    { Sygnatura:'2026-AY-S10-001-001', Konto:'41708001', Konto_Opis:'Szkolenia AY',     Zaks:320000, Zaang:180000, Expected_Menu:90000,  wTransferach:40000, PozostUwzgTransfery:70000,  RP4_x_Transfery:700000 },
-    { Sygnatura:'2026-AY-S10-001-005', Konto:'41708001', Konto_Opis:'Szkolenia AY',     Zaks:95000,  Zaang:30000,  Expected_Menu:0,      wTransferach:0,     PozostUwzgTransfery:25000,  RP4_x_Transfery:150000 },
-    { Sygnatura:'2026-MF-F10-003-002', Konto:'41708003', Konto_Opis:'Szkolenia MF',     Zaks:90000,  Zaang:60000,  Expected_Menu:80000,  wTransferach:0,     PozostUwzgTransfery:70000,  RP4_x_Transfery:300000 },
-    { Sygnatura:'2026-AL-H10-004-003', Konto:'41708004', Konto_Opis:'Szkolenia AL/BHP', Zaks:45000,  Zaang:20000,  Expected_Menu:30000,  wTransferach:10000, PozostUwzgTransfery:45000,  RP4_x_Transfery:150000 },
-    { Sygnatura:'2026-AL-H10-005-004', Konto:'41708005', Konto_Opis:'Języki obce',      Zaks:12000,  Zaang:8000,   Expected_Menu:20000,  wTransferach:5000,  PozostUwzgTransfery:55000,  RP4_x_Transfery:100000 },
-    { Sygnatura:'2026-AL-H10-005-007', Konto:'41708005', Konto_Opis:'Języki obce',      Zaks:8000,   Zaang:4000,   Expected_Menu:10000,  wTransferach:0,     PozostUwzgTransfery:28000,  RP4_x_Transfery:50000  },
+  // DEMO — odpala się tylko lokalnie, poza Grist
+  render(recordsToGroups([
+    { Rok:2026, Konto:'41708001', Admin:'AY', Zaks:415000, Zaang:180000, Expected_Menu:90000,  wTransferach:40000, PozostUwzgTransfery:75000,  RP4_x_Transfery:800000 },
+    { Rok:2026, Konto:'41708003', Admin:'MKI',Zaks:90000,  Zaang:60000,  Expected_Menu:80000,  wTransferach:0,     PozostUwzgTransfery:70000,  RP4_x_Transfery:300000 },
+    { Rok:2026, Konto:'41708004', Admin:'AL', Zaks:45000,  Zaang:20000,  Expected_Menu:30000,  wTransferach:10000, PozostUwzgTransfery:45000,  RP4_x_Transfery:150000 },
+    { Rok:2026, Konto:'41708005', Admin:'AL', Zaks:20000,  Zaang:12000,  Expected_Menu:30000,  wTransferach:5000,  PozostUwzgTransfery:83000,  RP4_x_Transfery:150000 },
+    { Rok:2025, Konto:'41708001', Admin:'AY', Zaks:999999, Zaang:0,      Expected_Menu:0,      wTransferach:0,     PozostUwzgTransfery:0,      RP4_x_Transfery:999999 }, // przefiltrowany
   ]));
 }
 </script>
