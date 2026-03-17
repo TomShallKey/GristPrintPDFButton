@@ -263,6 +263,7 @@ header h1 {
   </div>
 </div>
 
+<div id="debug" style="display:none;background:#fff3cd;border:1px solid #ffc107;border-radius:4px;padding:10px;margin-bottom:16px;font-size:11px;font-family:monospace;color:#333"></div>
 <div id="chart"><div class="msg">Oczekiwanie na dane…</div></div>
 
 <script>
@@ -420,7 +421,21 @@ function recordsToGroups(records) {
 
 if (typeof grist !== 'undefined') {
   grist.ready({ requiredAccess: 'read table' });
-  grist.onRecords(records => render(recordsToGroups(records)));
+  grist.onRecords(records => {
+    // DEBUG — pokaż co przyszło z Grist
+    const dbg = document.getElementById('debug');
+    if (dbg) {
+      dbg.style.display = 'block';
+      const first = records[0] || {};
+      dbg.innerHTML = `
+        <b>Liczba rekordów:</b> ${records.length}<br/>
+        <b>Klucze pierwszego rekordu:</b> ${Object.keys(first).join(', ')}<br/>
+        <b>Pierwszy rekord:</b><br/>
+        <pre style="font-size:9px;white-space:pre-wrap">${JSON.stringify(first, null, 2)}</pre>
+      `;
+    }
+    render(recordsToGroups(records));
+  });
 } else {
   // DEMO — odpala się tylko lokalnie, poza Grist
   render(recordsToGroups([
