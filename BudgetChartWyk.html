@@ -20,7 +20,7 @@
   --c-trans:  #7dbde8;   /* błękitny         – w transferach */
   --c-pozost: #82c99a;   /* miętowy zieleń   – wolne */
 
-  --row-h: 28px;
+  --row-h: 36px;
   --label-w: 80px;
   --val-w: 110px;
   --ff: 'Roboto', sans-serif;
@@ -142,6 +142,14 @@ header h1 {
   color: var(--text);
   text-align: right;
   white-space: nowrap;
+  line-height: 1.3;
+}
+.row-label-sub {
+  display: block;
+  font-size: 8px;
+  color: var(--muted);
+  font-family: var(--ff);
+  font-weight: 400;
 }
 
 /* outer container gives bar proportional space in flex row */
@@ -169,11 +177,30 @@ header h1 {
   display: flex;
 }
 
-.seg { height: 100%; flex-shrink: 0; }
+.seg { height: 100%; flex-shrink: 0; position: relative; }
+.seg-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--ff);
+  font-size: 8px;
+  font-weight: 500;
+  color: rgba(255,255,255,.9);
+  line-height: 1.3;
+  text-align: center;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+}
 .seg-zaks  { background: var(--c-zaks); }
 .seg-zaang { background: var(--c-zaang); }
 .seg-exp   { background: var(--c-exp); }
 .seg-trans { background: var(--c-trans); }
+.seg-pozost { background: var(--c-pozost); }
+.seg-pozost .seg-label { color: rgba(255,255,255,.95); }
 
 /* tooltip – pozycja ustawiana przez JS */
 .tip {
@@ -256,6 +283,16 @@ header h1 {
   font-size: 10px;
   color: var(--muted);
   white-space: nowrap;
+  line-height: 1.4;
+}
+.row-val-pct {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text);
+}
+.row-val-detail {
+  font-size: 9px;
+  color: var(--muted);
 }
 
 /* ── MISC ─────────────────────────────── */
@@ -330,7 +367,7 @@ const fmtFull = v => {
 // Skrócony: 1 200 000 → "1,2 M", 12 000 → "12 000", 999 → "999"
 const fmtShort = v => {
   const n = +v || 0;
-  return (n / 1e6).toLocaleString('pl-PL', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' mln';
+  return (n / 1e6).toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' mln';
 };
 
 const KONTO_NAMES = {
@@ -338,6 +375,13 @@ const KONTO_NAMES = {
   '41708003': 'MKI – Inwestycyjne',
   '41708004': 'AL – Kursy językowe i studia',
   '41708005': 'AL – Rozwojowe',
+};
+
+const KONTO_SHORT = {
+  '41708001': 'Operacyjne',
+  '41708003': 'Inwestycyjne',
+  '41708004': 'Ang i Stud',
+  '41708005': 'Rozwój',
 };
 
 function buildRow(g, idx, maxBudget) {
@@ -382,17 +426,21 @@ function buildRow(g, idx, maxBudget) {
   row.className = 'row';
   row.style.animationDelay = (idx * 30) + 'ms';
   row.innerHTML = `
-    <div class="row-label">${esc(konto)}</div>
+    <div class="row-label">${esc(konto)}${KONTO_SHORT[konto] ? `<span class="row-label-sub">${esc(KONTO_SHORT[konto])}</span>` : ''}</div>
     <div class="bar-track-outer">
       <div class="bar-wrap" style="width:${barPct}">
-        <div class="bar-bg">
+        <div class="bar-bg" style="background:transparent">
           ${segs.filter(s => s.val > 0).map(s =>
-            `<div class="seg ${s.cls}" style="width:${w(s.val)}"></div>`
+            `<div class="seg ${s.cls}" style="width:${w(s.val)}" data-pct="${pct(s.val,denom)}" data-mln="${fmtShort(s.val)}"></div>`
           ).join('')}
+          ${pozost > 0 ? `<div class="seg seg-pozost" style="flex:1" data-pct="${pct(pozost,denom)}" data-mln="${fmtShort(pozost)}"></div>` : ''}
         </div>
       </div>
     </div>
-    <div class="row-val">${fmtShort(zaks + zaang)} / ${fmtShort(rp4)}</div>
+    <div class="row-val">
+      <div class="row-val-pct">${pct(zaks+zaang+exp+trans, rp4)}</div>
+      <div class="row-val-detail">${fmtShort(zaks+zaang+exp+trans)} / ${fmtShort(rp4)}</div>
+    </div>
   `;
 
   const barWrap = row.querySelector('.bar-wrap');
@@ -464,16 +512,60 @@ function renderDonut(groups) {
     return `M${x1},${y1} A${R},${R},0,${large},1,${x2},${y2} L${x3},${y3} A${r},${r},0,${large},0,${x4},${y4} Z`;
   }
 
+  const ns = 'http://www.w3.org/2000/svg';
   let angle = -Math.PI / 2;
   segs.forEach(s => {
     const span = (s.val / total) * TAU;
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    const path = document.createElementNS(ns, 'path');
     path.setAttribute('d', arc(cx, cy, R, r, angle, angle + span));
     path.setAttribute('fill', s.color);
     path.style.cursor = 'default';
     svg.appendChild(path);
+
+    // label inside segment if large enough (>8%)
+    if (s.val / total > 0.08) {
+      const mid = angle + span / 2;
+      const Rl  = (R + r) / 2;           // midpoint radius
+      const lx  = cx + Rl * Math.cos(mid);
+      const ly  = cy + Rl * Math.sin(mid);
+
+      const txt = document.createElementNS(ns, 'text');
+      txt.setAttribute('x', lx);
+      txt.setAttribute('y', ly);
+      txt.setAttribute('text-anchor', 'middle');
+      txt.setAttribute('dominant-baseline', 'middle');
+      txt.setAttribute('font-family', 'Roboto, sans-serif');
+      txt.setAttribute('font-size', '6.5');
+      txt.setAttribute('fill', 'rgba(255,255,255,0.9)');
+      txt.setAttribute('pointer-events', 'none');
+      txt.textContent = pct(s.val, total);
+      svg.appendChild(txt);
+    }
+
     angle += span;
   });
+
+  // center: wolne
+  const t1 = document.createElementNS(ns, 'text');
+  t1.setAttribute('x', cx); t1.setAttribute('y', cy - 5);
+  t1.setAttribute('text-anchor', 'middle');
+  t1.setAttribute('dominant-baseline', 'middle');
+  t1.setAttribute('font-family', 'Roboto, sans-serif');
+  t1.setAttribute('font-size', '9'); t1.setAttribute('font-weight', '500');
+  const pozostColor = getComputedStyle(document.documentElement).getPropertyValue('--c-pozost').trim();
+  t1.setAttribute('fill', pozostColor); t1.setAttribute('pointer-events', 'none');
+  t1.textContent = fmtShort(T.pozost);
+  svg.appendChild(t1);
+
+  const t2 = document.createElementNS(ns, 'text');
+  t2.setAttribute('x', cx); t2.setAttribute('y', cy + 7);
+  t2.setAttribute('text-anchor', 'middle');
+  t2.setAttribute('dominant-baseline', 'middle');
+  t2.setAttribute('font-family', 'Roboto, sans-serif');
+  t2.setAttribute('font-size', '7');
+  t2.setAttribute('fill', '#aaa'); t2.setAttribute('pointer-events', 'none');
+  t2.textContent = 'wolne';
+  svg.appendChild(t2);
 
   // single tooltip for whole donut showing all segments
   const donutTipHtml = `
@@ -524,6 +616,17 @@ function render(groups) {
   const wrap = document.createElement('div');
   groups.forEach((g, i) => wrap.appendChild(buildRow(g, i, maxBudget)));
   chart.appendChild(wrap);
+
+  // post-render: inject labels only where segment is wide enough
+  const MIN_W = 28; // px — minimum width to show both % and mln
+  wrap.querySelectorAll('.seg[data-pct]').forEach(seg => {
+    if (seg.offsetWidth >= MIN_W) {
+      const span = document.createElement('span');
+      span.className = 'seg-label';
+      span.innerHTML = `${seg.dataset.pct}<br/>${seg.dataset.mln}`;
+      seg.appendChild(span);
+    }
+  });
 
 }
 
