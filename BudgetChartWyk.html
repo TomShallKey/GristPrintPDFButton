@@ -401,6 +401,42 @@ header h1 {
   color: var(--muted);
 }
 
+/* ── DETAIL ROWS ──────────────────────── */
+.drow {
+  display: grid;
+  grid-template-columns: 18% 40% 14% 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid #f0efeb;
+}
+.drow:last-child { border-bottom: none; }
+.drow-syg {
+  font-size: 10px;
+  color: var(--muted);
+  font-family: var(--ff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.drow-opis {
+  font-size: 11px;
+  color: var(--text);
+  font-family: var(--ff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.drow-bar-wrap {
+  cursor: default;
+  padding-right: 12px;
+}
+.drow-bar {
+  height: 14px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
 /* ── MISC ─────────────────────────────── */
 .msg {
   font-family: var(--ff-mono);
@@ -812,9 +848,9 @@ function renderDetail() {
   const MIN_W = 44;
 
   rows.forEach(r => {
-    const denom  = Math.max(r.rp4, r.zaks+r.zaang+r.exp+r.trans+r.pozost) || 1;
-    const barPct = (r.rp4 / globalMaxBudget * 100).toFixed(2) + '%';
-    const w      = v => (v / denom * 100).toFixed(3) + '%';
+    const denom   = Math.max(r.rp4, r.zaks+r.zaang+r.exp+r.trans+r.pozost) || 1;
+    const barW    = (r.rp4 / maxRp4 * 100).toFixed(2) + '%';
+    const w       = v => (v / denom * 100).toFixed(3) + '%';
 
     const segs = [
       { cls:'seg-zaks',   val:r.zaks,   label:'Zaksięgowane',    color:'var(--c-zaks)' },
@@ -846,27 +882,25 @@ function renderDetail() {
     `;
 
     const rowEl = document.createElement('div');
-    rowEl.className = 'row';
-    rowEl.style.opacity = '1';
-    rowEl.style.animation = 'none';
+    rowEl.className = 'drow';
     rowEl.innerHTML = `
-      <div class="row-label" style="width:140px;font-size:11px;text-align:right">
-        <span style="font-family:var(--ff-mono);font-size:11px;color:var(--muted)">${esc(r.syg)}</span>
-        <span class="row-label-sub" style="white-space:normal;line-height:1.3">${esc(r.opis)}</span>
+      <div class="drow-syg">${esc(r.syg)}</div>
+      <div class="drow-opis">${esc(r.opis)}</div>
+      <div style="font-size:10px;color:var(--muted);font-family:var(--ff);white-space:nowrap;text-align:right">
+        ${fmtShort(r.rp4)}<br/>
+        <span style="color:var(--c-pozost);font-size:9px">${fmtShort(r.pozost)}</span>
       </div>
-      <div class="bar-track-outer">
-        <div class="bar-wrap" style="width:${barPct}">
-          <div class="bar-bg" style="background:transparent">
-            ${segs.filter(s => s.val > 0).map(s =>
-              `<div class="seg ${s.cls}" style="width:${w(s.val)}" data-pct="${pct(s.val,denom)}" data-mln="${fmtShort(s.val)}"></div>`
-            ).join('')}
-            ${r.pozost > 0 ? `<div class="seg seg-pozost" style="flex:1" data-pct="${pct(r.pozost,denom)}" data-mln="${fmtShort(r.pozost)}"></div>` : ''}
-          </div>
+      <div class="drow-bar-wrap">
+        <div class="drow-bar" style="background:transparent;display:flex;width:${barW}">
+          ${segs.filter(s => s.val > 0).map(s =>
+            `<div style="width:${w(s.val)};height:100%;background:${s.color};flex-shrink:0"></div>`
+          ).join('')}
+          ${r.pozost > 0 ? `<div style="flex:1;height:100%;background:var(--c-pozost)"></div>` : ''}
         </div>
       </div>
     `;
 
-    const barWrap = rowEl.querySelector('.bar-wrap');
+    const barWrap = rowEl.querySelector('.drow-bar-wrap');
     barWrap.addEventListener('mousemove', (e) => {
       globalTip.innerHTML = tipHtml;
       globalTip.style.display = 'block';
@@ -880,16 +914,6 @@ function renderDetail() {
     barWrap.addEventListener('mouseleave', () => { globalTip.style.display = 'none'; });
 
     container.appendChild(rowEl);
-  });
-
-  // inject seg labels
-  container.querySelectorAll('.seg[data-pct]').forEach(seg => {
-    if (seg.offsetWidth >= MIN_W) {
-      const span = document.createElement('span');
-      span.className = 'seg-label';
-      span.innerHTML = `${seg.dataset.pct}<br/>${seg.dataset.mln}`;
-      seg.appendChild(span);
-    }
   });
 }
 
