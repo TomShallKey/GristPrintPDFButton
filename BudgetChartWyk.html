@@ -76,31 +76,29 @@ header h1 {
   display: block;
 }
 .legend-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr 1fr 1px 1fr;
+  gap: 0 6px;
+  align-items: stretch;
 }
-.leg-group {
-  border: 1px solid rgba(0,0,0,.1);
-  border-radius: 6px;
-  padding: 4px 6px 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.leg-divider {
+  background: rgba(0,0,0,.1);
+  border-radius: 1px;
+  margin: 4px 0;
 }
 .leg-group-label {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
   color: #888;
   letter-spacing: .02em;
-  padding: 0 2px 2px;
+  padding: 0 2px 4px;
+  margin-bottom: 4px;
   border-bottom: 1px solid rgba(0,0,0,.07);
-  margin-bottom: 2px;
+  grid-column: span 1;
+  white-space: nowrap;
 }
-.leg-group-row {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 4px;
+.leg-group-header {
+  display: contents;
 }
 .leg {
   border-radius: 4px;
@@ -108,6 +106,7 @@ header h1 {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  align-self: stretch;
 }
 .leg-name {
   font-size: 13px;
@@ -566,10 +565,10 @@ header h1 {
   <div class="legend-donut" id="donut-wrap">
     <svg id="donut-svg" viewBox="-8 -8 166 166" xmlns="http://www.w3.org/2000/svg"></svg>
   </div>
-  <div class="legend-cards">
-    <div class="leg-group">
-      <div class="leg-group-label">W Menu Szkoleń</div>
-      <div class="leg-group-row">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:stretch">
+    <div style="border:1px solid rgba(0,0,0,.1);border-radius:6px;padding:5px 6px 6px;display:flex;flex-direction:column;gap:4px">
+      <div style="font-size:11px;font-weight:600;color:#888;padding:0 2px 3px;border-bottom:1px solid rgba(0,0,0,.07);flex-shrink:0">W Menu Szkoleń</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;flex:1">
         <div class="leg" style="background:var(--c-zaks)">
           <div class="leg-name">Zaksięgowane</div>
           <div class="leg-desc">Koszty faktycznie zaksięgowane w księgowości.</div>
@@ -580,9 +579,9 @@ header h1 {
         </div>
       </div>
     </div>
-    <div class="leg-group">
-      <div class="leg-group-label">W EZD/eZAK, Jeszcze nie w Menu</div>
-      <div class="leg-group-row">
+    <div style="border:1px solid rgba(0,0,0,.1);border-radius:6px;padding:5px 6px 6px;display:flex;flex-direction:column;gap:4px">
+      <div style="font-size:11px;font-weight:600;color:#888;padding:0 2px 3px;border-bottom:1px solid rgba(0,0,0,.07);flex-shrink:0">W EZD/eZAK, Jeszcze nie w Menu</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;flex:1">
         <div class="leg" style="background:var(--c-exp)">
           <div class="leg-name">Wnioski zakupowe</div>
           <div class="leg-desc">Zabezpieczenie aktywnych wniosków zakupowych, bez uwzględnienia kosztów <span style="background:var(--c-zaks);color:#fff;font-weight:600;padding:1px 2px;border-radius:2px">zaksięgowanych</span> oraz <span style="background:var(--c-zaang);color:#fff;font-weight:600;padding:1px 2px;border-radius:2px">zaangażowanych</span> w Menu.</div>
