@@ -15,7 +15,7 @@
   /* segment colors – pastel */
   --c-zaks:   #8b7ec8;   /* jasny fiolet     – zaksięgowane */
   --c-zaang:  #e8a0b8;   /* bladoróżowy      – zaangażowane */
-  --c-exp:    #f5cc50;   /* żółty czysty     – wnioski zakupowe */
+  --c-exp:    #c9a020;   /* ciemniejszy żółty – wnioski zakupowe */
   --c-trans:  #7dbde8;   /* błękitny         – w transferach */
   --c-pozost: #82c99a;   /* miętowy zieleń   – wolne */
 
@@ -259,7 +259,6 @@ header h1 {
 
 <header>
   <h1>Wykonanie Budżetu</h1>
-  <span id="subtitle"></span>
 </header>
 
 <div class="legend">
@@ -272,8 +271,8 @@ header h1 {
     <div class="leg-desc">Wnioski już w menu szkoleń, jeszcze niezaksięgowane.</div>
   </div>
   <div class="leg" style="background:var(--c-exp)">
-    <div class="leg-name" style="color:#1a1a18">Wnioski zakupowe</div>
-    <div class="leg-desc" style="color:rgba(0,0,0,.55)">Zabezpieczenie aktywnych wniosków zakupowych — bez uwzględnienia kosztów już zaksięgowanych i zaangażowanych w menu.</div>
+    <div class="leg-name">Wnioski zakupowe</div>
+    <div class="leg-desc">Zabezpieczenie aktywnych wniosków zakupowych — bez uwzględnienia kosztów już zaksięgowanych i zaangażowanych w menu.</div>
   </div>
   <div class="leg" style="background:var(--c-trans)">
     <div class="leg-name">W transferach</div>
@@ -440,10 +439,6 @@ function render(groups) {
   groups.forEach((g, i) => wrap.appendChild(buildRow(g, i, maxBudget)));
   chart.appendChild(wrap);
 
-  const wyk = groups.reduce((a, g) => a + g.zaks + g.zaang, 0);
-  const rp4 = groups.reduce((a, g) => a + g.rp4, 0);
-  document.getElementById('subtitle').textContent =
-    `${groups.length} kont · ${pct(wyk, rp4)} wykonania`;
 }
 
 // ── Grist ──────────────────────────────────────────────────────────────────────
