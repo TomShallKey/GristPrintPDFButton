@@ -992,8 +992,8 @@ function renderDetail() {
       <div class="drow-syg">${esc(r.syg)}</div>
       <div class="drow-opis">${esc(r.opis)}</div>
       <div style="font-family:var(--ff);white-space:nowrap;text-align:right;line-height:1.8">
-        <div style="font-size:10px;color:var(--muted)">Budżet <span style="color:var(--text);font-weight:600">${fmtShort(r.rp4)}</span></div>
-        <div style="font-size:10px;color:var(--c-pozost)">Wolne <span style="font-weight:600">${fmtShort(r.pozost)}</span></div>
+        <div style="font-size:10px;color:var(--muted)">Budżet <span style="color:var(--text);font-weight:600">${(+r.rp4||0).toLocaleString('pl-PL',{maximumFractionDigits:0})} zł</span></div>
+        <div style="font-size:10px;color:var(--c-pozost)">Wolne <span style="font-weight:600">${(+r.pozost||0).toLocaleString('pl-PL',{maximumFractionDigits:0})} zł</span></div>
       </div>
       <div class="drow-bar-wrap">
         <div class="drow-bar" style="background:transparent;display:flex;width:${barW}">
@@ -1112,7 +1112,7 @@ async function toggleMenuExpand(rowEl, sygnatura, sygId, expectedMenu) {
       const parts = [];
       if (rez.WZ_Numer)    parts.push(`<span>WZ: <strong>${esc(rez.WZ_Numer)}</strong></span>`);
       if (rez.Umowa_Numer) parts.push(`<span>Umowa: <strong>${esc(rez.Umowa_Numer)}</strong></span>`);
-      const val = rez.Spodz_Wartosc || rez.Umowa_Wartosc || rez.WZ_Wartosc || rez.Expected_Cost;
+      const val = rez.Expected_Cost;
       if (val)             parts.push(`<span>Wartość: <strong>${fmtFull(+val)}</strong></span>`);
       return parts.length
         ? `<div style="display:flex;gap:16px;flex-wrap:wrap;padding:4px 4px 8px;margin-bottom:4px;border-bottom:1px solid rgba(0,0,0,.08);font-size:10px;color:var(--muted)">${parts.join('')}</div>`
