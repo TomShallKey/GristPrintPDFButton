@@ -274,8 +274,9 @@ const pct = (a,b) => b > 0 ? (a/b*100).toFixed(0)+'%' : '—';
 
 // Zawsze pełny format z separatorem tysięcy, 2 miejsca po przecinku
 const fmtFull = v => {
-  if (v == null || isNaN(v)) return '—';
-  return v.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' zł';
+  const n = +v;
+  if (v == null || isNaN(n)) return '—';
+  return n.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true }) + ' zł';
 };
 
 // Skrócony: 1 200 000 → "1,2 M", 12 000 → "12 000", 999 → "999"
