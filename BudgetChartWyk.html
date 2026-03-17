@@ -558,10 +558,6 @@ header h1 {
 </head>
 <body>
 
-<header>
-  <h1>Wykonanie budżetu szkoleń 2026</h1>
-</header>
-
 <div class="legend">
   <div class="legend-donut" id="donut-wrap">
     <svg id="donut-svg" viewBox="-6 -6 124 124" xmlns="http://www.w3.org/2000/svg"></svg>
@@ -878,7 +874,7 @@ function render(groups) {
   chart.appendChild(wrap);
 
   // post-render: inject labels only where segment is wide enough
-  const MIN_W = 44; // px — minimum width to show both % and mln
+  const MIN_W = 64; // px — minimum width to show both % and mln
   wrap.querySelectorAll('.seg[data-pct]').forEach(seg => {
     if (seg.offsetWidth >= MIN_W) {
       const span = document.createElement('span');
