@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Wykonanie Budżetu</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:      #ffffff;
+  --border:  #e8e7e3;
+  --text:    #1a1a18;
+  --muted:   #a0a09a;
+
+  /* segment colors – pastel */
+  --c-zaks:   #8b7ec8;   /* jasny fiolet     – zaksięgowane */
+  --c-zaang:  #e8a0b8;   /* bladoróżowy      – zaangażowane */
+  --c-exp:    #f5cc50;   /* żółty czysty     – wnioski zakupowe */
+  --c-trans:  #7dbde8;   /* błękitny         – w transferach */
+  --c-pozost: #82c99a;   /* miętowy zieleń   – wolne */
+
+  --row-h: 28px;
+  --label-w: 80px;
+  --val-w: 110px;
+  --ff: 'Roboto', sans-serif;
+  --ff-mono: 'Roboto Mono', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--ff);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 12px;
+  padding: 18px 18px 24px;
+}
+
+/* ── HEADER ───────────────────────────── */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 20px;
+}
+header h1 {
+  font-family: var(--ff);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+#subtitle {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  color: var(--muted);
+}
+
+/* ── LEGEND ───────────────────────────── */
+.legend {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.leg {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: var(--muted);
+  position: relative;
+  cursor: default;
+  user-select: none;
+}
+.leg-dot {
+  width: 8px; height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.leg-tip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a1a18;
+  color: rgba(255,255,255,.82);
+  font-family: var(--ff);
+  font-size: 10px;
+  line-height: 1.5;
+  white-space: nowrap;
+  padding: 6px 10px;
+  border-radius: 5px;
+  pointer-events: none;
+  z-index: 200;
+  box-shadow: 0 3px 14px rgba(0,0,0,.16);
+}
+.leg-tip::after {
+  content: '';
+  position: absolute;
+  top: 100%; left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #1a1a18;
+}
+.leg:hover .leg-tip { display: block; }
+
+/* ── CHART ────────────────────────────── */
+#chart { width: 100%; }
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+  opacity: 0;
+  animation: fadeUp .25s ease forwards;
+}
+
+.row-label {
+  width: var(--label-w);
+  flex-shrink: 0;
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  color: var(--text);
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* outer container gives bar proportional space in flex row */
+.bar-track-outer {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* actual bar – width set by JS as % of maxBudget */
+.bar-wrap {
+  flex-shrink: 0;
+  position: relative;
+  height: var(--row-h);
+  min-width: 3px;
+}
+
+.bar-bg {
+  width: 100%;
+  height: 100%;
+  background: var(--c-pozost);
+  border-radius: 3px;
+  overflow: hidden;
+  display: flex;
+}
+
+.seg { height: 100%; flex-shrink: 0; }
+.seg-zaks  { background: var(--c-zaks); }
+.seg-zaang { background: var(--c-zaang); }
+.seg-exp   { background: var(--c-exp); }
+.seg-trans { background: var(--c-trans); }
+
+/* ── BAR TOOLTIP ──────────────────────── */
+.tip {
+  display: none;
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  transform: translateX(-50%);
+  background: #1a1a18;
+  color: #fff;
+  font-family: var(--ff);
+  border-radius: 6px;
+  padding: 11px 13px;
+  min-width: 230px;
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: 0 4px 22px rgba(0,0,0,.2);
+}
+.tip::after {
+  content: '';
+  position: absolute;
+  top: 100%; left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #1a1a18;
+}
+.bar-wrap:hover .tip { display: block; }
+
+.tip-konto {
+  font-family: var(--ff-mono);
+  font-size: 9px;
+  letter-spacing: .1em;
+  color: rgba(255,255,255,.38);
+  margin-bottom: 2px;
+}
+.tip-opis {
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 9px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+  line-height: 1.3;
+}
+.tip-row {
+  display: grid;
+  grid-template-columns: 1fr 100px 36px;
+  align-items: center;
+  padding: 2px 0;
+  font-size: 10.5px;
+  gap: 0;
+}
+.tl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255,255,255,.52);
+  white-space: nowrap;
+}
+.tv {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  color: #fff;
+  white-space: nowrap;
+  text-align: right;
+}
+.tp {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  color: rgba(255,255,255,.35);
+  text-align: right;
+  white-space: nowrap;
+}
+.tip-dot {
+  width: 7px; height: 7px;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+.tip-div {
+  border: none;
+  border-top: 1px solid rgba(255,255,255,.1);
+  margin: 7px 0;
+}
+.tip-sum .tl { color: rgba(255,255,255,.82); font-weight: 500; }
+.tip-sum .tv { font-size: 10.5px; font-weight: 500; }
+
+/* ── ROW VALUE ────────────────────────── */
+.row-val {
+  width: var(--val-w);
+  flex-shrink: 0;
+  text-align: right;
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* ── MISC ─────────────────────────────── */
+.msg {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  color: var(--muted);
+  padding: 40px 0;
+  text-align: center;
+}
+
+@keyframes fadeUp {
+  from { opacity:0; transform: translateY(3px); }
+  to   { opacity:1; transform: none; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Wykonanie Budżetu</h1>
+  <span id="subtitle"></span>
+</header>
+
+<div class="legend">
+  <div class="leg">
+    <div class="leg-dot" style="background:var(--c-zaks)"></div>Zaksięgowane
+    <div class="leg-tip">Koszty faktycznie zaksięgowane w księgowości.</div>
+  </div>
+  <div class="leg">
+    <div class="leg-dot" style="background:var(--c-zaang)"></div>Zaangażowane
+    <div class="leg-tip">Wnioski już w menu szkoleń, jeszcze niezaksięgowane.</div>
+  </div>
+  <div class="leg">
+    <div class="leg-dot" style="background:var(--c-exp)"></div>Wnioski zakupowe
+    <div class="leg-tip">Zabezpieczenie aktywnych wniosków zakupowych, poza wykonaniem w menu.</div>
+  </div>
+  <div class="leg">
+    <div class="leg-dot" style="background:var(--c-trans)"></div>W transferach
+    <div class="leg-tip">Środki na wnioski szkoleniowe nieodnotowane jeszcze w menu szkoleń.</div>
+  </div>
+  <div class="leg">
+    <div class="leg-dot" style="background:var(--c-pozost)"></div>Wolne
+    <div class="leg-tip">Środki niezaangażowane — wolna rezerwa budżetowa.</div>
+  </div>
+</div>
+
+<div id="chart"><div class="msg">Oczekiwanie na dane…</div></div>
+
+<script>
+const pos = v => Math.max(0, +v || 0);
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const pct = (a,b) => b > 0 ? (a/b*100).toFixed(0)+'%' : '—';
+
+// Zawsze pełny format z separatorem tysięcy, 2 miejsca po przecinku
+const fmtFull = v => {
+  if (v == null || isNaN(v)) return '—';
+  return v.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' zł';
+};
+
+// Skrócony: 1 200 000 → "1,2 M", 12 000 → "12 000", 999 → "999"
+const fmtShort = v => {
+  const n = +v || 0;
+  const a = Math.abs(n);
+  if (a >= 1e6) return n.toLocaleString('pl-PL', { minimumFractionDigits: 1, maximumFractionDigits: 1, notation: 'compact', compactDisplay: 'short' });
+  // zawsze z separatorem tysięcy, 0 miejsc po przecinku
+  return n.toLocaleString('pl-PL', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+};
+
+function kontoFromSyg(syg) {
+  if (!syg) return null;
+  const p = syg.split('-');
+  return p.length >= 4 ? '41708' + p[3] : null;
+}
+
+function groupByKonto(records) {
+  const map = new Map();
+  records.forEach(r => {
+    const konto = r.Konto || kontoFromSyg(r.Sygnatura) || '—';
+    const opis  = r.Konto_Opis || r.Admin || '';
+    if (!map.has(konto)) {
+      map.set(konto, { konto, opis, zaks:0, zaang:0, exp:0, trans:0, pozost:0, rp4:0 });
+    }
+    const g = map.get(konto);
+    g.zaks   += pos(r.Zaks);
+    g.zaang  += pos(r.Zaang);
+    g.exp    += pos(r.Expected_Menu);
+    g.trans  += pos(r.wTransferach);
+    g.pozost += pos(r.PozostUwzgTransfery);
+    g.rp4    += pos(r.RP4_x_Transfery);
+    if (!g.opis && opis) g.opis = opis;
+  });
+  return [...map.values()]
+    .filter(g => g.rp4 > 0 || (g.zaks + g.zaang + g.exp + g.trans + g.pozost) > 0)
+    .sort((a, b) => a.konto.localeCompare(b.konto));
+}
+
+function buildRow(g, idx, maxBudget) {
+  const { konto, opis, zaks, zaang, exp, trans, pozost, rp4 } = g;
+
+  const barPct = maxBudget > 0 ? (rp4 / maxBudget * 100).toFixed(2) + '%' : '100%';
+  const denom  = Math.max(rp4, zaks + zaang + exp + trans + pozost) || 1;
+  const w = v => (v / denom * 100).toFixed(3) + '%';
+
+  const segs = [
+    { cls:'seg-zaks',  val:zaks,  label:'Zaksięgowane',     color:'var(--c-zaks)' },
+    { cls:'seg-zaang', val:zaang, label:'Zaangażowane',      color:'var(--c-zaang)' },
+    { cls:'seg-exp',   val:exp,   label:'Wnioski zakupowe',  color:'var(--c-exp)' },
+    { cls:'seg-trans', val:trans, label:'W transferach',     color:'var(--c-trans)' },
+  ];
+
+  const tipHtml = `
+    <div class="tip-konto">${esc(konto)}</div>
+    ${opis ? `<div class="tip-opis">${esc(opis)}</div>` : '<div style="margin-bottom:9px"></div>'}
+    ${segs.map(s => `
+    <div class="tip-row">
+      <span class="tl"><span class="tip-dot" style="background:${s.color}"></span>${s.label}</span>
+      <span class="tv">${fmtFull(s.val)}</span>
+      <span class="tp">${pct(s.val, denom)}</span>
+    </div>`).join('')}
+    <div class="tip-row">
+      <span class="tl"><span class="tip-dot" style="background:var(--c-pozost)"></span>Wolne</span>
+      <span class="tv">${fmtFull(pozost)}</span>
+      <span class="tp">${pct(pozost, denom)}</span>
+    </div>
+    <hr class="tip-div"/>
+    <div class="tip-row tip-sum">
+      <span class="tl">Budżet (RP4 + transf.)</span>
+      <span class="tv">${fmtFull(rp4)}</span>
+      <span class="tp"></span>
+    </div>
+  `;
+
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.style.animationDelay = (idx * 30) + 'ms';
+  row.innerHTML = `
+    <div class="row-label">${esc(konto)}</div>
+    <div class="bar-track-outer">
+      <div class="bar-wrap" style="width:${barPct}">
+        <div class="bar-bg">
+          ${segs.filter(s => s.val > 0).map(s =>
+            `<div class="seg ${s.cls}" style="width:${w(s.val)}"></div>`
+          ).join('')}
+        </div>
+        <div class="tip">${tipHtml}</div>
+      </div>
+    </div>
+    <div class="row-val">${fmtShort(zaks + zaang)} / ${fmtShort(rp4)}</div>
+  `;
+  return row;
+}
+
+function render(groups) {
+  const chart = document.getElementById('chart');
+  chart.innerHTML = '';
+  if (!groups.length) {
+    chart.innerHTML = '<div class="msg">Brak danych.</div>';
+    return;
+  }
+
+  const maxBudget = Math.max(...groups.map(g =>
+    g.rp4 || (g.zaks + g.zaang + g.exp + g.trans + g.pozost)
+  )) || 1;
+
+  const wrap = document.createElement('div');
+  groups.forEach((g, i) => wrap.appendChild(buildRow(g, i, maxBudget)));
+  chart.appendChild(wrap);
+
+  const wyk = groups.reduce((a, g) => a + g.zaks + g.zaang, 0);
+  const rp4 = groups.reduce((a, g) => a + g.rp4, 0);
+  document.getElementById('subtitle').textContent =
+    `${groups.length} kont · ${pct(wyk, rp4)} wykonania`;
+}
+
+// ── Grist ──────────────────────────────────────────────────────────────────────
+if (typeof grist !== 'undefined') {
+  grist.ready({ requiredAccess: 'read table' });
+  grist.onRecords(records => render(groupByKonto(records)));
+} else {
+  // DEMO
+  render(groupByKonto([
+    { Sygnatura:'2026-AY-S10-001-001', Konto:'41708001', Konto_Opis:'Szkolenia AY',     Zaks:320000, Zaang:180000, Expected_Menu:90000,  wTransferach:40000, PozostUwzgTransfery:70000,  RP4_x_Transfery:700000 },
+    { Sygnatura:'2026-AY-S10-001-005', Konto:'41708001', Konto_Opis:'Szkolenia AY',     Zaks:95000,  Zaang:30000,  Expected_Menu:0,      wTransferach:0,     PozostUwzgTransfery:25000,  RP4_x_Transfery:150000 },
+    { Sygnatura:'2026-MF-F10-003-002', Konto:'41708003', Konto_Opis:'Szkolenia MF',     Zaks:90000,  Zaang:60000,  Expected_Menu:80000,  wTransferach:0,     PozostUwzgTransfery:70000,  RP4_x_Transfery:300000 },
+    { Sygnatura:'2026-AL-H10-004-003', Konto:'41708004', Konto_Opis:'Szkolenia AL/BHP', Zaks:45000,  Zaang:20000,  Expected_Menu:30000,  wTransferach:10000, PozostUwzgTransfery:45000,  RP4_x_Transfery:150000 },
+    { Sygnatura:'2026-AL-H10-005-004', Konto:'41708005', Konto_Opis:'Języki obce',      Zaks:12000,  Zaang:8000,   Expected_Menu:20000,  wTransferach:5000,  PozostUwzgTransfery:55000,  RP4_x_Transfery:100000 },
+    { Sygnatura:'2026-AL-H10-005-007', Konto:'41708005', Konto_Opis:'Języki obce',      Zaks:8000,   Zaang:4000,   Expected_Menu:10000,  wTransferach:0,     PozostUwzgTransfery:28000,  RP4_x_Transfery:50000  },
+  ]));
+}
+</script>
+</body>
+</html>
