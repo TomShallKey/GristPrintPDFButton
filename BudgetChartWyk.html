@@ -404,7 +404,7 @@ header h1 {
 /* ── DETAIL ROWS ──────────────────────── */
 .drow {
   display: grid;
-  grid-template-columns: 18% 40% 14% 1fr;
+  grid-template-columns: 18% 38% 18% 1fr;
   align-items: center;
   gap: 8px;
   padding: 4px 0;
@@ -886,9 +886,9 @@ function renderDetail() {
     rowEl.innerHTML = `
       <div class="drow-syg">${esc(r.syg)}</div>
       <div class="drow-opis">${esc(r.opis)}</div>
-      <div style="font-size:10px;color:var(--muted);font-family:var(--ff);white-space:nowrap;text-align:right">
-        ${fmtShort(r.rp4)}<br/>
-        <span style="color:var(--c-pozost);font-size:9px">${fmtShort(r.pozost)}</span>
+      <div style="font-family:var(--ff);white-space:nowrap;text-align:right;line-height:1.8">
+        <div style="font-size:10px;color:var(--muted)">Budżet <span style="color:var(--text);font-weight:600">${fmtShort(r.rp4)}</span></div>
+        <div style="font-size:10px;color:var(--c-pozost)">Wolne <span style="font-weight:600">${fmtShort(r.pozost)}</span></div>
       </div>
       <div class="drow-bar-wrap">
         <div class="drow-bar" style="background:transparent;display:flex;width:${barW}">
