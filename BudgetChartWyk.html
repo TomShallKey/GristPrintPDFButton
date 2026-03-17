@@ -61,7 +61,7 @@ header h1 {
 /* ── LEGEND CARDS ─────────────────────── */
 .legend {
   display: grid;
-  grid-template-columns: 200px 1fr;
+  grid-template-columns: 150px 1fr;
   gap: 6px;
   margin-bottom: 20px;
   align-items: stretch;
@@ -563,7 +563,7 @@ header h1 {
 
 <div class="legend">
   <div class="legend-donut" id="donut-wrap">
-    <svg id="donut-svg" viewBox="-8 -8 166 166" xmlns="http://www.w3.org/2000/svg"></svg>
+    <svg id="donut-svg" viewBox="-6 -6 124 124" xmlns="http://www.w3.org/2000/svg"></svg>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:stretch">
     <div style="border:1px solid rgba(0,0,0,.1);border-radius:6px;padding:5px 6px 6px;display:flex;flex-direction:column;gap:4px">
@@ -754,7 +754,7 @@ function renderDonut(groups) {
     { val: T.pozost, label: 'Wolne',            color: getComputedStyle(document.documentElement).getPropertyValue('--c-pozost').trim() },
   ].filter(s => s.val > 0);
 
-  const cx = 75, cy = 75, R = 65, r = 40;
+  const cx = 56, cy = 56, R = 48, r = 30;
   const TAU = 2 * Math.PI;
 
   function arc(cx, cy, R, r, startAngle, endAngle) {
@@ -805,22 +805,22 @@ function renderDonut(groups) {
 
   // center: wolne
   const t1 = document.createElementNS(ns, 'text');
-  t1.setAttribute('x', cx); t1.setAttribute('y', cy - 7);
+  t1.setAttribute('x', cx); t1.setAttribute('y', cy - 5);
   t1.setAttribute('text-anchor', 'middle');
   t1.setAttribute('dominant-baseline', 'middle');
   t1.setAttribute('font-family', 'JetBrains Mono, monospace');
-  t1.setAttribute('font-size', '13'); t1.setAttribute('font-weight', '500');
+  t1.setAttribute('font-size', '10'); t1.setAttribute('font-weight', '500');
   const pozostColor = getComputedStyle(document.documentElement).getPropertyValue('--c-pozost').trim();
   t1.setAttribute('fill', pozostColor); t1.setAttribute('pointer-events', 'none');
   t1.textContent = fmtShort(T.pozost);
   svg.appendChild(t1);
 
   const t2 = document.createElementNS(ns, 'text');
-  t2.setAttribute('x', cx); t2.setAttribute('y', cy + 11);
+  t2.setAttribute('x', cx); t2.setAttribute('y', cy + 8);
   t2.setAttribute('text-anchor', 'middle');
   t2.setAttribute('dominant-baseline', 'middle');
   t2.setAttribute('font-family', 'JetBrains Mono, monospace');
-  t2.setAttribute('font-size', '10');
+  t2.setAttribute('font-size', '7.5');
   t2.setAttribute('fill', '#aaa'); t2.setAttribute('pointer-events', 'none');
   t2.textContent = 'wolne';
   svg.appendChild(t2);
