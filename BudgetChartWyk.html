@@ -1148,6 +1148,20 @@ async function toggleMenuExpand(rowEl, sygnatura, sygId, expectedMenu) {
         <div class="mrow-dates">—</div>
         <div class="mrow-cena" style="color:var(--c-exp)">${fmtFull(expectedMenu)}</div>
       </div>` : '';
+
+    const mainRowForWolne = allRawRecords.find(r => r.id === sygId);
+    const wolneVal = mainRowForWolne ? Math.max(0, +mainRowForWolne.PozostUwzgTransfery || 0) : 0;
+    const wolneRow = wolneVal > 0 ? `
+      <div class="mrow" style="background:rgba(130,201,154,.12)">
+        <div class="mrow-etap"><span class="etap-dot" style="background:var(--c-pozost)"></span>Wolne</div>
+        <div>
+          <div class="mrow-temat" style="color:var(--text)">Niezaangażowana rezerwa budżetowa na sygnaturze</div>
+          <div class="mrow-imnaz" data-full="">—</div>
+        </div>
+        <div class="mrow-dates">—</div>
+        <div class="mrow-dates">—</div>
+        <div class="mrow-cena" style="color:var(--c-pozost)">${fmtFull(wolneVal)}</div>
+      </div>` : '';
     rows.sort((a, b) => {
       const ea = normalizeEtap(a.etap_Kat), eb = normalizeEtap(b.etap_Kat);
       if (ea === 'Zaksięgowane' && eb !== 'Zaksięgowane') return -1;
@@ -1186,7 +1200,7 @@ async function toggleMenuExpand(rowEl, sygnatura, sygId, expectedMenu) {
     const mainRow   = allRawRecords.find(r => r.id === sygId);
     const transVal  = mainRow ? pos(mainRow.wTransferach) : 0;
     const execTotal = total + (expectedMenu || 0) + transVal;
-    const sumHtml = (rows.length || wniosekRow || transferRow) ? `
+    const sumHtml = (rows.length || wniosekRow || transferRow || wolneRow) ? `
       <div class="menu-sum-inline" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:flex-end">
         <span>Zaksięgowane: <strong style="color:var(--c-zaks)">${fmtFull(zaks)}</strong></span>
         <span>Zaangażowane: <strong style="color:var(--c-zaang)">${fmtFull(zaang)}</strong></span>
@@ -1195,7 +1209,7 @@ async function toggleMenuExpand(rowEl, sygnatura, sygId, expectedMenu) {
         <span style="min-width:110px;text-align:right">Wykonanie: <strong>${fmtFull(execTotal)}</strong></span>
       </div>` : '';
 
-    const inner = rows.length || wniosekRow || transferRow
+    const inner = rows.length || wniosekRow || transferRow || wolneRow
       ? rezBar + header + rows.map(r => {
           const kat   = normalizeEtap(r.etap_Kat);
           const color = etapColor(r.etap_Kat);
@@ -1215,7 +1229,7 @@ async function toggleMenuExpand(rowEl, sygnatura, sygId, expectedMenu) {
             <div class="mrow-dates">${fmtDate(r.data_do)}</div>
             <div class="mrow-cena">${fmtFull(+r.cena || 0)}</div>
           </div>`;
-        }).join('') + transferRow + wniosekRow
+        }).join('') + transferRow + wniosekRow + wolneRow
       : `<div class="menu-loading-inline">Brak wpisów w Menu Szkoleń.</div>`;
 
     expandRow.innerHTML = `<div style="grid-column:1/-1">${inner}${sumHtml}</div>`;
