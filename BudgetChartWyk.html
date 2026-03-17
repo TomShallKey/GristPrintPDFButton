@@ -1087,12 +1087,12 @@ async function toggleMenuExpand(rowEl, sygnatura, sygId) {
       return e;
     };
 
-    // sort: Zaksięgowane first, then by data_od asc
+    // sort: Zaksięgowane first (by cena desc), then Zaangażowane (by cena desc)
     rows.sort((a, b) => {
-      const ea = String(a.etap_Kat||''), eb = String(b.etap_Kat||'');
+      const ea = normalizeEtap(a.etap_Kat), eb = normalizeEtap(b.etap_Kat);
       if (ea === 'Zaksięgowane' && eb !== 'Zaksięgowane') return -1;
       if (eb === 'Zaksięgowane' && ea !== 'Zaksięgowane') return 1;
-      return (+a.data_od || 0) - (+b.data_od || 0);
+      return (+b.cena || 0) - (+a.cena || 0);
     });
 
     const total = rows.reduce((a, r) => a + (+r.cena || 0), 0);
