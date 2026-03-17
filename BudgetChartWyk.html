@@ -412,7 +412,7 @@ header h1 {
 }
 .drow:last-child { border-bottom: none; }
 .drow-syg {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
   font-family: var(--ff);
   white-space: nowrap;
@@ -461,7 +461,7 @@ header h1 {
 }
 .mrow {
   display: grid;
-  grid-template-columns: 16% 1fr 16% 10% 10% 12%;
+  grid-template-columns: 14% 1fr 80px 80px 110px;
   align-items: center;
   gap: 6px;
   padding: 3px 4px;
@@ -484,11 +484,41 @@ header h1 {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.mrow-imnaz {
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+  cursor: default;
+}
+.mrow-imnaz-full {
+  display: none;
+  position: fixed;
+  background: #fafaf8;
+  color: var(--text);
+  font-size: 10px;
+  font-family: var(--ff);
+  border-radius: 5px;
+  padding: 6px 10px;
+  z-index: 1001;
+  pointer-events: none;
+  box-shadow: 0 3px 14px rgba(0,0,0,.13), 0 0 0 1px rgba(0,0,0,.07);
+  white-space: nowrap;
+  line-height: 1.7;
+}
+.mrow-dates {
+  white-space: nowrap;
+  color: var(--muted);
+  text-align: right;
+  font-size: 10px;
+}
 .mrow-cena {
   text-align: right;
   font-weight: 600;
   color: var(--text);
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 .etap-dot {
   display: inline-block;
@@ -1057,27 +1087,48 @@ async function toggleMenuExpand(rowEl, sygnatura, sygId) {
       return e;
     };
 
+    // sort: Zaksięgowane first, then by data_od asc
+    rows.sort((a, b) => {
+      const ea = String(a.etap_Kat||''), eb = String(b.etap_Kat||'');
+      if (ea === 'Zaksięgowane' && eb !== 'Zaksięgowane') return -1;
+      if (eb === 'Zaksięgowane' && ea !== 'Zaksięgowane') return 1;
+      return (+a.data_od || 0) - (+b.data_od || 0);
+    });
+
     const total = rows.reduce((a, r) => a + (+r.cena || 0), 0);
     const zaks  = rows.filter(r => String(r.etap_Kat||'').trim() === 'Zaksięgowane')
                       .reduce((a, r) => a + (+r.cena || 0), 0);
 
     const fmtDate = v => {
       if (!v) return '—';
-      // Grist dates are seconds since epoch
       const d = typeof v === 'number' ? new Date(v * 1000) : new Date(v);
       if (isNaN(d)) return String(v).slice(0,10);
       return d.toLocaleDateString('pl-PL', {day:'2-digit', month:'2-digit', year:'numeric'});
     };
 
+    const fmtPersons = raw => {
+      if (!raw) return '—';
+      return String(raw).split('*').map(s => s.trim()).filter(Boolean).join(' | ');
+    };
+
     const header = `
       <div class="mrow mrow-head">
         <div style="color:var(--muted);font-size:9px;font-weight:600">Etap</div>
-        <div style="color:var(--muted);font-size:9px;font-weight:600">Temat</div>
-        <div style="color:var(--muted);font-size:9px;font-weight:600">Uczestnik</div>
-        <div style="color:var(--muted);font-size:9px;font-weight:600">Od</div>
-        <div style="color:var(--muted);font-size:9px;font-weight:600">Do</div>
+        <div style="color:var(--muted);font-size:9px;font-weight:600">Temat · Uczestnik</div>
+        <div style="color:var(--muted);font-size:9px;font-weight:600;text-align:right">Od</div>
+        <div style="color:var(--muted);font-size:9px;font-weight:600;text-align:right">Do</div>
         <div style="color:var(--muted);font-size:9px;font-weight:600;text-align:right">Cena</div>
       </div>`;
+
+    const zaang = rows.filter(r => normalizeEtap(r.etap_Kat) === 'Zaangażowane')
+                      .reduce((a, r) => a + (+r.cena || 0), 0);
+
+    const sumHtml = rows.length ? `
+      <div class="menu-sum-inline" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:flex-end">
+        <span>Zaksięgowane: <strong style="color:var(--c-zaks)">${fmtFull(zaks)}</strong></span>
+        <span>Zaangażowane: <strong style="color:var(--c-zaang)">${fmtFull(zaang)}</strong></span>
+        <span style="min-width:110px;text-align:right">Wykonanie: <strong>${fmtFull(total)}</strong></span>
+      </div>` : '';
 
     const inner = rows.length
       ? header + rows.map(r => {
@@ -1087,20 +1138,40 @@ async function toggleMenuExpand(rowEl, sygnatura, sygId) {
             ? (kat === 'Zaksięgowane' ? 'rgba(139,126,200,.08)' : 'rgba(232,160,184,.10)')
             : '';
           const dot   = color ? `<span class="etap-dot" style="background:${color}"></span>` : '';
+          const persons = fmtPersons(r.im_naz);
           return `
           <div class="mrow" style="background:${bg}">
             <div class="mrow-etap">${dot}${esc(kat || '—')}</div>
-            <div class="mrow-temat">${esc(r.temat || '—')}</div>
-            <div class="mrow-temat">${esc(r.im_naz || '—')}</div>
-            <div class="mrow-temat" style="white-space:nowrap">${fmtDate(r.data_od)}</div>
-            <div class="mrow-temat" style="white-space:nowrap">${fmtDate(r.data_do)}</div>
+            <div>
+              <div class="mrow-temat" style="color:var(--text)">${esc(r.temat || '—')}</div>
+              <div class="mrow-imnaz" data-full="${esc(persons)}">${esc(persons)}</div>
+            </div>
+            <div class="mrow-dates">${fmtDate(r.data_od)}</div>
+            <div class="mrow-dates">${fmtDate(r.data_do)}</div>
             <div class="mrow-cena">${fmtFull(+r.cena || 0)}</div>
           </div>`;
         }).join('')
-        + `<div class="menu-sum-inline">Łącznie: <strong>${fmtShort(total)}</strong> &nbsp;·&nbsp; Zaksięgowane: <strong style="color:var(--c-zaks)">${fmtShort(zaks)}</strong></div>`
       : `<div class="menu-loading-inline">Brak wpisów w Menu Szkoleń.</div>`;
 
-    expandRow.innerHTML = `<div style="grid-column:1/-1">${inner}</div>`;
+    expandRow.innerHTML = `<div style="grid-column:1/-1">${inner}${sumHtml}</div>`;
+
+    // attach hover for im_naz overflow tooltip
+    expandRow.querySelectorAll('.mrow-imnaz').forEach(el => {
+      const tip = document.createElement('div');
+      tip.className = 'mrow-imnaz-full';
+      tip.textContent = el.dataset.full;
+      document.body.appendChild(tip);
+      el.addEventListener('mouseenter', () => {
+        if (el.scrollWidth > el.clientWidth) tip.style.display = 'block';
+      });
+      el.addEventListener('mousemove', e => {
+        const ox = 8, oy = 8;
+        let left = e.clientX + ox, top = e.clientY + oy;
+        if (left + tip.offsetWidth > window.innerWidth - 4) left = e.clientX - tip.offsetWidth - ox;
+        tip.style.left = left + 'px'; tip.style.top = top + 'px';
+      });
+      el.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+    });
 
   } catch(err) {
     expandRow.innerHTML = `<div style="grid-column:1/-1" class="menu-loading-inline" style="color:#c0392b">Błąd: ${esc(String(err))}</div>`;
