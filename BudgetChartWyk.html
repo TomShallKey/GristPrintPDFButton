@@ -244,7 +244,7 @@ header h1 {
   width: var(--label-w);
   flex-shrink: 0;
   font-family: var(--ff-mono);
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text);
   text-align: right;
   white-space: nowrap;
@@ -252,7 +252,7 @@ header h1 {
 }
 .row-label-sub {
   display: block;
-  font-size: 9px;
+  font-size: 11px;
   color: var(--muted);
   font-family: var(--ff);
   font-weight: 400;
@@ -292,7 +292,7 @@ header h1 {
   align-items: center;
   justify-content: center;
   font-family: var(--ff);
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 500;
   color: rgba(255,255,255,.9);
   line-height: 1.3;
@@ -386,18 +386,18 @@ header h1 {
   flex-shrink: 0;
   text-align: right;
   font-family: var(--ff-mono);
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
   white-space: nowrap;
   line-height: 1.4;
 }
 .row-val-pct {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--text);
 }
 .row-val-detail {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--muted);
 }
 
@@ -412,7 +412,7 @@ header h1 {
 }
 .drow:last-child { border-bottom: none; }
 .drow-syg {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   font-family: var(--ff);
   white-space: nowrap;
@@ -420,7 +420,7 @@ header h1 {
   text-overflow: ellipsis;
 }
 .drow-opis {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text);
   font-family: var(--ff);
   white-space: nowrap;
@@ -467,7 +467,7 @@ header h1 {
   padding: 3px 4px;
   border-radius: 3px;
   border-bottom: 1px solid rgba(0,0,0,.04);
-  font-size: 10px;
+  font-size: 11px;
 }
 .mrow.mrow-head { border-bottom: 1px solid rgba(0,0,0,.1); margin-bottom: 2px; }
 .mrow-etap {
@@ -1265,7 +1265,7 @@ function recordsToGroups(records) {
       g.zaang  += pos(r.Zaang);
       g.exp    += pos(r.Expected_Menu);
       g.trans  += pos(r.wTransferach);
-      g.pozost += pos(r.PozostUwzgTransfery);
+      g.pozost += Math.max(0, +r.PozostUwzgTransfery || 0);
       g.rp4    += pos(r.RP4_x_Transfery);
     });
 
