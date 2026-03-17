@@ -992,8 +992,8 @@ function renderDetail() {
       <div class="drow-syg">${esc(r.syg)}</div>
       <div class="drow-opis">${esc(r.opis)}</div>
       <div style="font-family:var(--ff);white-space:nowrap;text-align:right;line-height:1.8">
-        <div style="font-size:10px;color:var(--muted)">Budżet <span style="color:var(--text);font-weight:600">${(+r.rp4||0).toLocaleString('pl-PL',{maximumFractionDigits:0})} zł</span></div>
-        <div style="font-size:10px;color:var(--c-pozost)">Wolne <span style="font-weight:600">${(+r.pozost||0).toLocaleString('pl-PL',{maximumFractionDigits:0})} zł</span></div>
+        <div style="font-size:10px;color:var(--muted)">Budżet <span style="color:var(--text);font-weight:600">${(+r.rp4||0).toLocaleString('pl-PL',{maximumFractionDigits:0,useGrouping:true})} zł</span></div>
+        <div style="font-size:10px;color:var(--c-pozost)">Wolne <span style="font-weight:600">${(+r.pozost||0).toLocaleString('pl-PL',{maximumFractionDigits:0,useGrouping:true})} zł</span></div>
       </div>
       <div class="drow-bar-wrap">
         <div class="drow-bar" style="background:transparent;display:flex;width:${barW}">
