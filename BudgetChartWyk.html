@@ -380,8 +380,8 @@ const KONTO_NAMES = {
 const KONTO_SHORT = {
   '41708001': 'Operacyjne',
   '41708003': 'Inwestycyjne',
-  '41708004': 'Ang i Stud',
-  '41708005': 'Rozwój',
+  '41708004': 'Angielski i Studia',
+  '41708005': 'Rozwojowe',
 };
 
 function buildRow(g, idx, maxBudget) {
@@ -618,7 +618,7 @@ function render(groups) {
   chart.appendChild(wrap);
 
   // post-render: inject labels only where segment is wide enough
-  const MIN_W = 28; // px — minimum width to show both % and mln
+  const MIN_W = 44; // px — minimum width to show both % and mln
   wrap.querySelectorAll('.seg[data-pct]').forEach(seg => {
     if (seg.offsetWidth >= MIN_W) {
       const span = document.createElement('span');
