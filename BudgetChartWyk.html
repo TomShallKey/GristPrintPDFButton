@@ -576,7 +576,7 @@ header h1 {
         </div>
         <div class="leg" style="background:var(--c-zaang)">
           <div class="leg-name">Zaangażowane</div>
-          <div class="leg-desc">Wnioski już w menu szkoleń, jeszcze niezaksięgowane.</div>
+          <div class="leg-desc">Wnioski już w Menu Szkoleń, jeszcze niezaksięgowane.</div>
         </div>
       </div>
     </div>
@@ -1020,7 +1020,7 @@ function renderDetail() {
 
     const sygEl = rowEl.querySelector('.drow-syg');
     sygEl.title = 'Kliknij aby rozwinąć wpisy z Menu Szkoleń';
-    sygEl.addEventListener('click', () => toggleMenuExpand(rowEl, r.syg, r.sygId));
+    sygEl.addEventListener('click', () => toggleMenuExpand(rowEl, r.syg, r.sygId, r.exp));
 
     container.appendChild(rowEl);
   });
@@ -1028,9 +1028,10 @@ function renderDetail() {
 
 // ── Menu Szkoleń inline expand ────────────────────────────────────────────────
 let menuCache = null;
+let rezCache  = null;
 let expandedSyg = null;
 
-async function toggleMenuExpand(rowEl, sygnatura, sygId) {
+async function toggleMenuExpand(rowEl, sygnatura, sygId, expectedMenu) {
   // collapse if already open
   const existing = rowEl.nextElementSibling;
   if (existing && existing.classList.contains('menu-expand-row')) {
@@ -1055,14 +1056,33 @@ async function toggleMenuExpand(rowEl, sygnatura, sygId) {
   rowEl.after(expandRow);
 
   try {
-    if (typeof grist !== 'undefined' && grist.docApi && !menuCache) {
-      const data = await grist.docApi.fetchTable('API_MenuWykonanie');
-      const keys = Object.keys(data);
-      const len  = data[keys[0]].length;
-      menuCache = Array.from({length: len}, (_, i) =>
-        Object.fromEntries(keys.map(k => [k, data[k][i]]))
-      );
+    if (typeof grist !== 'undefined' && grist.docApi) {
+      if (!menuCache) {
+        const data = await grist.docApi.fetchTable('API_MenuWykonanie');
+        const keys = Object.keys(data);
+        const len  = data[keys[0]].length;
+        menuCache = Array.from({length: len}, (_, i) =>
+          Object.fromEntries(keys.map(k => [k, data[k][i]]))
+        );
+      }
+      if (!rezCache) {
+        const data = await grist.docApi.fetchTable('Rezerwacje');
+        const keys = Object.keys(data);
+        const len  = data[keys[0]].length;
+        rezCache = Array.from({length: len}, (_, i) =>
+          Object.fromEntries(keys.map(k => [k, data[k][i]]))
+        );
+      }
     }
+
+    // find Rezerwacje record for this sygnatura
+    const rez = rezCache
+      ? rezCache.find(r => {
+          const s = r.Sygnatura;
+          if (sygId && typeof s === 'number') return s === sygId;
+          return String(s) === String(sygId);
+        })
+      : null;
 
     let rows = [];
     if (menuCache) {
@@ -1087,7 +1107,47 @@ async function toggleMenuExpand(rowEl, sygnatura, sygId) {
       return e;
     };
 
-    // sort: Zaksięgowane first (by cena desc), then Zaangażowane (by cena desc)
+    // ── Rezerwacje info bar ───────────────────────────────────────────────────
+    const rezBar = rez ? (() => {
+      const parts = [];
+      if (rez.WZ_Numer)    parts.push(`<span>WZ: <strong>${esc(rez.WZ_Numer)}</strong></span>`);
+      if (rez.Umowa_Numer) parts.push(`<span>Umowa: <strong>${esc(rez.Umowa_Numer)}</strong></span>`);
+      const val = rez.Spodz_Wartosc || rez.Umowa_Wartosc || rez.WZ_Wartosc || rez.Expected_Cost;
+      if (val)             parts.push(`<span>Wartość: <strong>${fmtFull(+val)}</strong></span>`);
+      return parts.length
+        ? `<div style="display:flex;gap:16px;flex-wrap:wrap;padding:4px 4px 8px;margin-bottom:4px;border-bottom:1px solid rgba(0,0,0,.08);font-size:10px;color:var(--muted)">${parts.join('')}</div>`
+        : '';
+    })() : '';
+
+    // ── "Transfery" synthetic row ────────────────────────────────────────────
+    const transferRow = (r => r && r.trans > 0 ? `
+      <div class="mrow" style="background:rgba(125,189,232,.12)">
+        <div class="mrow-etap"><span class="etap-dot" style="background:var(--c-trans)"></span>Transfery</div>
+        <div>
+          <div class="mrow-temat" style="color:var(--text)">Aktywowane środki na procedowane wnioski szkoleniowe</div>
+          <div class="mrow-imnaz" data-full="">—</div>
+        </div>
+        <div class="mrow-dates">—</div>
+        <div class="mrow-dates">—</div>
+        <div class="mrow-cena" style="color:var(--c-trans)">${fmtFull(r.trans)}</div>
+      </div>` : '')((() => {
+        // find the MAIN row for this sygnatura to get trans value
+        const mainRow = allRawRecords.find(r => r.id === sygId);
+        return mainRow ? { trans: pos(mainRow.wTransferach) } : null;
+      })());
+
+    // ── "Wniosek zakupowy" synthetic row ──────────────────────────────────────
+    const wniosekRow = (expectedMenu > 0) ? `
+      <div class="mrow" style="background:rgba(240,168,48,.10)">
+        <div class="mrow-etap"><span class="etap-dot" style="background:var(--c-exp)"></span>Wniosek Zakupowy</div>
+        <div>
+          <div class="mrow-temat" style="color:var(--text)">Pozostałe zabezpieczenie wniosku zakupowego</div>
+          <div class="mrow-imnaz" data-full="">—</div>
+        </div>
+        <div class="mrow-dates">—</div>
+        <div class="mrow-dates">—</div>
+        <div class="mrow-cena" style="color:var(--c-exp)">${fmtFull(expectedMenu)}</div>
+      </div>` : '';
     rows.sort((a, b) => {
       const ea = normalizeEtap(a.etap_Kat), eb = normalizeEtap(b.etap_Kat);
       if (ea === 'Zaksięgowane' && eb !== 'Zaksięgowane') return -1;
@@ -1123,15 +1183,20 @@ async function toggleMenuExpand(rowEl, sygnatura, sygId) {
     const zaang = rows.filter(r => normalizeEtap(r.etap_Kat) === 'Zaangażowane')
                       .reduce((a, r) => a + (+r.cena || 0), 0);
 
-    const sumHtml = rows.length ? `
+    const mainRow   = allRawRecords.find(r => r.id === sygId);
+    const transVal  = mainRow ? pos(mainRow.wTransferach) : 0;
+    const execTotal = total + (expectedMenu || 0) + transVal;
+    const sumHtml = (rows.length || wniosekRow || transferRow) ? `
       <div class="menu-sum-inline" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:flex-end">
         <span>Zaksięgowane: <strong style="color:var(--c-zaks)">${fmtFull(zaks)}</strong></span>
         <span>Zaangażowane: <strong style="color:var(--c-zaang)">${fmtFull(zaang)}</strong></span>
-        <span style="min-width:110px;text-align:right">Wykonanie: <strong>${fmtFull(total)}</strong></span>
+        ${transVal > 0 ? `<span>Transfery: <strong style="color:var(--c-trans)">${fmtFull(transVal)}</strong></span>` : ''}
+        ${expectedMenu > 0 ? `<span>Wniosek: <strong style="color:var(--c-exp)">${fmtFull(expectedMenu)}</strong></span>` : ''}
+        <span style="min-width:110px;text-align:right">Wykonanie: <strong>${fmtFull(execTotal)}</strong></span>
       </div>` : '';
 
-    const inner = rows.length
-      ? header + rows.map(r => {
+    const inner = rows.length || wniosekRow || transferRow
+      ? rezBar + header + rows.map(r => {
           const kat   = normalizeEtap(r.etap_Kat);
           const color = etapColor(r.etap_Kat);
           const bg    = color
@@ -1150,7 +1215,7 @@ async function toggleMenuExpand(rowEl, sygnatura, sygId) {
             <div class="mrow-dates">${fmtDate(r.data_do)}</div>
             <div class="mrow-cena">${fmtFull(+r.cena || 0)}</div>
           </div>`;
-        }).join('')
+        }).join('') + transferRow + wniosekRow
       : `<div class="menu-loading-inline">Brak wpisów w Menu Szkoleń.</div>`;
 
     expandRow.innerHTML = `<div style="grid-column:1/-1">${inner}${sumHtml}</div>`;
@@ -1213,7 +1278,8 @@ if (typeof grist !== 'undefined') {
   grist.ready({ requiredAccess: 'read table' });
   grist.onRecords(records => {
     allRawRecords = records;
-    menuCache = null; // invalidate cache on data change
+    menuCache = null;
+    rezCache  = null; // invalidate cache on data change
     render(recordsToGroups(records));
   });
 } else {
@@ -1263,6 +1329,18 @@ if (typeof grist !== 'undefined') {
   // map sygnatura text → id for demo matching
   const sygMap = {};
   demoRecords.forEach(r => { if(r.id) sygMap[r.Sygnatura] = r.id; });
+
+  // DEMO rezerwacje cache
+  rezCache = [
+    { Sygnatura:1, WZ_Numer:'WZ/2026/001', Umowa_Numer:'UM/2026/ATC/001', WZ_Wartosc:400000, Umowa_Wartosc:400000, Spodz_Wartosc:400000, Expected_Cost:400000 },
+    { Sygnatura:2, WZ_Numer:'WZ/2026/002', Umowa_Numer:null,               WZ_Wartosc:300000, Umowa_Wartosc:null,   Spodz_Wartosc:300000, Expected_Cost:300000 },
+    { Sygnatura:3, WZ_Numer:null,           Umowa_Numer:null,               WZ_Wartosc:null,   Umowa_Wartosc:null,   Spodz_Wartosc:null,   Expected_Cost:200000 },
+    { Sygnatura:4, WZ_Numer:'WZ/2026/004', Umowa_Numer:'UM/2026/SAP/001',  WZ_Wartosc:300000, Umowa_Wartosc:300000, Spodz_Wartosc:300000, Expected_Cost:300000 },
+    { Sygnatura:5, WZ_Numer:'WZ/2026/005', Umowa_Numer:null,               WZ_Wartosc:80000,  Umowa_Wartosc:null,   Spodz_Wartosc:80000,  Expected_Cost:80000  },
+    { Sygnatura:6, WZ_Numer:null,           Umowa_Numer:'UM/2026/MBA/001',  WZ_Wartosc:null,   Umowa_Wartosc:70000,  Spodz_Wartosc:70000,  Expected_Cost:70000  },
+    { Sygnatura:7, WZ_Numer:'WZ/2026/007', Umowa_Numer:null,               WZ_Wartosc:100000, Umowa_Wartosc:null,   Spodz_Wartosc:100000, Expected_Cost:100000 },
+    { Sygnatura:8, WZ_Numer:null,           Umowa_Numer:null,               WZ_Wartosc:null,   Umowa_Wartosc:null,   Spodz_Wartosc:null,   Expected_Cost:50000  },
+  ];
 
   render(recordsToGroups(demoRecords));
 }
