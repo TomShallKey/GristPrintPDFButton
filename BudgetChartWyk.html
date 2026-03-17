@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Wykonanie Budżetu</title>
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet"/>
 <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 <style>
 :root {
@@ -23,8 +23,8 @@
   --row-h: 36px;
   --label-w: 80px;
   --val-w: 110px;
-  --ff: 'Roboto', sans-serif;
-  --ff-mono: 'Roboto Mono', monospace;
+  --ff: 'Open Sans', sans-serif;
+  --ff-mono: 'Open Sans', sans-serif;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -33,7 +33,7 @@ body {
   font-family: var(--ff);
   background: var(--bg);
   color: var(--text);
-  font-size: 12px;
+  font-size: 14px;
   padding: 18px 18px 24px;
 }
 
@@ -46,7 +46,7 @@ header {
 }
 header h1 {
   font-family: var(--ff);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: .14em;
   text-transform: uppercase;
@@ -54,14 +54,14 @@ header h1 {
 }
 #subtitle {
   font-family: var(--ff-mono);
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
 }
 
 /* ── LEGEND CARDS ─────────────────────── */
 .legend {
   display: grid;
-  grid-template-columns: 160px 1fr;
+  grid-template-columns: 200px 1fr;
   gap: 6px;
   margin-bottom: 20px;
   align-items: stretch;
@@ -89,11 +89,10 @@ header h1 {
   gap: 4px;
 }
 .leg-group-label {
-  font-size: 9px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
   color: #888;
-  letter-spacing: .06em;
-  text-transform: uppercase;
+  letter-spacing: .02em;
   padding: 0 2px 2px;
   border-bottom: 1px solid rgba(0,0,0,.07);
   margin-bottom: 2px;
@@ -111,19 +110,124 @@ header h1 {
   gap: 2px;
 }
 .leg-name {
-  font-size: 10px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--ff);
   color: #fff;
   line-height: 1.2;
 }
 .leg-desc {
-  font-size: 9px;
+  font-size: 12px;
+  font-family: var(--ff);
   color: rgba(255,255,255,.65);
   line-height: 1.4;
 }
 
-/* ── CHART ────────────────────────────── */
-#chart { width: 100%; }
+/* ── DETAIL TABLE ─────────────────────── */
+#detail {
+  margin-top: 20px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.detail-title {
+  font-family: var(--ff-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.detail-sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+.detail-close {
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: var(--ff);
+}
+.detail-close:hover { background: #f0efeb; color: var(--text); }
+
+.detail-sort {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+.dsort-btn {
+  font-size: 13px;
+  font-family: var(--ff);
+  background: #f4f3ef;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 3px 8px;
+  cursor: pointer;
+  color: var(--muted);
+}
+.dsort-btn.active { background: var(--text); color: #fff; border-color: var(--text); }
+
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.detail-table th {
+  text-align: left;
+  font-family: var(--ff-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 0 6px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.detail-table th.num { text-align: right; }
+.detail-table td {
+  padding: 5px 6px;
+  border-bottom: 1px solid #f0efeb;
+  vertical-align: middle;
+  color: var(--text);
+}
+.detail-table td.num {
+  text-align: right;
+  font-family: var(--ff-mono);
+  font-size: 13px;
+  color: var(--muted);
+}
+.detail-table tr:last-child td { border-bottom: none; }
+.detail-table tr:hover td { background: #fafaf7; }
+.td-syg {
+  font-family: var(--ff-mono);
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.td-opis { font-size: 12px; }
+.td-bar {
+  width: 120px;
+  padding: 5px 6px;
+}
+.td-bar-inner {
+  display: flex;
+  height: 10px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--c-pozost);
+}
+.td-seg { height: 100%; }
 
 .row {
   display: flex;
@@ -133,6 +237,8 @@ header h1 {
   opacity: 0;
   animation: fadeUp .25s ease forwards;
 }
+.bar-wrap { cursor: pointer; }
+.row-selected .bar-bg { outline: 2px solid #555; outline-offset: 1px; border-radius: 3px; }
 
 .row-label {
   width: var(--label-w);
@@ -146,7 +252,7 @@ header h1 {
 }
 .row-label-sub {
   display: block;
-  font-size: 8px;
+  font-size: 9px;
   color: var(--muted);
   font-family: var(--ff);
   font-weight: 400;
@@ -218,13 +324,13 @@ header h1 {
 }
 .tip-konto {
   font-family: var(--ff-mono);
-  font-size: 9px;
+  font-size: 13px;
   letter-spacing: .1em;
   color: #b0b0a8;
   margin-bottom: 2px;
 }
 .tip-opis {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   margin-bottom: 9px;
   padding-bottom: 8px;
@@ -237,7 +343,7 @@ header h1 {
   grid-template-columns: 1fr 100px 36px;
   align-items: center;
   padding: 2px 0;
-  font-size: 10.5px;
+  font-size: 12px;
   gap: 0;
 }
 .tl {
@@ -249,14 +355,14 @@ header h1 {
 }
 .tv {
   font-family: var(--ff-mono);
-  font-size: 10px;
+  font-size: 12px;
   color: #1a1a18;
   white-space: nowrap;
   text-align: right;
 }
 .tp {
   font-family: var(--ff-mono);
-  font-size: 10px;
+  font-size: 12px;
   color: #c0bfb8;
   text-align: right;
   white-space: nowrap;
@@ -272,7 +378,7 @@ header h1 {
   margin: 7px 0;
 }
 .tip-sum .tl { color: #555550; font-weight: 500; }
-.tip-sum .tv { font-size: 10.5px; font-weight: 500; }
+.tip-sum .tv { font-size: 12px; font-weight: 500; }
 
 /* ── ROW VALUE ────────────────────────── */
 .row-val {
@@ -298,7 +404,7 @@ header h1 {
 /* ── MISC ─────────────────────────────── */
 .msg {
   font-family: var(--ff-mono);
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted);
   padding: 40px 0;
   text-align: center;
@@ -318,11 +424,11 @@ header h1 {
 
 <div class="legend">
   <div class="legend-donut" id="donut-wrap">
-    <svg id="donut-svg" viewBox="-10 -10 140 140" xmlns="http://www.w3.org/2000/svg"></svg>
+    <svg id="donut-svg" viewBox="-8 -8 166 166" xmlns="http://www.w3.org/2000/svg"></svg>
   </div>
   <div class="legend-cards">
     <div class="leg-group">
-      <div class="leg-group-label">W menu szkoleń</div>
+      <div class="leg-group-label">W Menu Szkoleń</div>
       <div class="leg-group-row">
         <div class="leg" style="background:var(--c-zaks)">
           <div class="leg-name">Zaksięgowane</div>
@@ -335,7 +441,7 @@ header h1 {
       </div>
     </div>
     <div class="leg-group">
-      <div class="leg-group-label">W EZD/eZAK, jeszcze nie w menu</div>
+      <div class="leg-group-label">W EZD/eZAK, Jeszcze nie w menu</div>
       <div class="leg-group-row">
         <div class="leg" style="background:var(--c-exp)">
           <div class="leg-name">Wnioski zakupowe</div>
@@ -351,6 +457,7 @@ header h1 {
 </div>
 
 <div id="chart"><div class="msg">Oczekiwanie na dane…</div></div>
+<div id="detail" style="display:none"></div>
 
 <script>
 const pos = v => Math.max(0, +v || 0);
@@ -464,6 +571,18 @@ function buildRow(g, idx, maxBudget) {
     globalTip.style.display = 'none';
   });
 
+  barWrap.addEventListener('click', () => {
+    globalTip.style.display = 'none';
+    document.querySelectorAll('.row').forEach(r => r.classList.remove('row-selected'));
+    if (selectedKonto === konto) {
+      selectedKonto = null;
+    } else {
+      selectedKonto = konto;
+      row.classList.add('row-selected');
+    }
+    renderDetail();
+  });
+
   return row;
 }
 
@@ -496,7 +615,7 @@ function renderDonut(groups) {
     { val: T.pozost, label: 'Wolne',            color: getComputedStyle(document.documentElement).getPropertyValue('--c-pozost').trim() },
   ].filter(s => s.val > 0);
 
-  const cx = 60, cy = 60, R = 50, r = 30;
+  const cx = 75, cy = 75, R = 65, r = 40;
   const TAU = 2 * Math.PI;
 
   function arc(cx, cy, R, r, startAngle, endAngle) {
@@ -534,8 +653,8 @@ function renderDonut(groups) {
       txt.setAttribute('y', ly);
       txt.setAttribute('text-anchor', 'middle');
       txt.setAttribute('dominant-baseline', 'middle');
-      txt.setAttribute('font-family', 'Roboto, sans-serif');
-      txt.setAttribute('font-size', '6.5');
+      txt.setAttribute('font-family', 'JetBrains Mono, monospace');
+      txt.setAttribute('font-size', '9');
       txt.setAttribute('fill', 'rgba(255,255,255,0.9)');
       txt.setAttribute('pointer-events', 'none');
       txt.textContent = pct(s.val, total);
@@ -547,22 +666,22 @@ function renderDonut(groups) {
 
   // center: wolne
   const t1 = document.createElementNS(ns, 'text');
-  t1.setAttribute('x', cx); t1.setAttribute('y', cy - 5);
+  t1.setAttribute('x', cx); t1.setAttribute('y', cy - 7);
   t1.setAttribute('text-anchor', 'middle');
   t1.setAttribute('dominant-baseline', 'middle');
-  t1.setAttribute('font-family', 'Roboto, sans-serif');
-  t1.setAttribute('font-size', '9'); t1.setAttribute('font-weight', '500');
+  t1.setAttribute('font-family', 'JetBrains Mono, monospace');
+  t1.setAttribute('font-size', '13'); t1.setAttribute('font-weight', '500');
   const pozostColor = getComputedStyle(document.documentElement).getPropertyValue('--c-pozost').trim();
   t1.setAttribute('fill', pozostColor); t1.setAttribute('pointer-events', 'none');
   t1.textContent = fmtShort(T.pozost);
   svg.appendChild(t1);
 
   const t2 = document.createElementNS(ns, 'text');
-  t2.setAttribute('x', cx); t2.setAttribute('y', cy + 7);
+  t2.setAttribute('x', cx); t2.setAttribute('y', cy + 11);
   t2.setAttribute('text-anchor', 'middle');
   t2.setAttribute('dominant-baseline', 'middle');
-  t2.setAttribute('font-family', 'Roboto, sans-serif');
-  t2.setAttribute('font-size', '7');
+  t2.setAttribute('font-family', 'JetBrains Mono, monospace');
+  t2.setAttribute('font-size', '10');
   t2.setAttribute('fill', '#aaa'); t2.setAttribute('pointer-events', 'none');
   t2.textContent = 'wolne';
   svg.appendChild(t2);
@@ -612,6 +731,7 @@ function render(groups) {
   const maxBudget = Math.max(...groups.map(g =>
     g.rp4 || (g.zaks + g.zaang + g.exp + g.trans + g.pozost)
   )) || 1;
+  globalMaxBudget = maxBudget;
 
   const wrap = document.createElement('div');
   groups.forEach((g, i) => wrap.appendChild(buildRow(g, i, maxBudget)));
@@ -628,6 +748,149 @@ function render(groups) {
     }
   });
 
+}
+
+// ── Detail table state ────────────────────────────────────────────────────────
+let allRawRecords  = [];
+let selectedKonto  = null;
+let detailSort     = 'total';
+let globalMaxBudget = 1;
+
+function renderDetail() {
+  const el = document.getElementById('detail');
+  if (!selectedKonto) { el.style.display = 'none'; return; }
+
+  const rows = allRawRecords
+    .filter(r => {
+      const k = r.Konto || ('41708' + (String(r.Sygnatura||'').split('-')[3]||''));
+      return String(k) === selectedKonto &&
+             (String(r.Rok) === '2026' || String(r.Sygnatura||'').startsWith('2026'));
+    })
+    .map(r => ({
+      syg:    r.Sygnatura || '',
+      opis:   r.Opis || '',
+      zaks:   pos(r.Zaks),
+      zaang:  pos(r.Zaang),
+      exp:    pos(r.Expected_Menu),
+      trans:  pos(r.wTransferach),
+      pozost: pos(r.PozostUwzgTransfery),
+      rp4:    pos(r.RP4_x_Transfery),
+    }));
+
+  const sortFns = {
+    total:  (a,b) => (b.zaks+b.zaang+b.exp+b.trans) - (a.zaks+a.zaang+a.exp+a.trans),
+    zaks:   (a,b) => b.zaks   - a.zaks,
+    exp:    (a,b) => b.exp    - a.exp,
+    trans:  (a,b) => b.trans  - a.trans,
+    pozost: (a,b) => b.pozost - a.pozost,
+  };
+  rows.sort(sortFns[detailSort] || sortFns.total);
+
+  const label  = KONTO_SHORT[selectedKonto] || selectedKonto;
+  const maxRp4 = Math.max(...rows.map(r => r.rp4 || (r.zaks+r.zaang+r.exp+r.trans+r.pozost))) || 1;
+
+  const sortBtns = [
+    { key:'total',  label:'Całkowite wykonanie' },
+    { key:'zaks',   label:'Zaksięgowane' },
+    { key:'exp',    label:'Wnioski zakup.' },
+    { key:'trans',  label:'Transfery' },
+    { key:'pozost', label:'Wolne' },
+  ].map(b => `<button class="dsort-btn${detailSort===b.key?' active':''}" onclick="detailSort='${b.key}';renderDetail()">${detailSort===b.key?'↓ ':''}${b.label}</button>`).join('');
+
+  el.style.display = 'block';
+  el.innerHTML = `
+    <div class="detail-header">
+      <span class="detail-title">${esc(selectedKonto)}</span>
+      <span class="detail-sub">${esc(label)} · ${rows.length} pozycji</span>
+      <div class="detail-sort">${sortBtns}</div>
+      <button class="detail-close" onclick="selectedKonto=null;renderDetail();document.querySelectorAll('.row').forEach(r=>r.classList.remove('row-selected'))">✕</button>
+    </div>
+    <div id="detail-rows"></div>
+  `;
+
+  const container = document.getElementById('detail-rows');
+  const MIN_W = 44;
+
+  rows.forEach(r => {
+    const denom  = Math.max(r.rp4, r.zaks+r.zaang+r.exp+r.trans+r.pozost) || 1;
+    const barPct = (r.rp4 / globalMaxBudget * 100).toFixed(2) + '%';
+    const w      = v => (v / denom * 100).toFixed(3) + '%';
+
+    const segs = [
+      { cls:'seg-zaks',   val:r.zaks,   label:'Zaksięgowane',    color:'var(--c-zaks)' },
+      { cls:'seg-zaang',  val:r.zaang,  label:'Zaangażowane',     color:'var(--c-zaang)' },
+      { cls:'seg-exp',    val:r.exp,    label:'Wnioski zakupowe', color:'var(--c-exp)' },
+      { cls:'seg-trans',  val:r.trans,  label:'W transferach',    color:'var(--c-trans)' },
+    ];
+
+    const tipHtml = `
+      <div class="tip-konto">${esc(r.syg)}</div>
+      <div class="tip-opis" style="color:#1a1a18">${esc(r.opis) || '—'}</div>
+      ${segs.map(s => `
+      <div class="tip-row">
+        <span class="tl"><span class="tip-dot" style="background:${s.color}"></span>${s.label}</span>
+        <span class="tv">${fmtFull(s.val)}</span>
+        <span class="tp">${pct(s.val, denom)}</span>
+      </div>`).join('')}
+      <div class="tip-row">
+        <span class="tl"><span class="tip-dot" style="background:var(--c-pozost)"></span>Wolne</span>
+        <span class="tv">${fmtFull(r.pozost)}</span>
+        <span class="tp">${pct(r.pozost, denom)}</span>
+      </div>
+      <hr class="tip-div"/>
+      <div class="tip-row tip-sum">
+        <span class="tl">Budżet</span>
+        <span class="tv">${fmtFull(r.rp4)}</span>
+        <span class="tp"></span>
+      </div>
+    `;
+
+    const rowEl = document.createElement('div');
+    rowEl.className = 'row';
+    rowEl.style.opacity = '1';
+    rowEl.style.animation = 'none';
+    rowEl.innerHTML = `
+      <div class="row-label" style="width:140px;font-size:11px;text-align:right">
+        <span style="font-family:var(--ff-mono);font-size:11px;color:var(--muted)">${esc(r.syg)}</span>
+        <span class="row-label-sub" style="white-space:normal;line-height:1.3">${esc(r.opis)}</span>
+      </div>
+      <div class="bar-track-outer">
+        <div class="bar-wrap" style="width:${barPct}">
+          <div class="bar-bg" style="background:transparent">
+            ${segs.filter(s => s.val > 0).map(s =>
+              `<div class="seg ${s.cls}" style="width:${w(s.val)}" data-pct="${pct(s.val,denom)}" data-mln="${fmtShort(s.val)}"></div>`
+            ).join('')}
+            ${r.pozost > 0 ? `<div class="seg seg-pozost" style="flex:1" data-pct="${pct(r.pozost,denom)}" data-mln="${fmtShort(r.pozost)}"></div>` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+
+    const barWrap = rowEl.querySelector('.bar-wrap');
+    barWrap.addEventListener('mousemove', (e) => {
+      globalTip.innerHTML = tipHtml;
+      globalTip.style.display = 'block';
+      const ox = 8, oy = 16, tw = globalTip.offsetWidth, th = globalTip.offsetHeight;
+      let left = e.clientX + ox, top = e.clientY + oy;
+      if (left + tw > window.innerWidth  - 4) left = e.clientX - tw - ox;
+      if (top  + th > window.innerHeight - 4) top  = e.clientY - th - oy;
+      globalTip.style.left = left + 'px';
+      globalTip.style.top  = top  + 'px';
+    });
+    barWrap.addEventListener('mouseleave', () => { globalTip.style.display = 'none'; });
+
+    container.appendChild(rowEl);
+  });
+
+  // inject seg labels
+  container.querySelectorAll('.seg[data-pct]').forEach(seg => {
+    if (seg.offsetWidth >= MIN_W) {
+      const span = document.createElement('span');
+      span.className = 'seg-label';
+      span.innerHTML = `${seg.dataset.pct}<br/>${seg.dataset.mln}`;
+      seg.appendChild(span);
+    }
+  });
 }
 
 // ── Grist ──────────────────────────────────────────────────────────────────────
@@ -663,16 +926,25 @@ function recordsToGroups(records) {
 
 if (typeof grist !== 'undefined') {
   grist.ready({ requiredAccess: 'read table' });
-  grist.onRecords(records => render(recordsToGroups(records)));
+  grist.onRecords(records => {
+    allRawRecords = records;
+    render(recordsToGroups(records));
+  });
 } else {
   // DEMO — odpala się tylko lokalnie, poza Grist
-  render(recordsToGroups([
-    { Rok:2026, Konto:'41708001', Admin:'AY', Zaks:415000, Zaang:180000, Expected_Menu:90000,  wTransferach:40000, PozostUwzgTransfery:75000,  RP4_x_Transfery:800000 },
-    { Rok:2026, Konto:'41708003', Admin:'MKI',Zaks:90000,  Zaang:60000,  Expected_Menu:80000,  wTransferach:0,     PozostUwzgTransfery:70000,  RP4_x_Transfery:300000 },
-    { Rok:2026, Konto:'41708004', Admin:'AL', Zaks:45000,  Zaang:20000,  Expected_Menu:30000,  wTransferach:10000, PozostUwzgTransfery:45000,  RP4_x_Transfery:150000 },
-    { Rok:2026, Konto:'41708005', Admin:'AL', Zaks:20000,  Zaang:12000,  Expected_Menu:30000,  wTransferach:5000,  PozostUwzgTransfery:83000,  RP4_x_Transfery:150000 },
-    { Rok:2025, Konto:'41708001', Admin:'AY', Zaks:999999, Zaang:0,      Expected_Menu:0,      wTransferach:0,     PozostUwzgTransfery:0,      RP4_x_Transfery:999999 }, // przefiltrowany
-  ]));
+  const demoRecords = [
+    { Rok:2026, Konto:'41708001', Sygnatura:'2026-AY-S10-001-001', Opis:'Szkolenie ATC podstawowe',    Zaks:200000, Zaang:80000,  Expected_Menu:50000, wTransferach:20000, PozostUwzgTransfery:50000,  RP4_x_Transfery:400000 },
+    { Rok:2026, Konto:'41708001', Sygnatura:'2026-AY-S10-001-002', Opis:'Symulator ATCO',              Zaks:150000, Zaang:60000,  Expected_Menu:30000, wTransferach:10000, PozostUwzgTransfery:50000,  RP4_x_Transfery:300000 },
+    { Rok:2026, Konto:'41708001', Sygnatura:'2026-AY-S10-001-003', Opis:'Kursy OJTI',                  Zaks:65000,  Zaang:40000,  Expected_Menu:10000, wTransferach:10000, PozostUwzgTransfery:75000,  RP4_x_Transfery:200000 },
+    { Rok:2026, Konto:'41708003', Sygnatura:'2026-MF-F10-003-001', Opis:'Wdrożenie systemu finansowego',Zaks:90000, Zaang:60000,  Expected_Menu:80000, wTransferach:0,     PozostUwzgTransfery:70000,  RP4_x_Transfery:300000 },
+    { Rok:2026, Konto:'41708004', Sygnatura:'2026-AL-H10-004-001', Opis:'Angielski – piloci',          Zaks:25000,  Zaang:12000,  Expected_Menu:18000, wTransferach:5000,  PozostUwzgTransfery:20000,  RP4_x_Transfery:80000  },
+    { Rok:2026, Konto:'41708004', Sygnatura:'2026-AL-H10-004-002', Opis:'MBA – kadra',                 Zaks:20000,  Zaang:8000,   Expected_Menu:12000, wTransferach:5000,  PozostUwzgTransfery:25000,  RP4_x_Transfery:70000  },
+    { Rok:2026, Konto:'41708005', Sygnatura:'2026-AL-H10-005-001', Opis:'Leadership program',          Zaks:12000,  Zaang:8000,   Expected_Menu:20000, wTransferach:3000,  PozostUwzgTransfery:57000,  RP4_x_Transfery:100000 },
+    { Rok:2026, Konto:'41708005', Sygnatura:'2026-AL-H10-005-002', Opis:'Lean / Agile warsztaty',      Zaks:8000,   Zaang:4000,   Expected_Menu:10000, wTransferach:2000,  PozostUwzgTransfery:26000,  RP4_x_Transfery:50000  },
+    { Rok:2025, Konto:'41708001', Sygnatura:'2025-AY-S10-001-001', Opis:'Stary rok',                   Zaks:999999, Zaang:0,      Expected_Menu:0,     wTransferach:0,     PozostUwzgTransfery:0,      RP4_x_Transfery:999999 },
+  ];
+  allRawRecords = demoRecords;
+  render(recordsToGroups(demoRecords));
 }
 </script>
 </body>
