@@ -160,32 +160,41 @@ header h1 {
 .seg-exp   { background: var(--c-exp); }
 .seg-trans { background: var(--c-trans); }
 
-/* ── BAR TOOLTIP ──────────────────────── */
+/* tooltip – pozycja ustawiana przez JS */
 .tip {
   display: none;
-  position: absolute;
-  left: 50%;
-  bottom: calc(100% + 10px);
-  transform: translateX(-50%);
+  position: fixed;        /* fixed = względem viewport, nie rodzica */
   background: #1a1a18;
   color: #fff;
   font-family: var(--ff);
   border-radius: 6px;
   padding: 11px 13px;
   min-width: 230px;
-  z-index: 100;
+  z-index: 1000;
   pointer-events: none;
   box-shadow: 0 4px 22px rgba(0,0,0,.2);
+  transform: translateX(-50%);
+}
+.tip.tip-down {
+  /* strzałka u góry */
 }
 .tip::after {
   content: '';
   position: absolute;
-  top: 100%; left: 50%;
+  left: 50%;
   transform: translateX(-50%);
   border: 6px solid transparent;
+}
+/* domyślnie strzałka na dole (tooltip nad paskiem) */
+.tip:not(.tip-down)::after {
+  top: 100%;
   border-top-color: #1a1a18;
 }
-.bar-wrap:hover .tip { display: block; }
+/* flip: strzałka na górze (tooltip pod paskiem) */
+.tip.tip-down::after {
+  bottom: 100%;
+  border-bottom-color: #1a1a18;
+}
 
 .tip-konto {
   font-family: var(--ff-mono);
@@ -403,6 +412,39 @@ function buildRow(g, idx, maxBudget) {
     </div>
     <div class="row-val">${fmtShort(zaks + zaang)} / ${fmtShort(rp4)}</div>
   `;
+  // JS-driven tooltip positioning
+  const barWrap = row.querySelector('.bar-wrap');
+  const tip     = row.querySelector('.tip');
+
+  barWrap.addEventListener('mouseenter', () => {
+    tip.style.display = 'block';
+    const br  = barWrap.getBoundingClientRect();
+    const th  = tip.offsetHeight;
+    const cx  = br.left + br.width / 2;          // center X of bar
+    const gap = 10;
+
+    // Does it fit above?
+    if (br.top - th - gap >= 0) {
+      tip.classList.remove('tip-down');
+      tip.style.top  = (br.top - th - gap) + 'px';
+    } else {
+      tip.classList.add('tip-down');
+      tip.style.top  = (br.bottom + gap) + 'px';
+    }
+
+    // Horizontal: keep within viewport
+    const tw = tip.offsetWidth;
+    let left = cx;
+    const minL = tw / 2 + 6;
+    const maxL = window.innerWidth - tw / 2 - 6;
+    left = Math.max(minL, Math.min(maxL, left));
+    tip.style.left = left + 'px';
+  });
+
+  barWrap.addEventListener('mouseleave', () => {
+    tip.style.display = 'none';
+  });
+
   return row;
 }
 
