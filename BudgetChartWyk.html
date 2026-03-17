@@ -437,6 +437,80 @@ header h1 {
   overflow: hidden;
 }
 
+/* ── MENU INLINE EXPAND ───────────────── */
+.drow-syg {
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+.drow-syg:hover { color: var(--text); }
+.drow.expanded { background: #fafaf7; }
+.menu-expand {
+  grid-column: 1 / -1;
+  background: #f5f4f0;
+  border-radius: 4px;
+  padding: 8px 10px;
+  margin: 2px 0 4px;
+}
+.menu-expand-header {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.mrow {
+  display: grid;
+  grid-template-columns: 16% 1fr 16% 10% 10% 12%;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px;
+  border-radius: 3px;
+  border-bottom: 1px solid rgba(0,0,0,.04);
+  font-size: 10px;
+}
+.mrow.mrow-head { border-bottom: 1px solid rgba(0,0,0,.1); margin-bottom: 2px; }
+.mrow-etap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mrow-temat {
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mrow-cena {
+  text-align: right;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+.etap-dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.menu-sum-inline {
+  margin-top: 6px;
+  padding-top: 5px;
+  border-top: 1px solid rgba(0,0,0,.08);
+  font-size: 10px;
+  color: var(--muted);
+  text-align: right;
+}
+.menu-sum-inline strong { color: var(--text); font-weight: 600; }
+.menu-loading-inline {
+  font-size: 10px;
+  color: var(--muted);
+  padding: 4px 0;
+}
+
 /* ── MISC ─────────────────────────────── */
 .msg {
   font-family: var(--ff-mono);
@@ -804,6 +878,7 @@ function renderDetail() {
     })
     .map(r => ({
       syg:    r.Sygnatura || '',
+      sygId:  r.id || 0,
       opis:   r.Opis || '',
       zaks:   pos(r.Zaks),
       zaang:  pos(r.Zaang),
@@ -913,8 +988,123 @@ function renderDetail() {
     });
     barWrap.addEventListener('mouseleave', () => { globalTip.style.display = 'none'; });
 
+    const sygEl = rowEl.querySelector('.drow-syg');
+    sygEl.title = 'Kliknij aby rozwinąć wpisy z Menu Szkoleń';
+    sygEl.addEventListener('click', () => toggleMenuExpand(rowEl, r.syg, r.sygId));
+
     container.appendChild(rowEl);
   });
+}
+
+// ── Menu Szkoleń inline expand ────────────────────────────────────────────────
+let menuCache = null;
+let expandedSyg = null;
+
+async function toggleMenuExpand(rowEl, sygnatura, sygId) {
+  // collapse if already open
+  const existing = rowEl.nextElementSibling;
+  if (existing && existing.classList.contains('menu-expand-row')) {
+    existing.remove();
+    rowEl.classList.remove('expanded');
+    if (expandedSyg === sygnatura) { expandedSyg = null; return; }
+  }
+  // close any other open expand
+  document.querySelectorAll('.menu-expand-row').forEach(el => {
+    el.previousElementSibling?.classList.remove('expanded');
+    el.remove();
+  });
+
+  expandedSyg = sygnatura;
+  rowEl.classList.add('expanded');
+
+  // insert expand row — same grid as drow
+  const expandRow = document.createElement('div');
+  expandRow.className = 'drow menu-expand-row';
+  expandRow.style.cssText = 'background:#f5f4f0;border-radius:4px;padding:6px 10px;margin:0 0 4px';
+  expandRow.innerHTML = `<div style="grid-column:1/-1" class="menu-loading-inline">Ładowanie…</div>`;
+  rowEl.after(expandRow);
+
+  try {
+    if (typeof grist !== 'undefined' && grist.docApi && !menuCache) {
+      const data = await grist.docApi.fetchTable('API_MenuWykonanie');
+      const keys = Object.keys(data);
+      const len  = data[keys[0]].length;
+      menuCache = Array.from({length: len}, (_, i) =>
+        Object.fromEntries(keys.map(k => [k, data[k][i]]))
+      );
+    }
+
+    let rows = [];
+    if (menuCache) {
+      rows = menuCache.filter(r => {
+        const s = r.sygnatura;
+        if (sygId && typeof s === 'number') return s === sygId;
+        return String(s) === String(sygnatura) || String(s) === String(sygId);
+      });
+    }
+
+    const etapColor = etapKat => {
+      if (!etapKat) return null;
+      const e = String(etapKat).trim();
+      if (e === 'Zaksięgowane') return 'var(--c-zaks)';
+      if (e === 'Zaangażowane' || e === 'Rozliczone') return 'var(--c-zaang)';
+      return null;
+    };
+
+    const normalizeEtap = etapKat => {
+      const e = String(etapKat || '').trim();
+      if (e === 'Rozliczone') return 'Zaangażowane';
+      return e;
+    };
+
+    const total = rows.reduce((a, r) => a + (+r.cena || 0), 0);
+    const zaks  = rows.filter(r => String(r.etap_Kat||'').trim() === 'Zaksięgowane')
+                      .reduce((a, r) => a + (+r.cena || 0), 0);
+
+    const fmtDate = v => {
+      if (!v) return '—';
+      // Grist dates are seconds since epoch
+      const d = typeof v === 'number' ? new Date(v * 1000) : new Date(v);
+      if (isNaN(d)) return String(v).slice(0,10);
+      return d.toLocaleDateString('pl-PL', {day:'2-digit', month:'2-digit', year:'numeric'});
+    };
+
+    const header = `
+      <div class="mrow mrow-head">
+        <div style="color:var(--muted);font-size:9px;font-weight:600">Etap</div>
+        <div style="color:var(--muted);font-size:9px;font-weight:600">Temat</div>
+        <div style="color:var(--muted);font-size:9px;font-weight:600">Uczestnik</div>
+        <div style="color:var(--muted);font-size:9px;font-weight:600">Od</div>
+        <div style="color:var(--muted);font-size:9px;font-weight:600">Do</div>
+        <div style="color:var(--muted);font-size:9px;font-weight:600;text-align:right">Cena</div>
+      </div>`;
+
+    const inner = rows.length
+      ? header + rows.map(r => {
+          const kat   = normalizeEtap(r.etap_Kat);
+          const color = etapColor(r.etap_Kat);
+          const bg    = color
+            ? (kat === 'Zaksięgowane' ? 'rgba(139,126,200,.08)' : 'rgba(232,160,184,.10)')
+            : '';
+          const dot   = color ? `<span class="etap-dot" style="background:${color}"></span>` : '';
+          return `
+          <div class="mrow" style="background:${bg}">
+            <div class="mrow-etap">${dot}${esc(kat || '—')}</div>
+            <div class="mrow-temat">${esc(r.temat || '—')}</div>
+            <div class="mrow-temat">${esc(r.im_naz || '—')}</div>
+            <div class="mrow-temat" style="white-space:nowrap">${fmtDate(r.data_od)}</div>
+            <div class="mrow-temat" style="white-space:nowrap">${fmtDate(r.data_do)}</div>
+            <div class="mrow-cena">${fmtFull(+r.cena || 0)}</div>
+          </div>`;
+        }).join('')
+        + `<div class="menu-sum-inline">Łącznie: <strong>${fmtShort(total)}</strong> &nbsp;·&nbsp; Zaksięgowane: <strong style="color:var(--c-zaks)">${fmtShort(zaks)}</strong></div>`
+      : `<div class="menu-loading-inline">Brak wpisów w Menu Szkoleń.</div>`;
+
+    expandRow.innerHTML = `<div style="grid-column:1/-1">${inner}</div>`;
+
+  } catch(err) {
+    expandRow.innerHTML = `<div style="grid-column:1/-1" class="menu-loading-inline" style="color:#c0392b">Błąd: ${esc(String(err))}</div>`;
+  }
 }
 
 // ── Grist ──────────────────────────────────────────────────────────────────────
@@ -952,22 +1142,57 @@ if (typeof grist !== 'undefined') {
   grist.ready({ requiredAccess: 'read table' });
   grist.onRecords(records => {
     allRawRecords = records;
+    menuCache = null; // invalidate cache on data change
     render(recordsToGroups(records));
   });
 } else {
   // DEMO — odpala się tylko lokalnie, poza Grist
   const demoRecords = [
-    { Rok:2026, Konto:'41708001', Sygnatura:'2026-AY-S10-001-001', Opis:'Szkolenie ATC podstawowe',    Zaks:200000, Zaang:80000,  Expected_Menu:50000, wTransferach:20000, PozostUwzgTransfery:50000,  RP4_x_Transfery:400000 },
-    { Rok:2026, Konto:'41708001', Sygnatura:'2026-AY-S10-001-002', Opis:'Symulator ATCO',              Zaks:150000, Zaang:60000,  Expected_Menu:30000, wTransferach:10000, PozostUwzgTransfery:50000,  RP4_x_Transfery:300000 },
-    { Rok:2026, Konto:'41708001', Sygnatura:'2026-AY-S10-001-003', Opis:'Kursy OJTI',                  Zaks:65000,  Zaang:40000,  Expected_Menu:10000, wTransferach:10000, PozostUwzgTransfery:75000,  RP4_x_Transfery:200000 },
-    { Rok:2026, Konto:'41708003', Sygnatura:'2026-MF-F10-003-001', Opis:'Wdrożenie systemu finansowego',Zaks:90000, Zaang:60000,  Expected_Menu:80000, wTransferach:0,     PozostUwzgTransfery:70000,  RP4_x_Transfery:300000 },
-    { Rok:2026, Konto:'41708004', Sygnatura:'2026-AL-H10-004-001', Opis:'Angielski – piloci',          Zaks:25000,  Zaang:12000,  Expected_Menu:18000, wTransferach:5000,  PozostUwzgTransfery:20000,  RP4_x_Transfery:80000  },
-    { Rok:2026, Konto:'41708004', Sygnatura:'2026-AL-H10-004-002', Opis:'MBA – kadra',                 Zaks:20000,  Zaang:8000,   Expected_Menu:12000, wTransferach:5000,  PozostUwzgTransfery:25000,  RP4_x_Transfery:70000  },
-    { Rok:2026, Konto:'41708005', Sygnatura:'2026-AL-H10-005-001', Opis:'Leadership program',          Zaks:12000,  Zaang:8000,   Expected_Menu:20000, wTransferach:3000,  PozostUwzgTransfery:57000,  RP4_x_Transfery:100000 },
-    { Rok:2026, Konto:'41708005', Sygnatura:'2026-AL-H10-005-002', Opis:'Lean / Agile warsztaty',      Zaks:8000,   Zaang:4000,   Expected_Menu:10000, wTransferach:2000,  PozostUwzgTransfery:26000,  RP4_x_Transfery:50000  },
-    { Rok:2025, Konto:'41708001', Sygnatura:'2025-AY-S10-001-001', Opis:'Stary rok',                   Zaks:999999, Zaang:0,      Expected_Menu:0,     wTransferach:0,     PozostUwzgTransfery:0,      RP4_x_Transfery:999999 },
+    { id:1, Rok:2026, Konto:'41708001', Sygnatura:'2026-AY-S10-001-001', Opis:'Szkolenie ATC podstawowe',    Zaks:200000, Zaang:80000,  Expected_Menu:50000, wTransferach:20000, PozostUwzgTransfery:50000,  RP4_x_Transfery:400000 },
+    { id:2, Rok:2026, Konto:'41708001', Sygnatura:'2026-AY-S10-001-002', Opis:'Symulator ATCO',              Zaks:150000, Zaang:60000,  Expected_Menu:30000, wTransferach:10000, PozostUwzgTransfery:50000,  RP4_x_Transfery:300000 },
+    { id:3, Rok:2026, Konto:'41708001', Sygnatura:'2026-AY-S10-001-003', Opis:'Kursy OJTI',                  Zaks:65000,  Zaang:40000,  Expected_Menu:10000, wTransferach:10000, PozostUwzgTransfery:75000,  RP4_x_Transfery:200000 },
+    { id:4, Rok:2026, Konto:'41708003', Sygnatura:'2026-MF-F10-003-001', Opis:'Wdrożenie systemu finansowego',Zaks:90000, Zaang:60000,  Expected_Menu:80000, wTransferach:0,     PozostUwzgTransfery:70000,  RP4_x_Transfery:300000 },
+    { id:5, Rok:2026, Konto:'41708004', Sygnatura:'2026-AL-H10-004-001', Opis:'Angielski – piloci',          Zaks:25000,  Zaang:12000,  Expected_Menu:18000, wTransferach:5000,  PozostUwzgTransfery:20000,  RP4_x_Transfery:80000  },
+    { id:6, Rok:2026, Konto:'41708004', Sygnatura:'2026-AL-H10-004-002', Opis:'MBA – kadra',                 Zaks:20000,  Zaang:8000,   Expected_Menu:12000, wTransferach:5000,  PozostUwzgTransfery:25000,  RP4_x_Transfery:70000  },
+    { id:7, Rok:2026, Konto:'41708005', Sygnatura:'2026-AL-H10-005-001', Opis:'Leadership program',          Zaks:12000,  Zaang:8000,   Expected_Menu:20000, wTransferach:3000,  PozostUwzgTransfery:57000,  RP4_x_Transfery:100000 },
+    { id:8, Rok:2026, Konto:'41708005', Sygnatura:'2026-AL-H10-005-002', Opis:'Lean / Agile warsztaty',      Zaks:8000,   Zaang:4000,   Expected_Menu:10000, wTransferach:2000,  PozostUwzgTransfery:26000,  RP4_x_Transfery:50000  },
+    { id:9, Rok:2025, Konto:'41708001', Sygnatura:'2025-AY-S10-001-001', Opis:'Stary rok',                   Zaks:999999, Zaang:0,      Expected_Menu:0,     wTransferach:0,     PozostUwzgTransfery:0,      RP4_x_Transfery:999999 },
   ];
   allRawRecords = demoRecords;
+
+  // DEMO menu cache — symuluje dane z API_MenuWykonanie
+  menuCache = [
+    // 2026-AY-S10-001-001
+    { sygnatura:1, etap_Kat:'Zaksięgowane', temat:'Kurs podstawowy ATC',       im_naz:'Kowalski Jan',    data_od:1735689600, data_do:1735948800, cena:45000 },
+    { sygnatura:1, etap_Kat:'Zaksięgowane', temat:'Kurs podstawowy ATC',       im_naz:'Nowak Anna',      data_od:1735689600, data_do:1735948800, cena:45000 },
+    { sygnatura:1, etap_Kat:'Zaksięgowane', temat:'Symulator poziom 1',        im_naz:'Wiśniewski Piotr',data_od:1738368000, data_do:1738454400, cena:60000 },
+    { sygnatura:1, etap_Kat:'Zaksięgowane', temat:'Symulator poziom 1',        im_naz:'Wójcik Maria',    data_od:1738368000, data_do:1738454400, cena:50000 },
+    { sygnatura:1, etap_Kat:'Zaangażowane', temat:'Kurs zaawansowany ATC',     im_naz:'Lewandowski Adam',data_od:1743552000, data_do:1743811200, cena:40000 },
+    { sygnatura:1, etap_Kat:'Zaangażowane', temat:'Kurs zaawansowany ATC',     im_naz:'Zielińska Ewa',   data_od:1743552000, data_do:1743811200, cena:40000 },
+    // 2026-AY-S10-001-002
+    { sygnatura:2, etap_Kat:'Zaksięgowane', temat:'Symulator ATCO – moduł A',  im_naz:'Szymański Tomasz',data_od:1736294400, data_do:1736380800, cena:75000 },
+    { sygnatura:2, etap_Kat:'Zaksięgowane', temat:'Symulator ATCO – moduł A',  im_naz:'Dąbrowska Zofia', data_od:1736294400, data_do:1736380800, cena:75000 },
+    { sygnatura:2, etap_Kat:'Zaangażowane', temat:'Symulator ATCO – moduł B',  im_naz:'Kamińska Monika', data_od:1746144000, data_do:1746230400, cena:60000 },
+    // 2026-AY-S10-001-003
+    { sygnatura:3, etap_Kat:'Zaksięgowane', temat:'OJTI – trener na stanowisku',im_naz:'Kowalczyk Robert',data_od:1737158400, data_do:1737417600, cena:32000 },
+    { sygnatura:3, etap_Kat:'Zaangażowane', temat:'OJTI – trener na stanowisku',im_naz:'Mazur Katarzyna', data_od:1745020800, data_do:1745280000, cena:33000 },
+    // 2026-MF-F10-003-001
+    { sygnatura:4, etap_Kat:'Zaksięgowane', temat:'SAP FI – użytkownicy',      im_naz:'Krawczyk Paweł',  data_od:1736899200, data_do:1737072000, cena:48000 },
+    { sygnatura:4, etap_Kat:'Zaangażowane', temat:'SAP CO – kontroling',       im_naz:'Piotrowska Hanna',data_od:1746748800, data_do:1746921600, cena:42000 },
+    // 2026-AL-H10-004-001
+    { sygnatura:5, etap_Kat:'Zaksięgowane', temat:'Angielski B2 – intensywny', im_naz:'Grabowski Michał',data_od:1736035200, data_do:1748736000, cena:12000 },
+    { sygnatura:5, etap_Kat:'Zaangażowane', temat:'Angielski C1 – Aviation',   im_naz:'Nowakowska Julia',data_od:1743206400, data_do:1753920000, cena:13000 },
+    // 2026-AL-H10-004-002
+    { sygnatura:6, etap_Kat:'Zaksięgowane', temat:'MBA – Executive Program',   im_naz:'Wieczorek Marek', data_od:1735948800, data_do:1751328000, cena:20000 },
+    // 2026-AL-H10-005-001
+    { sygnatura:7, etap_Kat:'Zaksięgowane', temat:'Leadership Excellence',     im_naz:'Kwiatkowski Łuk.',data_od:1737763200, data_do:1737936000, cena:12000 },
+    // 2026-AL-H10-005-002
+    { sygnatura:8, etap_Kat:'Zaksięgowane', temat:'Lean Manufacturing',        im_naz:'Woźniak Barbara', data_od:1738368000, data_do:1738454400, cena:8000  },
+  ];
+  // map sygnatura text → id for demo matching
+  const sygMap = {};
+  demoRecords.forEach(r => { if(r.id) sygMap[r.Sygnatura] = r.id; });
+
   render(recordsToGroups(demoRecords));
 }
 </script>
