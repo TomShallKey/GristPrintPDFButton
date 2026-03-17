@@ -61,16 +61,54 @@ header h1 {
 /* ── LEGEND CARDS ─────────────────────── */
 .legend {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: 160px 1fr;
   gap: 6px;
   margin-bottom: 20px;
+  align-items: stretch;
 }
-.leg {
-  border-radius: 5px;
-  padding: 8px 10px;
+.legend-donut {
+  position: relative;
+  cursor: default;
+}
+.legend-donut svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.legend-cards {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 6px;
+}
+.leg-group {
+  border: 1px solid rgba(0,0,0,.1);
+  border-radius: 6px;
+  padding: 4px 6px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.leg-group-label {
+  font-size: 9px;
+  font-weight: 500;
+  color: #888;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 0 2px 2px;
+  border-bottom: 1px solid rgba(0,0,0,.07);
+  margin-bottom: 2px;
+}
+.leg-group-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+}
+.leg {
+  border-radius: 4px;
+  padding: 7px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 .leg-name {
   font-size: 10px;
@@ -242,25 +280,36 @@ header h1 {
 </header>
 
 <div class="legend">
-  <div class="leg" style="background:var(--c-zaks)">
-    <div class="leg-name">Zaksięgowane</div>
-    <div class="leg-desc">Koszty faktycznie zaksięgowane w księgowości.</div>
+  <div class="legend-donut" id="donut-wrap">
+    <svg id="donut-svg" viewBox="-10 -10 140 140" xmlns="http://www.w3.org/2000/svg"></svg>
   </div>
-  <div class="leg" style="background:var(--c-zaang)">
-    <div class="leg-name">Zaangażowane</div>
-    <div class="leg-desc">Wnioski już w menu szkoleń, jeszcze niezaksięgowane.</div>
-  </div>
-  <div class="leg" style="background:var(--c-exp)">
-    <div class="leg-name">Wnioski zakupowe</div>
-    <div class="leg-desc">Zabezpieczenie aktywnych wniosków zakupowych — bez uwzględnienia kosztów już zaksięgowanych i zaangażowanych w menu.</div>
-  </div>
-  <div class="leg" style="background:var(--c-trans)">
-    <div class="leg-name">W transferach</div>
-    <div class="leg-desc">Zaangażowane środki na procedowane otwarte wnioski szkoleniowe, których jeszcze nie wprowadzono do menu.</div>
-  </div>
-  <div class="leg" style="background:var(--c-pozost)">
-    <div class="leg-name">Wolne</div>
-    <div class="leg-desc">Środki niezaangażowane.</div>
+  <div class="legend-cards">
+    <div class="leg-group">
+      <div class="leg-group-label">W menu szkoleń</div>
+      <div class="leg-group-row">
+        <div class="leg" style="background:var(--c-zaks)">
+          <div class="leg-name">Zaksięgowane</div>
+          <div class="leg-desc">Koszty faktycznie zaksięgowane w księgowości.</div>
+        </div>
+        <div class="leg" style="background:var(--c-zaang)">
+          <div class="leg-name">Zaangażowane</div>
+          <div class="leg-desc">Wnioski już w menu szkoleń, jeszcze niezaksięgowane.</div>
+        </div>
+      </div>
+    </div>
+    <div class="leg-group">
+      <div class="leg-group-label">W EZD/eZAK, jeszcze nie w menu</div>
+      <div class="leg-group-row">
+        <div class="leg" style="background:var(--c-exp)">
+          <div class="leg-name">Wnioski zakupowe</div>
+          <div class="leg-desc">Zabezpieczenie aktywnych wniosków zakupowych — bez uwzględnienia kosztów już zaksięgowanych i zaangażowanych w menu.</div>
+        </div>
+        <div class="leg" style="background:var(--c-trans)">
+          <div class="leg-name">W transferach</div>
+          <div class="leg-desc">Zaangażowane środki na procedowane otwarte wnioski szkoleniowe, których jeszcze nie wprowadzono do menu.</div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -377,6 +426,88 @@ globalTip.className = 'tip';
 globalTip.style.display = 'none';
 document.body.appendChild(globalTip);
 
+function renderDonut(groups) {
+  const svg = document.getElementById('donut-svg');
+  if (!svg) return;
+  svg.innerHTML = '';
+
+  const T = groups.reduce((a, g) => ({
+    zaks:   a.zaks   + g.zaks,
+    zaang:  a.zaang  + g.zaang,
+    exp:    a.exp    + g.exp,
+    trans:  a.trans  + g.trans,
+    pozost: a.pozost + g.pozost,
+  }), { zaks:0, zaang:0, exp:0, trans:0, pozost:0 });
+
+  const total = T.zaks + T.zaang + T.exp + T.trans + T.pozost || 1;
+
+  const segs = [
+    { val: T.zaks,   label: 'Zaksięgowane',    color: getComputedStyle(document.documentElement).getPropertyValue('--c-zaks').trim() },
+    { val: T.zaang,  label: 'Zaangażowane',     color: getComputedStyle(document.documentElement).getPropertyValue('--c-zaang').trim() },
+    { val: T.exp,    label: 'Wnioski zakupowe', color: getComputedStyle(document.documentElement).getPropertyValue('--c-exp').trim() },
+    { val: T.trans,  label: 'W transferach',    color: getComputedStyle(document.documentElement).getPropertyValue('--c-trans').trim() },
+    { val: T.pozost, label: 'Wolne',            color: getComputedStyle(document.documentElement).getPropertyValue('--c-pozost').trim() },
+  ].filter(s => s.val > 0);
+
+  const cx = 60, cy = 60, R = 50, r = 30;
+  const TAU = 2 * Math.PI;
+
+  function arc(cx, cy, R, r, startAngle, endAngle) {
+    const x1 = cx + R * Math.cos(startAngle);
+    const y1 = cy + R * Math.sin(startAngle);
+    const x2 = cx + R * Math.cos(endAngle);
+    const y2 = cy + R * Math.sin(endAngle);
+    const x3 = cx + r * Math.cos(endAngle);
+    const y3 = cy + r * Math.sin(endAngle);
+    const x4 = cx + r * Math.cos(startAngle);
+    const y4 = cy + r * Math.sin(startAngle);
+    const large = endAngle - startAngle > Math.PI ? 1 : 0;
+    return `M${x1},${y1} A${R},${R},0,${large},1,${x2},${y2} L${x3},${y3} A${r},${r},0,${large},0,${x4},${y4} Z`;
+  }
+
+  let angle = -Math.PI / 2;
+  segs.forEach(s => {
+    const span = (s.val / total) * TAU;
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', arc(cx, cy, R, r, angle, angle + span));
+    path.setAttribute('fill', s.color);
+    path.style.cursor = 'default';
+    svg.appendChild(path);
+    angle += span;
+  });
+
+  // single tooltip for whole donut showing all segments
+  const donutTipHtml = `
+    <div class="tip-konto">ŁĄCZNIE</div>
+    <div class="tip-opis" style="color:#1a1a18">Wszystkie konta · 2026</div>
+    ${segs.map(s => `
+    <div class="tip-row">
+      <span class="tl"><span class="tip-dot" style="background:${s.color}"></span>${s.label}</span>
+      <span class="tv">${fmtFull(s.val)}</span>
+      <span class="tp">${pct(s.val, total)}</span>
+    </div>`).join('')}
+    <hr class="tip-div"/>
+    <div class="tip-row tip-sum">
+      <span class="tl">Budżet</span>
+      <span class="tv">${fmtFull(total)}</span>
+      <span class="tp"></span>
+    </div>
+  `;
+
+  const donutEl = document.getElementById('donut-wrap');
+  donutEl.addEventListener('mousemove', (e) => {
+    globalTip.innerHTML = donutTipHtml;
+    globalTip.style.display = 'block';
+    const ox = 8, oy = 16, tw = globalTip.offsetWidth, th = globalTip.offsetHeight;
+    let left = e.clientX + ox, top = e.clientY + oy;
+    if (left + tw > window.innerWidth  - 4) left = e.clientX - tw - ox;
+    if (top  + th > window.innerHeight - 4) top  = e.clientY - th - oy;
+    globalTip.style.left = left + 'px';
+    globalTip.style.top  = top  + 'px';
+  });
+  donutEl.addEventListener('mouseleave', () => { globalTip.style.display = 'none'; });
+} // end renderDonut
+
 function render(groups) {
   const chart = document.getElementById('chart');
   chart.innerHTML = '';
@@ -384,6 +515,8 @@ function render(groups) {
     chart.innerHTML = '<div class="msg">Brak danych.</div>';
     return;
   }
+
+  renderDonut(groups);
 
   const maxBudget = Math.max(...groups.map(g =>
     g.rp4 || (g.zaks + g.zaang + g.exp + g.trans + g.pozost)
