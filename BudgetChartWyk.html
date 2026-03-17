@@ -403,18 +403,26 @@ function render(groups) {
 //                  Expected_Menu, wTransferach, PozostUwzgTransfery, RP4_x_Transfery
 
 function recordsToGroups(records) {
-  return records
-    .filter(r => String(r.Rok) === '2026')          // tylko bieżący rok
-    .map(r => ({
-      konto:  String(r.Konto  || '—'),
-      opis:   String(r.Admin  || ''),
-      zaks:   pos(r.Zaks),
-      zaang:  pos(r.Zaang),
-      exp:    pos(r.Expected_Menu),
-      trans:  pos(r.wTransferach),
-      pozost: pos(r.PozostUwzgTransfery),
-      rp4:    pos(r.RP4_x_Transfery),
-    }))
+  const map = new Map();
+
+  records
+    .filter(r => String(r.Rok) === '2026' || String(r.Sygnatura || '').startsWith('2026'))
+    .forEach(r => {
+      // Konto: kolumna Konto w MAIN = "41708" + fragment sygnatury
+      const konto = String(r.Konto || '—');
+      if (!map.has(konto)) {
+        map.set(konto, { konto, zaks:0, zaang:0, exp:0, trans:0, pozost:0, rp4:0 });
+      }
+      const g = map.get(konto);
+      g.zaks   += pos(r.Zaks);
+      g.zaang  += pos(r.Zaang);
+      g.exp    += pos(r.Expected_Menu);
+      g.trans  += pos(r.wTransferach);
+      g.pozost += pos(r.PozostUwzgTransfery);
+      g.rp4    += pos(r.RP4_x_Transfery);
+    });
+
+  return [...map.values()]
     .filter(g => g.rp4 > 0 || (g.zaks + g.zaang + g.exp + g.trans + g.pozost) > 0)
     .sort((a, b) => a.konto.localeCompare(b.konto));
 }
