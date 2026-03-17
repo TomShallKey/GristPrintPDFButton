@@ -15,7 +15,7 @@
   /* segment colors – pastel */
   --c-zaks:   #8b7ec8;   /* jasny fiolet     – zaksięgowane */
   --c-zaang:  #e8a0b8;   /* bladoróżowy      – zaangażowane */
-  --c-exp:    #c9a020;   /* ciemniejszy żółty – wnioski zakupowe */
+  --c-exp:    #f0a830;   /* żółto-pomarańczowy pastelowy – wnioski zakupowe */
   --c-trans:  #7dbde8;   /* błękitny         – w transferach */
   --c-pozost: #82c99a;   /* miętowy zieleń   – wolne */
 
@@ -139,44 +139,22 @@ header h1 {
 /* tooltip – pozycja ustawiana przez JS */
 .tip {
   display: none;
-  position: fixed;        /* fixed = względem viewport, nie rodzica */
-  background: #1a1a18;
-  color: #fff;
+  position: fixed;
+  background: #fafaf8;
+  color: #1a1a18;
   font-family: var(--ff);
-  border-radius: 6px;
+  border-radius: 7px;
   padding: 11px 13px;
   min-width: 230px;
   z-index: 1000;
   pointer-events: none;
-  box-shadow: 0 4px 22px rgba(0,0,0,.2);
-  transform: translateX(-50%);
+  box-shadow: 0 4px 24px rgba(0,0,0,.13), 0 0 0 1px rgba(0,0,0,.07);
 }
-.tip.tip-down {
-  /* strzałka u góry */
-}
-.tip::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  border: 6px solid transparent;
-}
-/* domyślnie strzałka na dole (tooltip nad paskiem) */
-.tip:not(.tip-down)::after {
-  top: 100%;
-  border-top-color: #1a1a18;
-}
-/* flip: strzałka na górze (tooltip pod paskiem) */
-.tip.tip-down::after {
-  bottom: 100%;
-  border-bottom-color: #1a1a18;
-}
-
 .tip-konto {
   font-family: var(--ff-mono);
   font-size: 9px;
   letter-spacing: .1em;
-  color: rgba(255,255,255,.38);
+  color: #b0b0a8;
   margin-bottom: 2px;
 }
 .tip-opis {
@@ -184,8 +162,9 @@ header h1 {
   font-weight: 600;
   margin-bottom: 9px;
   padding-bottom: 8px;
-  border-bottom: 1px solid rgba(255,255,255,.1);
+  border-bottom: 1px solid #e8e7e3;
   line-height: 1.3;
+  color: #1a1a18;
 }
 .tip-row {
   display: grid;
@@ -199,20 +178,20 @@ header h1 {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: rgba(255,255,255,.52);
+  color: #888880;
   white-space: nowrap;
 }
 .tv {
   font-family: var(--ff-mono);
   font-size: 10px;
-  color: #fff;
+  color: #1a1a18;
   white-space: nowrap;
   text-align: right;
 }
 .tp {
   font-family: var(--ff-mono);
   font-size: 10px;
-  color: rgba(255,255,255,.35);
+  color: #c0bfb8;
   text-align: right;
   white-space: nowrap;
 }
@@ -223,10 +202,10 @@ header h1 {
 }
 .tip-div {
   border: none;
-  border-top: 1px solid rgba(255,255,255,.1);
+  border-top: 1px solid #e8e7e3;
   margin: 7px 0;
 }
-.tip-sum .tl { color: rgba(255,255,255,.82); font-weight: 500; }
+.tip-sum .tl { color: #555550; font-weight: 500; }
 .tip-sum .tv { font-size: 10.5px; font-weight: 500; }
 
 /* ── ROW VALUE ────────────────────────── */
@@ -276,11 +255,11 @@ header h1 {
   </div>
   <div class="leg" style="background:var(--c-trans)">
     <div class="leg-name">W transferach</div>
-    <div class="leg-desc">Zaangażowane środki na wnioski szkoleniowe, których jeszcze nie wprowadzono do menu szkoleń.</div>
+    <div class="leg-desc">Zaangażowane środki na procedowane otwarte wnioski szkoleniowe, których jeszcze nie wprowadzono do menu.</div>
   </div>
   <div class="leg" style="background:var(--c-pozost)">
     <div class="leg-name">Wolne</div>
-    <div class="leg-desc">Środki niezaangażowane — wolna rezerwa budżetowa.</div>
+    <div class="leg-desc">Środki niezaangażowane.</div>
   </div>
 </div>
 
@@ -304,6 +283,13 @@ const fmtShort = v => {
   if (a >= 1e6) return n.toLocaleString('pl-PL', { minimumFractionDigits: 1, maximumFractionDigits: 1, notation: 'compact', compactDisplay: 'short' });
   // zawsze z separatorem tysięcy, 0 miejsc po przecinku
   return n.toLocaleString('pl-PL', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+};
+
+const KONTO_NAMES = {
+  '41708001': 'AY – Operacyjne',
+  '41708003': 'MKI – Inwestycyjne',
+  '41708004': 'AL – Kursy językowe i studia',
+  '41708005': 'AL – Rozwojowe',
 };
 
 function kontoFromSyg(syg) {
@@ -348,9 +334,11 @@ function buildRow(g, idx, maxBudget) {
     { cls:'seg-trans', val:trans, label:'W transferach',     color:'var(--c-trans)' },
   ];
 
+  const opisKonta = KONTO_NAMES[konto] || opis || konto;
+
   const tipHtml = `
     <div class="tip-konto">${esc(konto)}</div>
-    ${opis ? `<div class="tip-opis">${esc(opis)}</div>` : '<div style="margin-bottom:9px"></div>'}
+    <div class="tip-opis">${esc(opisKonta)}</div>
     ${segs.map(s => `
     <div class="tip-row">
       <span class="tl"><span class="tip-dot" style="background:${s.color}"></span>${s.label}</span>
@@ -364,7 +352,7 @@ function buildRow(g, idx, maxBudget) {
     </div>
     <hr class="tip-div"/>
     <div class="tip-row tip-sum">
-      <span class="tl">Budżet (RP4 + transf.)</span>
+      <span class="tl">Budżet</span>
       <span class="tv">${fmtFull(rp4)}</span>
       <span class="tp"></span>
     </div>
@@ -382,46 +370,40 @@ function buildRow(g, idx, maxBudget) {
             `<div class="seg ${s.cls}" style="width:${w(s.val)}"></div>`
           ).join('')}
         </div>
-        <div class="tip">${tipHtml}</div>
       </div>
     </div>
     <div class="row-val">${fmtShort(zaks + zaang)} / ${fmtShort(rp4)}</div>
   `;
-  // JS-driven tooltip positioning
+
   const barWrap = row.querySelector('.bar-wrap');
-  const tip     = row.querySelector('.tip');
 
-  barWrap.addEventListener('mouseenter', () => {
-    tip.style.display = 'block';
-    const br  = barWrap.getBoundingClientRect();
-    const th  = tip.offsetHeight;
-    const cx  = br.left + br.width / 2;          // center X of bar
-    const gap = 10;
+  barWrap.addEventListener('mousemove', (e) => {
+    globalTip.innerHTML = tipHtml;
+    globalTip.style.display = 'block';
 
-    // Does it fit above?
-    if (br.top - th - gap >= 0) {
-      tip.classList.remove('tip-down');
-      tip.style.top  = (br.top - th - gap) + 'px';
-    } else {
-      tip.classList.add('tip-down');
-      tip.style.top  = (br.bottom + gap) + 'px';
-    }
-
-    // Horizontal: keep within viewport
-    const tw = tip.offsetWidth;
-    let left = cx;
-    const minL = tw / 2 + 6;
-    const maxL = window.innerWidth - tw / 2 - 6;
-    left = Math.max(minL, Math.min(maxL, left));
-    tip.style.left = left + 'px';
+    const ox = 8, oy = 16;
+    const tw = globalTip.offsetWidth;
+    const th = globalTip.offsetHeight;
+    let left = e.clientX + ox;
+    let top  = e.clientY + oy;
+    if (left + tw > window.innerWidth  - 4) left = e.clientX - tw - ox;
+    if (top  + th > window.innerHeight - 4) top  = e.clientY - th - oy;
+    globalTip.style.left = left + 'px';
+    globalTip.style.top  = top  + 'px';
   });
 
   barWrap.addEventListener('mouseleave', () => {
-    tip.style.display = 'none';
+    globalTip.style.display = 'none';
   });
 
   return row;
 }
+
+// single global tooltip attached directly to body
+const globalTip = document.createElement('div');
+globalTip.className = 'tip';
+globalTip.style.display = 'none';
+document.body.appendChild(globalTip);
 
 function render(groups) {
   const chart = document.getElementById('chart');
