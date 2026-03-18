@@ -1,0 +1,69 @@
+<div style="font-family: 'Red Hat Text', Arial, sans-serif; font-size: 12pt; color: #000; margin: 0; padding: 0; box-sizing: border-box; width: 100%;">
+<div style="background-image: url('https://i.imgur.com/4K7hLJ0.png'); background-size: 2700px; background-position: 62% 45%; background-repeat: no-repeat; height: 290mm; max-height: 1080px; width: 100%; padding: 0; margin: 0; overflow: hidden; page-break-inside: avoid;">
+
+<div style="background-color: rgba(255,255,255,0.92); margin: 0 -2px; padding: 40px 32px 15px 32px; height: 100%; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column;">
+
+<div style="text-align: center; margin-top: -45px;">
+  <img src="https://i.imgur.com/CpYBOG4.png" style="width: 400px;" />
+</div>
+
+<div style="text-align: center; margin-top: 45px;">
+  <div style="font-size: 66pt; font-weight: bold; color: #C4007A; letter-spacing: 2px;">CERTYFIKAT</div>
+</div>
+
+
+<div style="text-align: center; margin-top: 55px;">
+  <div style="font-size: 18pt;color: #323E4F">Pan(i)</div>
+</div>
+
+<div style="text-align: center; margin-top: -5px;">
+  <div style="font-size: 36pt; font-weight: bold; color: #323E4F;">{Uczestnik_Uczestnik}</div>
+</div>
+
+<div style="text-align: center; margin-top: 5px;">
+  <div style="font-size: 18pt;color: #323E4F">Ukończył(a) z wynikiem pozytywnym szkolenie {PDF_StacjonarneElearning}{PDF_Cert_KwalifikacyjneT}</div>
+</div>
+
+<div style="text-align: center; margin-top: 8px;">
+  <div style="font-size: 20pt; font-weight: bold; font-style: italic; color: #323E4F;">{ID_Szkolenia_Ref_Urzadzenie}</div>
+</div>
+<div style="text-align: center; margin-top: 8px;">
+  <div style="font-size: 18pt;color: #323E4F">{PDF_TypZadania}</div>
+</div>
+<div style="flex: 5;"></div>
+
+<table style="width: 100%; border: none; border-collapse: collapse; font-size: 16pt;">
+  <tr>
+    <td colspan="2" style="border: none; padding: 4px 20; color: #323E4F;">
+      <strong>&nbsp;&nbsp;Przeprowadzono w dniach:</strong>
+    </td>
+  </tr>
+  <tr>
+    <td style="border: none; padding: 4px 20; width: 17%;">&nbsp;&nbsp;&nbsp;Szkolenie:</td>
+    <td style="border: none; padding: 4px 0; font-weight: bold; color: #323E4F;">{PDF_SzkolenieOdDo}</td>
+  </tr>
+  <tr>
+    <td style="border: none; padding: 4px 20;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Egzamin:</td>
+    <td style="border: none; padding: 4px 0; font-weight: bold; color: #323E4F;">{PDF_DataOceny_Slownie}</td>
+  </tr>
+</table>
+
+<div style="flex: 1;"></div>
+
+<div style="align-self: flex-end; text-align: center; width: 45%; margin-bottom: 10px; color: #323E4F;">
+    <div style="margin-bottom: -5px; ">....................................................................</div>
+    <div style="font-size: 8pt;">
+      Kierownik komórki organizacyjnej<br>
+      właściwej ds. szkoleń personelu wsparcia<br>
+      operacyjnego i ATSEP
+    </div>
+</div>
+
+<div style="font-size: 11pt; font-weight: bold; color: #323E4F; margin-top: 10px;">
+  <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Warszawa, {PDF_DataProtokolu}</span>
+  <span style="float: right;">{Numer_Cert}&nbsp;&nbsp</span>
+</div>
+
+</div>
+</div>
+</div>
