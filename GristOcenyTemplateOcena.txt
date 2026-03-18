@@ -1,0 +1,117 @@
+<div style="font-family: 'Red Hat Text', Arial, sans-serif; font-size: 10pt; color: #000;">
+<div style="font-family: 'Red Hat Text', Arial, sans-serif; font-size: 10pt; color: #000; margin-top: -8px;">
+<!-- ===== NAGŁÓWEK STRONA 1 ===== -->
+<table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
+  <tr>
+    <td rowspan="3" style="width:20%; text-align:center; border:1px solid #000; padding:8px;">
+      <img src="https://i.imgur.com/4K7hLJ0.png" width="150" />
+    </td>
+    <td rowspan="3" style="width:53%; text-align:center; border:1px solid #000; padding:8px;">
+      <div style="font-size:14pt; font-weight:bold;">Protokół egzaminacyjny</div>
+      <div style="font-size:14pt; margin-top:4px;">{Numer_Protokolu}</div>
+    </td>
+    <td style="width:27%; font-size:11pt; border:1px solid #000; padding:4px 8px;">
+      Formularz<br>
+      <strong>F12-PP-HRM-ATSEP</strong>
+    </td>
+  </tr>
+  <tr>
+    <td style="font-size:11pt; border:1px solid #000; padding:4px 8px;">Strona 1 z 1</td>
+  </tr>
+  <tr>
+    <td style="font-size:11pt; border:1px solid #000; padding:4px 8px;">
+      Zmiana {Numer_Zmiany}<br>
+      obowiązuje od<br>
+      {Zmiana_Data}
+    </td>
+  </tr>
+</table>
+
+<!-- ===== OPIS OCENY ===== -->
+<div style="line-height:1.8;">
+  <p style="margin-bottom:0;">
+    Ocena <strong>po szkoleniu</strong>, potwierdzająca przygotowanie zawodowe, {PDF_TeoPraktyka} w zakresie {PDF_RodzajSzkolenia}  {PDF_nieBASIC} {PDF_dlaKand}{PDF_Forma}
+  </p>
+
+</div>
+
+
+<div style="font-size:6pt; color:#555;">[rodzaj, zakres, forma oceny]</div>
+
+<!-- ===== DATA I MIEJSCE ===== -->
+<div style="line-height:1.8;">
+  <p style="margin-bottom:0;">
+    <strong>Ocena</strong> przeprowadzona w dniu
+    <strong>{PDF_DataOceny_Slownie}</strong>
+  </p>
+</div>
+
+
+<div style="font-size:6pt; color:#555;">[data oceny]</div>
+
+
+<!-- ===== WYNIK ===== -->
+<div style="line-height:1.8;">
+  <p style="margin-bottom:0;">
+    Egzamin {PDF_Egzamin} złożył(a)<strong> {Uczestnik_Uczestnik}</strong> 
+    z wynikiem <strong>{Wynik}%</strong> 
+    uzyskując ocenę –<strong> {Status}</strong>
+  </p>
+</div>
+
+<div style="font-size:6pt; color:#555;">[wynik]</div>
+
+<!-- ===== UWAGI ===== -->
+<div style="margin-bottom:0;  line-height:1.8;">
+  <p>{PDF_Uwagi}</p>
+</div>
+<BR><BR>
+<div style="background-color: #e8f0fe; padding: 12px; margin-top:10px;">
+
+<!-- ===== DECYZJA ===== -->
+<div style="line-height:1.8; margin-bottom:0;  margin-top:0;">
+<p style="font-size:14pt; margin-bottom:0; margin-top:0;"><strong>Decyzja:</strong></p>
+  <p style="margin-left:0px; margin-top:0;">Pan(i) <strong>{Uczestnik_Uczestnik}</strong> {PDF_Potw} w zakresie {PDF_TeoPraktyka2} związanych {PDF_RodzajSzkolenia2}.</p>
+</div>
+<br>
+<!-- ===== KOMISJA EGZAMINACYJNA ===== -->
+<div style="line-height:1.2; margin:0; padding:0;">
+  <strong>Komisja egzaminacyjna:</strong>
+  <table style="width:100%; border-collapse:collapse; border:none; margin-top:4px;">
+    <tr>
+      <td style="width:40%; font-size:10pt; padding:40px 0; border:none; vertical-align:bottom; text-align:center;">{Komisja_U1}</td>
+      <td style="width:60%; font-size:10pt; padding:30px 0; border:none; vertical-align:bottom; text-align:center;">...........................................................................</td>
+    </tr>
+    <tr>
+      <td style="font-size:10pt; padding:0px 0 20px 0; border:none; vertical-align:bottom; text-align:center;">{Komisja_U2}</td>
+      <td style="font-size:10pt; padding:px 10 2px 10; border:none; vertical-align:bottom; text-align:center;t;">...........................................................................</td>
+    </tr>
+  </table>
+</div>
+
+<div style="line-height:1.2; margin:10px 0 0 0; padding:0;">
+  <strong>Przewodniczący komisji:</strong>
+  <table style="width:100%; border-collapse:collapse; border:none; margin-top:4px;">
+    <tr>
+      <td style="width:40%; font-size:10pt; padding:30px 0; border:none; vertical-align:bottom; text-align:center;">{Przewodniczacy}</td>
+      <td style="width:60%; font-size:10pt; padding:30px 0; border:none; vertical-align:bottom; text-align:center;">{PDF_PrzewNieDotyczy}</td>
+    </tr>
+  </table>
+</div>
+
+<!-- ===== DATA PROTOKOŁU I PIECZĘĆ ===== -->
+<table style="width:100%; border-collapse:collapse; margin-top:10px; border:none;">
+  <tr>
+    <td style="width:40%; text-align:center; vertical-align:middle; padding:8px; border:none;">
+      <div><strong>WARSZAWA</strong>, dn.</div>
+      <div style="font-weight:bold;">{PDF_DataProtokolu}</div>
+      <div style="font-size:6pt; color:#555;">[data sporządzenia protokołu]</div>
+    </td>
+    <td style="width:68%; text-align:center; vertical-align:middle; padding:8px; border:none;">
+      <img src="https://i.imgur.com/Fiy4Ud0.jpeg" width="250" />
+      <div style="font-size:6pt; color:#555;">[pieczęć]</div>
+    </td>
+  </tr>
+</table>
+
+</div>
