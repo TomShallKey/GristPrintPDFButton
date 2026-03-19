@@ -30,7 +30,7 @@
 <!-- ===== OPIS OCENY ===== -->
 <div style="line-height:1.8;">
   <p style="margin-bottom:0;">
-    Ocena <strong>po szkoleniu</strong>, potwierdzająca przygotowanie zawodowe, {PDF_TeoPraktyka} w zakresie {PDF_RodzajSzkolenia}  {PDF_nieBASIC} {PDF_dlaKand}{PDF_Forma}
+    Ocena <strong>po szkoleniu</strong>{PDF_SzkolPrzejsciowe}, potwierdzająca przygotowanie zawodowe, {PDF_TeoPraktyka} w zakresie {PDF_RodzajSzkolenia}  {PDF_nieBASIC} {PDF_dlaKand}{PDF_Forma}
   </p>
 
 </div>
