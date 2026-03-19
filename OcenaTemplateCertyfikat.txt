@@ -20,8 +20,8 @@
   <div style="font-size: 36pt; font-weight: bold; color: #323E4F;">{Uczestnik_Uczestnik}</div>
 </div>
 
-<div style="text-align: center; margin-top: 5px;">
-  <div style="font-size: 18pt;color: #323E4F">Ukończył(a) z wynikiem pozytywnym szkolenie {PDF_StacjonarneElearning}{PDF_Cert_KwalifikacyjneT}</div>
+<div style="text-align: center; margin-top: 5px;font-size: 4pt;">
+  <div style="font-size: 18pt;color: #323E4F">Ukończył(a) z wynikiem <strong>pozytywnym</strong><br>szkolenie{PDF_SzkolPrzejsciowe_2}{PDF_Cert_KwalifikacyjneT} {PDF_StacjonarneElearning}</div>
 </div>
 
 <div style="text-align: center; margin-top: 8px;">
@@ -30,7 +30,7 @@
 <div style="text-align: center; margin-top: 8px;">
   <div style="font-size: 18pt;color: #323E4F">{PDF_TypZadania}</div>
 </div>
-<div style="flex: 5;"></div>
+<div style="flex: 3;"></div>
 
 <table style="width: 100%; border: none; border-collapse: collapse; font-size: 16pt;">
   <tr>
