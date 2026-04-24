@@ -76,31 +76,6 @@ header h1 {
   height: 100%;
   display: block;
 }
-.legend-cards {
-  display: grid;
-  grid-template-columns: 1fr 1px 1fr 1fr 1px 1fr;
-  gap: 0 6px;
-  align-items: stretch;
-}
-.leg-divider {
-  background: rgba(0,0,0,.1);
-  border-radius: 1px;
-  margin: 4px 0;
-}
-.leg-group-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: #888;
-  letter-spacing: .02em;
-  padding: 0 2px 4px;
-  margin-bottom: 4px;
-  border-bottom: 1px solid rgba(0,0,0,.07);
-  grid-column: span 1;
-  white-space: nowrap;
-}
-.leg-group-header {
-  display: contents;
-}
 .leg {
   border-radius: 4px;
   padding: 7px 9px;
@@ -123,112 +98,7 @@ header h1 {
   line-height: 1.4;
 }
 
-/* ── DETAIL TABLE ─────────────────────── */
-#detail {
-  margin-top: 20px;
-  border-top: 1px solid var(--border);
-  padding-top: 14px;
-}
-.detail-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-  flex-wrap: wrap;
-}
-.detail-title {
-  font-family: var(--ff-mono);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: var(--text);
-}
-.detail-sub {
-  font-size: 12px;
-  color: var(--muted);
-}
-.detail-close {
-  font-size: 12px;
-  color: var(--muted);
-  cursor: pointer;
-  background: none;
-  border: none;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-family: var(--ff);
-}
-.detail-close:hover { background: #f0efeb; color: var(--text); }
-
-.detail-sort {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-  margin-left: auto;
-}
-.dsort-btn {
-  font-size: 13px;
-  font-family: var(--ff);
-  background: #f4f3ef;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 3px 8px;
-  cursor: pointer;
-  color: var(--muted);
-}
-.dsort-btn.active { background: var(--text); color: #fff; border-color: var(--text); }
-
-.detail-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-.detail-table th {
-  text-align: left;
-  font-family: var(--ff-mono);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--muted);
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  padding: 0 6px 6px;
-  border-bottom: 1px solid var(--border);
-}
-.detail-table th.num { text-align: right; }
-.detail-table td {
-  padding: 5px 6px;
-  border-bottom: 1px solid #f0efeb;
-  vertical-align: middle;
-  color: var(--text);
-}
-.detail-table td.num {
-  text-align: right;
-  font-family: var(--ff-mono);
-  font-size: 13px;
-  color: var(--muted);
-}
-.detail-table tr:last-child td { border-bottom: none; }
-.detail-table tr:hover td { background: #fafaf7; }
-.td-syg {
-  font-family: var(--ff-mono);
-  font-size: 13px;
-  color: var(--muted);
-  white-space: nowrap;
-}
-.td-opis { font-size: 12px; }
-.td-bar {
-  width: 120px;
-  padding: 5px 6px;
-}
-.td-bar-inner {
-  display: flex;
-  height: 10px;
-  border-radius: 2px;
-  overflow: hidden;
-  background: var(--c-pozost);
-}
-.td-seg { height: 100%; }
-
+/* ── BARS ─────────────────────────────── */
 .row {
   display: flex;
   align-items: center;
@@ -258,7 +128,6 @@ header h1 {
   font-weight: 400;
 }
 
-/* outer container gives bar proportional space in flex row */
 .bar-track-outer {
   flex: 1;
   min-width: 0;
@@ -266,7 +135,6 @@ header h1 {
   align-items: center;
 }
 
-/* actual bar – width set by JS as % of maxBudget */
 .bar-wrap {
   flex-shrink: 0;
   position: relative;
@@ -308,7 +176,7 @@ header h1 {
 .seg-pozost { background: var(--c-pozost); }
 .seg-pozost .seg-label { color: rgba(255,255,255,.95); }
 
-/* tooltip – pozycja ustawiana przez JS */
+/* tooltip */
 .tip {
   display: none;
   position: fixed;
@@ -401,55 +269,164 @@ header h1 {
   color: var(--muted);
 }
 
-/* ── DETAIL ROWS ──────────────────────── */
-.drow {
-  display: grid;
-  grid-template-columns: 18% 38% 18% 1fr;
+/* ── DETAIL SECTION ───────────────────── */
+#detail {
+  margin-top: 20px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+.detail-header {
+  display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 0;
-  border-bottom: 1px solid #f0efeb;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
 }
-.drow:last-child { border-bottom: none; }
-.drow-syg {
+.detail-title {
+  font-family: var(--ff-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.detail-sub {
   font-size: 12px;
   color: var(--muted);
-  font-family: var(--ff);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
-.drow-opis {
+.detail-close {
   font-size: 12px;
-  color: var(--text);
+  color: var(--muted);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 2px 6px;
+  border-radius: 3px;
   font-family: var(--ff);
+}
+.detail-close:hover { background: #f0efeb; color: var(--text); }
+
+.detail-sort {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+.dsort-btn {
+  font-size: 13px;
+  font-family: var(--ff);
+  background: #f4f3ef;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 3px 8px;
+  cursor: pointer;
+  color: var(--muted);
+}
+.dsort-btn.active { background: var(--text); color: #fff; border-color: var(--text); }
+
+/* ── OPIS GROUP ROW (level 1 in detail) ── */
+.opis-row {
+  display: grid;
+  grid-template-columns: 1fr 18% 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px;
+  border-bottom: 1px solid #f0efeb;
+  cursor: pointer;
+  transition: background .12s;
+}
+.opis-row:hover { background: #fafaf7; }
+.opis-row.expanded { background: #f5f4f0; }
+.opis-row-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.opis-row-name .chevron {
+  font-size: 10px;
+  color: var(--muted);
+  transition: transform .15s;
+  display: inline-block;
+}
+.opis-row.expanded .chevron { transform: rotate(90deg); }
+.opis-row-vals {
+  font-size: 10px;
+  color: var(--muted);
+  text-align: right;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.8;
 }
-.drow-bar-wrap {
-  cursor: default;
-  padding-right: 12px;
-}
-.drow-bar {
+.opis-row-bar {
   height: 14px;
   border-radius: 3px;
   overflow: hidden;
+  display: flex;
+}
+.opis-count {
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 400;
+  margin-left: 2px;
 }
 
-/* ── MENU INLINE EXPAND ───────────────── */
-.drow-syg {
-  cursor: pointer;
-  text-decoration: underline dotted;
+/* ── SYGNATURA ROW (level 2) ── */
+.syg-expand {
+  background: #fafaf7;
+  border-left: 3px solid var(--border);
+  margin-left: 12px;
+  padding: 4px 0;
 }
-.drow-syg:hover { color: var(--text); }
-.drow.expanded { background: #fafaf7; }
+.syg-row {
+  display: grid;
+  grid-template-columns: 1fr 18% 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(0,0,0,.04);
+  transition: background .1s;
+}
+.syg-row:last-child { border-bottom: none; }
+.syg-row:hover { background: #f0efeb; }
+.syg-row.expanded { background: #eae9e4; }
+.syg-row-label {
+  font-size: 11px;
+  font-family: var(--ff-mono);
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.syg-row-label .chevron {
+  font-size: 9px;
+  color: var(--muted);
+  transition: transform .15s;
+  display: inline-block;
+}
+.syg-row.expanded .chevron { transform: rotate(90deg); }
+.syg-row-vals {
+  font-size: 10px;
+  color: var(--muted);
+  text-align: right;
+  white-space: nowrap;
+  line-height: 1.8;
+}
+.syg-row-bar {
+  height: 10px;
+  border-radius: 2px;
+  overflow: hidden;
+  display: flex;
+}
+
+/* ── MENU ROWS (level 3) ── */
 .menu-expand {
-  grid-column: 1 / -1;
-  background: #f5f4f0;
-  border-radius: 4px;
-  padding: 8px 10px;
-  margin: 2px 0 4px;
+  background: #f0efeb;
+  border-left: 3px solid #d8d7d2;
+  margin-left: 24px;
+  padding: 4px 0;
 }
 .menu-expand-header {
   font-size: 10px;
@@ -457,14 +434,15 @@ header h1 {
   color: var(--muted);
   letter-spacing: .06em;
   text-transform: uppercase;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
+  padding: 0 8px;
 }
 .mrow {
   display: grid;
   grid-template-columns: 14% 1fr 80px 80px 110px;
   align-items: center;
   gap: 6px;
-  padding: 3px 4px;
+  padding: 3px 8px;
   border-radius: 3px;
   border-bottom: 1px solid rgba(0,0,0,.04);
   font-size: 11px;
@@ -528,7 +506,7 @@ header h1 {
 }
 .menu-sum-inline {
   margin-top: 6px;
-  padding-top: 5px;
+  padding: 5px 8px 2px;
   border-top: 1px solid rgba(0,0,0,.08);
   font-size: 10px;
   color: var(--muted);
@@ -538,7 +516,19 @@ header h1 {
 .menu-loading-inline {
   font-size: 10px;
   color: var(--muted);
-  padding: 4px 0;
+  padding: 4px 8px;
+}
+
+/* ── REZ INFO BAR ─────────────────────── */
+.rez-bar {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 4px 8px 8px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid rgba(0,0,0,.08);
+  font-size: 10px;
+  color: var(--muted);
 }
 
 /* ── MISC ─────────────────────────────── */
@@ -600,14 +590,12 @@ const pos = v => Math.max(0, +v || 0);
 const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const pct = (a,b) => b > 0 ? (a/b*100).toFixed(0)+'%' : '—';
 
-// Zawsze pełny format z separatorem tysięcy, 2 miejsca po przecinku
 const fmtFull = v => {
   const n = +v;
   if (v == null || isNaN(n)) return '—';
   return n.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true }) + ' zł';
 };
 
-// Skrócony: 1 200 000 → "1,2 M", 12 000 → "12 000", 999 → "999"
 const fmtShort = v => {
   const n = +v || 0;
   return (n / 1e6).toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' mln';
@@ -627,25 +615,26 @@ const KONTO_SHORT = {
   '41708005': 'Rozwojowe',
 };
 
-function buildRow(g, idx, maxBudget) {
-  const { konto, opis, zaks, zaang, exp, trans, pozost, rp4 } = g;
+// ── Global tooltip ────────────────────────────────────────────────────────────
+const globalTip = document.createElement('div');
+globalTip.className = 'tip';
+globalTip.style.display = 'none';
+document.body.appendChild(globalTip);
 
-  const barPct = maxBudget > 0 ? (rp4 / maxBudget * 100).toFixed(2) + '%' : '100%';
-  const denom  = Math.max(rp4, zaks + zaang + exp + trans + pozost) || 1;
-  const w = v => (v / denom * 100).toFixed(3) + '%';
+function positionTip(e) {
+  const ox = 8, oy = 16;
+  const tw = globalTip.offsetWidth, th = globalTip.offsetHeight;
+  let left = e.clientX + ox, top = e.clientY + oy;
+  if (left + tw > window.innerWidth  - 4) left = e.clientX - tw - ox;
+  if (top  + th > window.innerHeight - 4) top  = e.clientY - th - oy;
+  globalTip.style.left = left + 'px';
+  globalTip.style.top  = top  + 'px';
+}
 
-  const segs = [
-    { cls:'seg-zaks',  val:zaks,  label:'Zaksięgowane',     color:'var(--c-zaks)' },
-    { cls:'seg-zaang', val:zaang, label:'Zaangażowane',      color:'var(--c-zaang)' },
-    { cls:'seg-exp',   val:exp,   label:'Wnioski zakupowe',  color:'var(--c-exp)' },
-    { cls:'seg-trans', val:trans, label:'W transferach',     color:'var(--c-trans)' },
-  ];
-
-  const opisKonta = KONTO_NAMES[konto] || opis || konto;
-
-  const tipHtml = `
-    <div class="tip-konto">${esc(konto)}</div>
-    <div class="tip-opis">${esc(opisKonta)}</div>
+function makeTipHtml(label, title, segs, pozost, denom, rp4) {
+  return `
+    <div class="tip-konto">${esc(label)}</div>
+    <div class="tip-opis">${esc(title)}</div>
     ${segs.map(s => `
     <div class="tip-row">
       <span class="tl"><span class="tip-dot" style="background:${s.color}"></span>${s.label}</span>
@@ -664,6 +653,34 @@ function buildRow(g, idx, maxBudget) {
       <span class="tp"></span>
     </div>
   `;
+}
+
+function attachBarTip(barEl, tipHtml) {
+  barEl.addEventListener('mousemove', e => {
+    globalTip.innerHTML = tipHtml;
+    globalTip.style.display = 'block';
+    positionTip(e);
+  });
+  barEl.addEventListener('mouseleave', () => { globalTip.style.display = 'none'; });
+}
+
+// ── Build main bar row ────────────────────────────────────────────────────────
+function buildRow(g, idx, maxBudget) {
+  const { konto, opis, zaks, zaang, exp, trans, pozost, rp4 } = g;
+  const barPct = maxBudget > 0 ? (rp4 / maxBudget * 100).toFixed(2) + '%' : '100%';
+  const denom  = Math.max(rp4, zaks + zaang + exp + trans + pozost) || 1;
+  const w = v => (v / denom * 100).toFixed(3) + '%';
+
+  const segs = [
+    { cls:'seg-zaks',  val:zaks,  label:'Zaksięgowane',    color:'var(--c-zaks)' },
+    { cls:'seg-zaang', val:zaang, label:'Zaangażowane',     color:'var(--c-zaang)' },
+    { cls:'seg-exp',   val:exp,   label:'Wnioski zakupowe', color:'var(--c-exp)' },
+    { cls:'seg-trans', val:trans, label:'W transferach',    color:'var(--c-trans)' },
+  ];
+
+  const opisKonta = KONTO_NAMES[konto] || opis || konto;
+
+  const tipHtml = makeTipHtml(konto, opisKonta, segs, pozost, denom, rp4);
 
   const row = document.createElement('div');
   row.className = 'row';
@@ -687,25 +704,7 @@ function buildRow(g, idx, maxBudget) {
   `;
 
   const barWrap = row.querySelector('.bar-wrap');
-
-  barWrap.addEventListener('mousemove', (e) => {
-    globalTip.innerHTML = tipHtml;
-    globalTip.style.display = 'block';
-
-    const ox = 8, oy = 16;
-    const tw = globalTip.offsetWidth;
-    const th = globalTip.offsetHeight;
-    let left = e.clientX + ox;
-    let top  = e.clientY + oy;
-    if (left + tw > window.innerWidth  - 4) left = e.clientX - tw - ox;
-    if (top  + th > window.innerHeight - 4) top  = e.clientY - th - oy;
-    globalTip.style.left = left + 'px';
-    globalTip.style.top  = top  + 'px';
-  });
-
-  barWrap.addEventListener('mouseleave', () => {
-    globalTip.style.display = 'none';
-  });
+  attachBarTip(barWrap, tipHtml);
 
   barWrap.addEventListener('click', () => {
     globalTip.style.display = 'none';
@@ -722,12 +721,7 @@ function buildRow(g, idx, maxBudget) {
   return row;
 }
 
-// single global tooltip attached directly to body
-const globalTip = document.createElement('div');
-globalTip.className = 'tip';
-globalTip.style.display = 'none';
-document.body.appendChild(globalTip);
-
+// ── Donut (unchanged logic) ───────────────────────────────────────────────────
 function renderDonut(groups) {
   const svg = document.getElementById('donut-svg');
   if (!svg) return;
@@ -742,7 +736,6 @@ function renderDonut(groups) {
   }), { zaks:0, zaang:0, exp:0, trans:0, pozost:0 });
 
   const total = T.zaks + T.zaang + T.exp + T.trans + T.pozost || 1;
-
   const segs = [
     { val: T.zaks,   label: 'Zaksięgowane',    color: getComputedStyle(document.documentElement).getPropertyValue('--c-zaks').trim() },
     { val: T.zaang,  label: 'Zaangażowane',     color: getComputedStyle(document.documentElement).getPropertyValue('--c-zaang').trim() },
@@ -755,14 +748,10 @@ function renderDonut(groups) {
   const TAU = 2 * Math.PI;
 
   function arc(cx, cy, R, r, startAngle, endAngle) {
-    const x1 = cx + R * Math.cos(startAngle);
-    const y1 = cy + R * Math.sin(startAngle);
-    const x2 = cx + R * Math.cos(endAngle);
-    const y2 = cy + R * Math.sin(endAngle);
-    const x3 = cx + r * Math.cos(endAngle);
-    const y3 = cy + r * Math.sin(endAngle);
-    const x4 = cx + r * Math.cos(startAngle);
-    const y4 = cy + r * Math.sin(startAngle);
+    const x1 = cx + R * Math.cos(startAngle), y1 = cy + R * Math.sin(startAngle);
+    const x2 = cx + R * Math.cos(endAngle),   y2 = cy + R * Math.sin(endAngle);
+    const x3 = cx + r * Math.cos(endAngle),    y3 = cy + r * Math.sin(endAngle);
+    const x4 = cx + r * Math.cos(startAngle),  y4 = cy + r * Math.sin(startAngle);
     const large = endAngle - startAngle > Math.PI ? 1 : 0;
     return `M${x1},${y1} A${R},${R},0,${large},1,${x2},${y2} L${x3},${y3} A${r},${r},0,${large},0,${x4},${y4} Z`;
   }
@@ -777,16 +766,13 @@ function renderDonut(groups) {
     path.style.cursor = 'default';
     svg.appendChild(path);
 
-    // label inside segment if large enough (>8%)
     if (s.val / total > 0.08) {
       const mid = angle + span / 2;
-      const Rl  = (R + r) / 2;           // midpoint radius
+      const Rl  = (R + r) / 2;
       const lx  = cx + Rl * Math.cos(mid);
       const ly  = cy + Rl * Math.sin(mid);
-
       const txt = document.createElementNS(ns, 'text');
-      txt.setAttribute('x', lx);
-      txt.setAttribute('y', ly);
+      txt.setAttribute('x', lx); txt.setAttribute('y', ly);
       txt.setAttribute('text-anchor', 'middle');
       txt.setAttribute('dominant-baseline', 'middle');
       txt.setAttribute('font-family', 'JetBrains Mono, monospace');
@@ -796,64 +782,47 @@ function renderDonut(groups) {
       txt.textContent = pct(s.val, total);
       svg.appendChild(txt);
     }
-
     angle += span;
   });
 
-  // center: wolne
+  const pozostColor = getComputedStyle(document.documentElement).getPropertyValue('--c-pozost').trim();
   const t1 = document.createElementNS(ns, 'text');
   t1.setAttribute('x', cx); t1.setAttribute('y', cy - 5);
-  t1.setAttribute('text-anchor', 'middle');
-  t1.setAttribute('dominant-baseline', 'middle');
+  t1.setAttribute('text-anchor', 'middle'); t1.setAttribute('dominant-baseline', 'middle');
   t1.setAttribute('font-family', 'JetBrains Mono, monospace');
   t1.setAttribute('font-size', '10'); t1.setAttribute('font-weight', '500');
-  const pozostColor = getComputedStyle(document.documentElement).getPropertyValue('--c-pozost').trim();
   t1.setAttribute('fill', pozostColor); t1.setAttribute('pointer-events', 'none');
   t1.textContent = fmtShort(T.pozost);
   svg.appendChild(t1);
 
   const t2 = document.createElementNS(ns, 'text');
   t2.setAttribute('x', cx); t2.setAttribute('y', cy + 8);
-  t2.setAttribute('text-anchor', 'middle');
-  t2.setAttribute('dominant-baseline', 'middle');
+  t2.setAttribute('text-anchor', 'middle'); t2.setAttribute('dominant-baseline', 'middle');
   t2.setAttribute('font-family', 'JetBrains Mono, monospace');
   t2.setAttribute('font-size', '7.5');
   t2.setAttribute('fill', '#aaa'); t2.setAttribute('pointer-events', 'none');
   t2.textContent = 'wolne';
   svg.appendChild(t2);
 
-  // single tooltip for whole donut showing all segments
-  const donutTipHtml = `
-    <div class="tip-konto">ŁĄCZNIE</div>
-    <div class="tip-opis" style="color:#1a1a18">Wszystkie konta · 2026</div>
-    ${segs.map(s => `
-    <div class="tip-row">
-      <span class="tl"><span class="tip-dot" style="background:${s.color}"></span>${s.label}</span>
-      <span class="tv">${fmtFull(s.val)}</span>
-      <span class="tp">${pct(s.val, total)}</span>
-    </div>`).join('')}
-    <hr class="tip-div"/>
-    <div class="tip-row tip-sum">
-      <span class="tl">Budżet</span>
-      <span class="tv">${fmtFull(total)}</span>
-      <span class="tp"></span>
-    </div>
-  `;
+  const donutTipHtml = makeTipHtml('ŁĄCZNIE', 'Wszystkie konta · 2026',
+    segs.map(s => ({ ...s, color: s.color })), 0, total, total);
 
   const donutEl = document.getElementById('donut-wrap');
-  donutEl.addEventListener('mousemove', (e) => {
+  // remove old listeners by cloning
+  const newDonut = donutEl.cloneNode(true);
+  newDonut.querySelector('svg').replaceWith(svg);
+  donutEl.parentNode.replaceChild(newDonut, donutEl);
+  newDonut.id = 'donut-wrap';
+
+  newDonut.addEventListener('mousemove', e => {
     globalTip.innerHTML = donutTipHtml;
     globalTip.style.display = 'block';
-    const ox = 8, oy = 16, tw = globalTip.offsetWidth, th = globalTip.offsetHeight;
-    let left = e.clientX + ox, top = e.clientY + oy;
-    if (left + tw > window.innerWidth  - 4) left = e.clientX - tw - ox;
-    if (top  + th > window.innerHeight - 4) top  = e.clientY - th - oy;
-    globalTip.style.left = left + 'px';
-    globalTip.style.top  = top  + 'px';
+    positionTip(e);
   });
-  donutEl.addEventListener('mouseleave', () => { globalTip.style.display = 'none'; });
-} // end renderDonut
+  newDonut.addEventListener('mouseleave', () => { globalTip.style.display = 'none'; });
+}
 
+// ── Render main chart ─────────────────────────────────────────────────────────
 function render(groups) {
   const chart = document.getElementById('chart');
   chart.innerHTML = '';
@@ -861,7 +830,6 @@ function render(groups) {
     chart.innerHTML = '<div class="msg">Brak danych.</div>';
     return;
   }
-
   renderDonut(groups);
 
   const maxBudget = Math.max(...groups.map(g =>
@@ -873,8 +841,7 @@ function render(groups) {
   groups.forEach((g, i) => wrap.appendChild(buildRow(g, i, maxBudget)));
   chart.appendChild(wrap);
 
-  // post-render: inject labels only where segment is wide enough
-  const MIN_W = 64; // px — minimum width to show both % and mln
+  const MIN_W = 64;
   wrap.querySelectorAll('.seg[data-pct]').forEach(seg => {
     if (seg.offsetWidth >= MIN_W) {
       const span = document.createElement('span');
@@ -883,19 +850,69 @@ function render(groups) {
       seg.appendChild(span);
     }
   });
-
 }
 
-// ── Detail table state ────────────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────────────────────────
 let allRawRecords  = [];
 let selectedKonto  = null;
 let detailSort     = 'total';
 let globalMaxBudget = 1;
+let menuCache      = null;
+let rezCache       = null;
+
+// ── Helper functions ──────────────────────────────────────────────────────────
+const fmtDate = v => {
+  if (!v) return '—';
+  const d = typeof v === 'number' ? new Date(v * 1000) : new Date(v);
+  if (isNaN(d)) return String(v).slice(0,10);
+  return d.toLocaleDateString('pl-PL', {day:'2-digit', month:'2-digit', year:'numeric'});
+};
+
+const fmtPersons = raw => {
+  if (!raw) return '—';
+  return String(raw).split('*').map(s => s.trim()).filter(Boolean).join(' | ');
+};
+
+const normalizeEtap = etapKat => {
+  const e = String(etapKat || '').trim();
+  if (e === 'Rozliczone') return 'Zaangażowane';
+  return e;
+};
+
+const etapColor = etapKat => {
+  if (!etapKat) return null;
+  const e = String(etapKat).trim();
+  if (e === 'Zaksięgowane') return 'var(--c-zaks)';
+  if (e === 'Zaangażowane' || e === 'Rozliczone') return 'var(--c-zaang)';
+  return null;
+};
+
+function makeSegBar(vals, maxVal, height) {
+  const { zaks, zaang, exp, trans, pozost, rp4 } = vals;
+  const denom = Math.max(rp4, zaks + zaang + exp + trans + pozost) || 1;
+  const barW  = maxVal > 0 ? (rp4 / maxVal * 100).toFixed(2) + '%' : '100%';
+  const w     = v => (v / denom * 100).toFixed(3) + '%';
+  const segs  = [
+    { val:zaks,  color:'var(--c-zaks)' },
+    { val:zaang, color:'var(--c-zaang)' },
+    { val:exp,   color:'var(--c-exp)' },
+    { val:trans, color:'var(--c-trans)' },
+  ];
+  return `<div style="height:${height}px;border-radius:3px;overflow:hidden;display:flex;width:${barW}">
+    ${segs.filter(s => s.val > 0).map(s => `<div style="width:${w(s.val)};height:100%;background:${s.color};flex-shrink:0"></div>`).join('')}
+    ${pozost > 0 ? `<div style="flex:1;height:100%;background:var(--c-pozost)"></div>` : ''}
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DETAIL: Konto → Opis (grouped) → Sygnatura → Menu entries
+// ══════════════════════════════════════════════════════════════════════════════
 
 function renderDetail() {
   const el = document.getElementById('detail');
   if (!selectedKonto) { el.style.display = 'none'; return; }
 
+  // Filter raw records for selected konto + year
   const rows = allRawRecords
     .filter(r => {
       const k = r.Konto || ('41708' + (String(r.Sygnatura||'').split('-')[3]||''));
@@ -910,9 +927,28 @@ function renderDetail() {
       zaang:  pos(r.Zaang),
       exp:    pos(r.Expected_Menu),
       trans:  pos(r.wTransferach),
-      pozost: pos(r.PozostUwzgTransfery),
+      pozost: Math.max(0, +r.PozostUwzgTransfery || 0),
       rp4:    pos(r.RP4_x_Transfery),
     }));
+
+  // ── Group by Opis ──────────────────────────────────────────────────────────
+  const opisMap = new Map();
+  rows.forEach(r => {
+    const key = r.opis || '(brak opisu)';
+    if (!opisMap.has(key)) {
+      opisMap.set(key, { opis: key, sygs: [], zaks:0, zaang:0, exp:0, trans:0, pozost:0, rp4:0 });
+    }
+    const g = opisMap.get(key);
+    g.sygs.push(r);
+    g.zaks   += r.zaks;
+    g.zaang  += r.zaang;
+    g.exp    += r.exp;
+    g.trans  += r.trans;
+    g.pozost += r.pozost;
+    g.rp4    += r.rp4;
+  });
+
+  let opisGroups = [...opisMap.values()];
 
   const sortFns = {
     total:  (a,b) => (b.zaks+b.zaang+b.exp+b.trans) - (a.zaks+a.zaang+a.exp+a.trans),
@@ -921,10 +957,10 @@ function renderDetail() {
     trans:  (a,b) => b.trans  - a.trans,
     pozost: (a,b) => b.pozost - a.pozost,
   };
-  rows.sort(sortFns[detailSort] || sortFns.total);
+  opisGroups.sort(sortFns[detailSort] || sortFns.total);
 
-  const label  = KONTO_SHORT[selectedKonto] || selectedKonto;
-  const maxRp4 = Math.max(...rows.map(r => r.rp4 || (r.zaks+r.zaang+r.exp+r.trans+r.pozost))) || 1;
+  const label = KONTO_SHORT[selectedKonto] || selectedKonto;
+  const maxRp4 = Math.max(...opisGroups.map(g => g.rp4 || (g.zaks+g.zaang+g.exp+g.trans+g.pozost))) || 1;
 
   const sortBtns = [
     { key:'total',  label:'Całkowite wykonanie' },
@@ -932,340 +968,326 @@ function renderDetail() {
     { key:'exp',    label:'Wnioski zakup.' },
     { key:'trans',  label:'Transfery' },
     { key:'pozost', label:'Wolne' },
-  ].map(b => `<button class="dsort-btn${detailSort===b.key?' active':''}" onclick="detailSort='${b.key}';renderDetail()">${detailSort===b.key?'↓ ':''}${b.label}</button>`).join('');
+  ].map(b => `<button class="dsort-btn${detailSort===b.key?' active':''}" data-sort="${b.key}">${detailSort===b.key?'↓ ':''}${b.label}</button>`).join('');
 
   el.style.display = 'block';
   el.innerHTML = `
     <div class="detail-header">
       <span class="detail-title">${esc(selectedKonto)}</span>
-      <span class="detail-sub">${esc(label)} · ${rows.length} pozycji</span>
+      <span class="detail-sub">${esc(label)} · ${opisGroups.length} grup · ${rows.length} sygnatur</span>
       <div class="detail-sort">${sortBtns}</div>
-      <button class="detail-close" onclick="selectedKonto=null;renderDetail();document.querySelectorAll('.row').forEach(r=>r.classList.remove('row-selected'))">✕</button>
+      <button class="detail-close" id="detail-close-btn">✕</button>
     </div>
     <div id="detail-rows"></div>
   `;
 
+  // Sort button handlers
+  el.querySelectorAll('.dsort-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      detailSort = btn.dataset.sort;
+      renderDetail();
+    });
+  });
+  document.getElementById('detail-close-btn').addEventListener('click', () => {
+    selectedKonto = null;
+    renderDetail();
+    document.querySelectorAll('.row').forEach(r => r.classList.remove('row-selected'));
+  });
+
   const container = document.getElementById('detail-rows');
-  const MIN_W = 44;
 
-  rows.forEach(r => {
-    const denom   = Math.max(r.rp4, r.zaks+r.zaang+r.exp+r.trans+r.pozost) || 1;
-    const barW    = (r.rp4 / maxRp4 * 100).toFixed(2) + '%';
-    const w       = v => (v / denom * 100).toFixed(3) + '%';
+  // ── Render each Opis group ─────────────────────────────────────────────────
+  opisGroups.forEach(og => {
+    const opisRowEl = document.createElement('div');
+    opisRowEl.className = 'opis-row';
+    opisRowEl.innerHTML = `
+      <div class="opis-row-name">
+        <span class="chevron">▶</span>
+        ${esc(og.opis)}
+        <span class="opis-count">(${og.sygs.length} sygn.)</span>
+      </div>
+      <div class="opis-row-vals">
+        <div>Budżet <span style="color:var(--text);font-weight:600">${(+og.rp4||0).toLocaleString('pl-PL',{maximumFractionDigits:0})} zł</span></div>
+        <div style="color:var(--c-pozost)">Wolne <span style="font-weight:600">${(+og.pozost||0).toLocaleString('pl-PL',{maximumFractionDigits:0})} zł</span></div>
+      </div>
+      <div>${makeSegBar(og, maxRp4, 14)}</div>
+    `;
 
-    const segs = [
-      { cls:'seg-zaks',   val:r.zaks,   label:'Zaksięgowane',    color:'var(--c-zaks)' },
-      { cls:'seg-zaang',  val:r.zaang,  label:'Zaangażowane',     color:'var(--c-zaang)' },
-      { cls:'seg-exp',    val:r.exp,    label:'Wnioski zakupowe', color:'var(--c-exp)' },
-      { cls:'seg-trans',  val:r.trans,  label:'W transferach',    color:'var(--c-trans)' },
+    // Tooltip for opis bar
+    const segsData = [
+      { label:'Zaksięgowane',    val:og.zaks,  color:'var(--c-zaks)' },
+      { label:'Zaangażowane',     val:og.zaang, color:'var(--c-zaang)' },
+      { label:'Wnioski zakupowe', val:og.exp,   color:'var(--c-exp)' },
+      { label:'W transferach',    val:og.trans, color:'var(--c-trans)' },
     ];
+    const denom = Math.max(og.rp4, og.zaks+og.zaang+og.exp+og.trans+og.pozost) || 1;
+    const tipHtml = makeTipHtml(selectedKonto, og.opis, segsData, og.pozost, denom, og.rp4);
+    const barArea = opisRowEl.children[2];
+    attachBarTip(barArea, tipHtml);
 
-    const tipHtml = `
-      <div class="tip-konto">${esc(r.syg)}</div>
-      <div class="tip-opis" style="color:#1a1a18">${esc(r.opis) || '—'}</div>
-      ${segs.map(s => `
-      <div class="tip-row">
-        <span class="tl"><span class="tip-dot" style="background:${s.color}"></span>${s.label}</span>
-        <span class="tv">${fmtFull(s.val)}</span>
-        <span class="tp">${pct(s.val, denom)}</span>
-      </div>`).join('')}
-      <div class="tip-row">
-        <span class="tl"><span class="tip-dot" style="background:var(--c-pozost)"></span>Wolne</span>
-        <span class="tv">${fmtFull(r.pozost)}</span>
-        <span class="tp">${pct(r.pozost, denom)}</span>
-      </div>
-      <hr class="tip-div"/>
-      <div class="tip-row tip-sum">
-        <span class="tl">Budżet</span>
-        <span class="tv">${fmtFull(r.rp4)}</span>
-        <span class="tp"></span>
-      </div>
-    `;
+    let sygExpandEl = null;
 
-    const rowEl = document.createElement('div');
-    rowEl.className = 'drow';
-    rowEl.innerHTML = `
-      <div class="drow-syg">${esc(r.syg)}</div>
-      <div class="drow-opis">${esc(r.opis)}</div>
-      <div style="font-family:var(--ff);white-space:nowrap;text-align:right;line-height:1.8">
-        <div style="font-size:10px;color:var(--muted)">Budżet <span style="color:var(--text);font-weight:600">${(+r.rp4||0).toLocaleString('pl-PL',{maximumFractionDigits:0,useGrouping:true})} zł</span></div>
-        <div style="font-size:10px;color:var(--c-pozost)">Wolne <span style="font-weight:600">${(+r.pozost||0).toLocaleString('pl-PL',{maximumFractionDigits:0,useGrouping:true})} zł</span></div>
-      </div>
-      <div class="drow-bar-wrap">
-        <div class="drow-bar" style="background:transparent;display:flex;width:${barW}">
-          ${segs.filter(s => s.val > 0).map(s =>
-            `<div style="width:${w(s.val)};height:100%;background:${s.color};flex-shrink:0"></div>`
-          ).join('')}
-          ${r.pozost > 0 ? `<div style="flex:1;height:100%;background:var(--c-pozost)"></div>` : ''}
-        </div>
-      </div>
-    `;
+    opisRowEl.addEventListener('click', e => {
+      // don't toggle on bar hover tooltip area
+      if (e.target.closest('.opis-row-vals') || e.target.closest('div:last-child')) {
+        // still allow click, just prevent tooltip
+      }
+      globalTip.style.display = 'none';
 
-    const barWrap = rowEl.querySelector('.drow-bar-wrap');
-    barWrap.addEventListener('mousemove', (e) => {
-      globalTip.innerHTML = tipHtml;
-      globalTip.style.display = 'block';
-      const ox = 8, oy = 16, tw = globalTip.offsetWidth, th = globalTip.offsetHeight;
-      let left = e.clientX + ox, top = e.clientY + oy;
-      if (left + tw > window.innerWidth  - 4) left = e.clientX - tw - ox;
-      if (top  + th > window.innerHeight - 4) top  = e.clientY - th - oy;
-      globalTip.style.left = left + 'px';
-      globalTip.style.top  = top  + 'px';
+      if (sygExpandEl) {
+        sygExpandEl.remove();
+        sygExpandEl = null;
+        opisRowEl.classList.remove('expanded');
+        return;
+      }
+
+      // Collapse any other expanded opis
+      container.querySelectorAll('.opis-row.expanded').forEach(r => {
+        r.classList.remove('expanded');
+        const next = r.nextElementSibling;
+        if (next && next.classList.contains('syg-expand')) next.remove();
+      });
+
+      opisRowEl.classList.add('expanded');
+      sygExpandEl = document.createElement('div');
+      sygExpandEl.className = 'syg-expand';
+
+      const sygMaxRp4 = Math.max(...og.sygs.map(s => s.rp4 || (s.zaks+s.zaang+s.exp+s.trans+s.pozost))) || 1;
+
+      og.sygs.sort((a,b) => (b.zaks+b.zaang+b.exp+b.trans) - (a.zaks+a.zaang+a.exp+a.trans));
+
+      og.sygs.forEach(sr => {
+        const sygRowEl = document.createElement('div');
+        sygRowEl.className = 'syg-row';
+        sygRowEl.innerHTML = `
+          <div class="syg-row-label">
+            <span class="chevron">▶</span>
+            ${esc(sr.syg)}
+          </div>
+          <div class="syg-row-vals">
+            <div>Budżet <span style="color:var(--text);font-weight:600">${(+sr.rp4||0).toLocaleString('pl-PL',{maximumFractionDigits:0})} zł</span></div>
+            <div style="color:var(--c-pozost)">Wolne <span style="font-weight:600">${(+sr.pozost||0).toLocaleString('pl-PL',{maximumFractionDigits:0})} zł</span></div>
+          </div>
+          <div>${makeSegBar(sr, sygMaxRp4, 10)}</div>
+        `;
+
+        // Tooltip for syg bar
+        const sygSegs = [
+          { label:'Zaksięgowane',    val:sr.zaks,  color:'var(--c-zaks)' },
+          { label:'Zaangażowane',     val:sr.zaang, color:'var(--c-zaang)' },
+          { label:'Wnioski zakupowe', val:sr.exp,   color:'var(--c-exp)' },
+          { label:'W transferach',    val:sr.trans, color:'var(--c-trans)' },
+        ];
+        const sygDenom = Math.max(sr.rp4, sr.zaks+sr.zaang+sr.exp+sr.trans+sr.pozost) || 1;
+        const sygTipHtml = makeTipHtml(sr.syg, sr.opis, sygSegs, sr.pozost, sygDenom, sr.rp4);
+        attachBarTip(sygRowEl.children[2], sygTipHtml);
+
+        let menuExpandEl = null;
+
+        sygRowEl.addEventListener('click', async e => {
+          e.stopPropagation();
+          globalTip.style.display = 'none';
+
+          if (menuExpandEl) {
+            menuExpandEl.remove();
+            menuExpandEl = null;
+            sygRowEl.classList.remove('expanded');
+            return;
+          }
+
+          // Collapse other menu expands in this syg-expand
+          sygExpandEl.querySelectorAll('.syg-row.expanded').forEach(r => {
+            r.classList.remove('expanded');
+            const next = r.nextElementSibling;
+            if (next && next.classList.contains('menu-expand')) next.remove();
+          });
+
+          sygRowEl.classList.add('expanded');
+          menuExpandEl = document.createElement('div');
+          menuExpandEl.className = 'menu-expand';
+          menuExpandEl.innerHTML = '<div class="menu-loading-inline">Ładowanie…</div>';
+          sygRowEl.after(menuExpandEl);
+
+          try {
+            await ensureCaches();
+
+            // Find Rezerwacje for this sygnatura
+            const rez = rezCache
+              ? rezCache.find(r => {
+                  const s = r.Sygnatura;
+                  if (sr.sygId && typeof s === 'number') return s === sr.sygId;
+                  return String(s) === String(sr.sygId);
+                })
+              : null;
+
+            // Find menu entries
+            let menuRows = [];
+            if (menuCache) {
+              menuRows = menuCache.filter(r => {
+                const s = r.sygnatura;
+                if (sr.sygId && typeof s === 'number') return s === sr.sygId;
+                return String(s) === String(sr.syg) || String(s) === String(sr.sygId);
+              });
+            }
+
+            menuRows.sort((a, b) => {
+              const ea = normalizeEtap(a.etap_Kat), eb = normalizeEtap(b.etap_Kat);
+              if (ea === 'Zaksięgowane' && eb !== 'Zaksięgowane') return -1;
+              if (eb === 'Zaksięgowane' && ea !== 'Zaksięgowane') return 1;
+              return (+b.cena || 0) - (+a.cena || 0);
+            });
+
+            const menuTotal = menuRows.reduce((a, r) => a + (+r.cena || 0), 0);
+            const menuZaks  = menuRows.filter(r => normalizeEtap(r.etap_Kat) === 'Zaksięgowane')
+                                      .reduce((a, r) => a + (+r.cena || 0), 0);
+            const menuZaang = menuRows.filter(r => normalizeEtap(r.etap_Kat) === 'Zaangażowane')
+                                      .reduce((a, r) => a + (+r.cena || 0), 0);
+
+            // Rez info bar
+            let rezBarHtml = '';
+            if (rez) {
+              const parts = [];
+              if (rez.WZ_Numer)    parts.push(`<span>WZ: <strong>${esc(rez.WZ_Numer)}</strong></span>`);
+              if (rez.Umowa_Numer) parts.push(`<span>Umowa: <strong>${esc(rez.Umowa_Numer)}</strong></span>`);
+              const val = rez.Expected_Cost;
+              if (val) parts.push(`<span>Wartość: <strong>${fmtFull(+val)}</strong></span>`);
+              if (parts.length) rezBarHtml = `<div class="rez-bar">${parts.join('')}</div>`;
+            }
+
+            // Synthetic rows (transfers, wniosek, wolne)
+            const mainRow  = allRawRecords.find(r => r.id === sr.sygId);
+            const transVal = mainRow ? pos(mainRow.wTransferach) : 0;
+            const wolneVal = mainRow ? Math.max(0, +mainRow.PozostUwzgTransfery || 0) : 0;
+
+            const transferRow = transVal > 0 ? `
+              <div class="mrow" style="background:rgba(125,189,232,.12)">
+                <div class="mrow-etap"><span class="etap-dot" style="background:var(--c-trans)"></span>Transfery</div>
+                <div><div class="mrow-temat" style="color:var(--text)">Aktywowane środki na procedowane wnioski</div><div class="mrow-imnaz" data-full="">—</div></div>
+                <div class="mrow-dates">—</div><div class="mrow-dates">—</div>
+                <div class="mrow-cena" style="color:var(--c-trans)">${fmtFull(transVal)}</div>
+              </div>` : '';
+
+            const wniosekRow = sr.exp > 0 ? `
+              <div class="mrow" style="background:rgba(240,168,48,.10)">
+                <div class="mrow-etap"><span class="etap-dot" style="background:var(--c-exp)"></span>Wniosek Zakupowy</div>
+                <div><div class="mrow-temat" style="color:var(--text)">Pozostałe zabezpieczenie wniosku zakupowego</div><div class="mrow-imnaz" data-full="">—</div></div>
+                <div class="mrow-dates">—</div><div class="mrow-dates">—</div>
+                <div class="mrow-cena" style="color:var(--c-exp)">${fmtFull(sr.exp)}</div>
+              </div>` : '';
+
+            const wolneRow = wolneVal > 0 ? `
+              <div class="mrow" style="background:rgba(130,201,154,.12)">
+                <div class="mrow-etap"><span class="etap-dot" style="background:var(--c-pozost)"></span>Wolne</div>
+                <div><div class="mrow-temat" style="color:var(--text)">Niezaangażowana rezerwa budżetowa</div><div class="mrow-imnaz" data-full="">—</div></div>
+                <div class="mrow-dates">—</div><div class="mrow-dates">—</div>
+                <div class="mrow-cena" style="color:var(--c-pozost)">${fmtFull(wolneVal)}</div>
+              </div>` : '';
+
+            const header = `
+              <div class="mrow mrow-head">
+                <div style="color:var(--muted);font-size:9px;font-weight:600">Etap</div>
+                <div style="color:var(--muted);font-size:9px;font-weight:600">Temat · Uczestnik</div>
+                <div style="color:var(--muted);font-size:9px;font-weight:600;text-align:right">Od</div>
+                <div style="color:var(--muted);font-size:9px;font-weight:600;text-align:right">Do</div>
+                <div style="color:var(--muted);font-size:9px;font-weight:600;text-align:right">Cena</div>
+              </div>`;
+
+            const execTotal = menuTotal + sr.exp + transVal;
+            const sumHtml = `
+              <div class="menu-sum-inline" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:flex-end">
+                <span>Zaksięgowane: <strong style="color:var(--c-zaks)">${fmtFull(menuZaks)}</strong></span>
+                <span>Zaangażowane: <strong style="color:var(--c-zaang)">${fmtFull(menuZaang)}</strong></span>
+                ${transVal > 0 ? `<span>Transfery: <strong style="color:var(--c-trans)">${fmtFull(transVal)}</strong></span>` : ''}
+                ${sr.exp > 0 ? `<span>Wniosek: <strong style="color:var(--c-exp)">${fmtFull(sr.exp)}</strong></span>` : ''}
+                <span style="min-width:110px;text-align:right">Wykonanie: <strong>${fmtFull(execTotal)}</strong></span>
+              </div>`;
+
+            const menuRowsHtml = menuRows.length || transferRow || wniosekRow || wolneRow
+              ? rezBarHtml + header + menuRows.map(r => {
+                  const kat   = normalizeEtap(r.etap_Kat);
+                  const color = etapColor(r.etap_Kat);
+                  const bg    = color
+                    ? (kat === 'Zaksięgowane' ? 'rgba(139,126,200,.08)' : 'rgba(232,160,184,.10)')
+                    : '';
+                  const dot   = color ? `<span class="etap-dot" style="background:${color}"></span>` : '';
+                  const persons = fmtPersons(r.im_naz);
+                  return `
+                  <div class="mrow" style="background:${bg}">
+                    <div class="mrow-etap">${dot}${esc(kat || '—')}</div>
+                    <div>
+                      <div class="mrow-temat" style="color:var(--text)">${esc(r.temat || '—')}</div>
+                      <div class="mrow-imnaz" data-full="${esc(persons)}">${esc(persons)}</div>
+                    </div>
+                    <div class="mrow-dates">${fmtDate(r.data_od)}</div>
+                    <div class="mrow-dates">${fmtDate(r.data_do)}</div>
+                    <div class="mrow-cena">${fmtFull(+r.cena || 0)}</div>
+                  </div>`;
+                }).join('') + transferRow + wniosekRow + wolneRow
+              : '<div class="menu-loading-inline">Brak wpisów w Menu Szkoleń.</div>';
+
+            menuExpandEl.innerHTML = menuRowsHtml + sumHtml;
+
+            // Attach im_naz hover tooltips
+            menuExpandEl.querySelectorAll('.mrow-imnaz').forEach(iEl => {
+              const tip = document.createElement('div');
+              tip.className = 'mrow-imnaz-full';
+              tip.textContent = iEl.dataset.full;
+              document.body.appendChild(tip);
+              iEl.addEventListener('mouseenter', () => {
+                if (iEl.scrollWidth > iEl.clientWidth) tip.style.display = 'block';
+              });
+              iEl.addEventListener('mousemove', e => {
+                const ox = 8, oy = 8;
+                let left = e.clientX + ox, top = e.clientY + oy;
+                if (left + tip.offsetWidth > window.innerWidth - 4) left = e.clientX - tip.offsetWidth - ox;
+                tip.style.left = left + 'px'; tip.style.top = top + 'px';
+              });
+              iEl.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+            });
+
+          } catch(err) {
+            menuExpandEl.innerHTML = `<div class="menu-loading-inline" style="color:#c0392b">Błąd: ${esc(String(err))}</div>`;
+          }
+        });
+
+        sygExpandEl.appendChild(sygRowEl);
+      });
+
+      opisRowEl.after(sygExpandEl);
     });
-    barWrap.addEventListener('mouseleave', () => { globalTip.style.display = 'none'; });
 
-    const sygEl = rowEl.querySelector('.drow-syg');
-    sygEl.title = 'Kliknij aby rozwinąć wpisy z Menu Szkoleń';
-    sygEl.addEventListener('click', () => toggleMenuExpand(rowEl, r.syg, r.sygId, r.exp));
-
-    container.appendChild(rowEl);
+    container.appendChild(opisRowEl);
   });
 }
 
-// ── Menu Szkoleń inline expand ────────────────────────────────────────────────
-let menuCache = null;
-let rezCache  = null;
-let expandedSyg = null;
-
-async function toggleMenuExpand(rowEl, sygnatura, sygId, expectedMenu) {
-  // collapse if already open
-  const existing = rowEl.nextElementSibling;
-  if (existing && existing.classList.contains('menu-expand-row')) {
-    existing.remove();
-    rowEl.classList.remove('expanded');
-    if (expandedSyg === sygnatura) { expandedSyg = null; return; }
-  }
-  // close any other open expand
-  document.querySelectorAll('.menu-expand-row').forEach(el => {
-    el.previousElementSibling?.classList.remove('expanded');
-    el.remove();
-  });
-
-  expandedSyg = sygnatura;
-  rowEl.classList.add('expanded');
-
-  // insert expand row — same grid as drow
-  const expandRow = document.createElement('div');
-  expandRow.className = 'drow menu-expand-row';
-  expandRow.style.cssText = 'background:#f5f4f0;border-radius:4px;padding:6px 10px;margin:0 0 4px';
-  expandRow.innerHTML = `<div style="grid-column:1/-1" class="menu-loading-inline">Ładowanie…</div>`;
-  rowEl.after(expandRow);
-
-  try {
-    if (typeof grist !== 'undefined' && grist.docApi) {
-      if (!menuCache) {
-        const data = await grist.docApi.fetchTable('API_MenuWykonanie');
-        const keys = Object.keys(data);
-        const len  = data[keys[0]].length;
-        menuCache = Array.from({length: len}, (_, i) =>
-          Object.fromEntries(keys.map(k => [k, data[k][i]]))
-        );
-      }
-      if (!rezCache) {
-        const data = await grist.docApi.fetchTable('Rezerwacje');
-        const keys = Object.keys(data);
-        const len  = data[keys[0]].length;
-        rezCache = Array.from({length: len}, (_, i) =>
-          Object.fromEntries(keys.map(k => [k, data[k][i]]))
-        );
-      }
+// ── Ensure caches loaded ──────────────────────────────────────────────────────
+async function ensureCaches() {
+  if (typeof grist !== 'undefined' && grist.docApi) {
+    if (!menuCache) {
+      const data = await grist.docApi.fetchTable('API_MenuWykonanie');
+      const keys = Object.keys(data);
+      const len  = data[keys[0]].length;
+      menuCache = Array.from({length: len}, (_, i) =>
+        Object.fromEntries(keys.map(k => [k, data[k][i]]))
+      );
     }
-
-    // find Rezerwacje record for this sygnatura
-    const rez = rezCache
-      ? rezCache.find(r => {
-          const s = r.Sygnatura;
-          if (sygId && typeof s === 'number') return s === sygId;
-          return String(s) === String(sygId);
-        })
-      : null;
-
-    let rows = [];
-    if (menuCache) {
-      rows = menuCache.filter(r => {
-        const s = r.sygnatura;
-        if (sygId && typeof s === 'number') return s === sygId;
-        return String(s) === String(sygnatura) || String(s) === String(sygId);
-      });
+    if (!rezCache) {
+      const data = await grist.docApi.fetchTable('Rezerwacje');
+      const keys = Object.keys(data);
+      const len  = data[keys[0]].length;
+      rezCache = Array.from({length: len}, (_, i) =>
+        Object.fromEntries(keys.map(k => [k, data[k][i]]))
+      );
     }
-
-    const etapColor = etapKat => {
-      if (!etapKat) return null;
-      const e = String(etapKat).trim();
-      if (e === 'Zaksięgowane') return 'var(--c-zaks)';
-      if (e === 'Zaangażowane' || e === 'Rozliczone') return 'var(--c-zaang)';
-      return null;
-    };
-
-    const normalizeEtap = etapKat => {
-      const e = String(etapKat || '').trim();
-      if (e === 'Rozliczone') return 'Zaangażowane';
-      return e;
-    };
-
-    // ── Rezerwacje info bar ───────────────────────────────────────────────────
-    const rezBar = rez ? (() => {
-      const parts = [];
-      if (rez.WZ_Numer)    parts.push(`<span>WZ: <strong>${esc(rez.WZ_Numer)}</strong></span>`);
-      if (rez.Umowa_Numer) parts.push(`<span>Umowa: <strong>${esc(rez.Umowa_Numer)}</strong></span>`);
-      const val = rez.Expected_Cost;
-      if (val)             parts.push(`<span>Wartość: <strong>${fmtFull(+val)}</strong></span>`);
-      return parts.length
-        ? `<div style="display:flex;gap:16px;flex-wrap:wrap;padding:4px 4px 8px;margin-bottom:4px;border-bottom:1px solid rgba(0,0,0,.08);font-size:10px;color:var(--muted)">${parts.join('')}</div>`
-        : '';
-    })() : '';
-
-    // ── "Transfery" synthetic row ────────────────────────────────────────────
-    const transferRow = (r => r && r.trans > 0 ? `
-      <div class="mrow" style="background:rgba(125,189,232,.12)">
-        <div class="mrow-etap"><span class="etap-dot" style="background:var(--c-trans)"></span>Transfery</div>
-        <div>
-          <div class="mrow-temat" style="color:var(--text)">Aktywowane środki na procedowane wnioski szkoleniowe</div>
-          <div class="mrow-imnaz" data-full="">—</div>
-        </div>
-        <div class="mrow-dates">—</div>
-        <div class="mrow-dates">—</div>
-        <div class="mrow-cena" style="color:var(--c-trans)">${fmtFull(r.trans)}</div>
-      </div>` : '')((() => {
-        // find the MAIN row for this sygnatura to get trans value
-        const mainRow = allRawRecords.find(r => r.id === sygId);
-        return mainRow ? { trans: pos(mainRow.wTransferach) } : null;
-      })());
-
-    // ── "Wniosek zakupowy" synthetic row ──────────────────────────────────────
-    const wniosekRow = (expectedMenu > 0) ? `
-      <div class="mrow" style="background:rgba(240,168,48,.10)">
-        <div class="mrow-etap"><span class="etap-dot" style="background:var(--c-exp)"></span>Wniosek Zakupowy</div>
-        <div>
-          <div class="mrow-temat" style="color:var(--text)">Pozostałe zabezpieczenie wniosku zakupowego</div>
-          <div class="mrow-imnaz" data-full="">—</div>
-        </div>
-        <div class="mrow-dates">—</div>
-        <div class="mrow-dates">—</div>
-        <div class="mrow-cena" style="color:var(--c-exp)">${fmtFull(expectedMenu)}</div>
-      </div>` : '';
-
-    const mainRowForWolne = allRawRecords.find(r => r.id === sygId);
-    const wolneVal = mainRowForWolne ? Math.max(0, +mainRowForWolne.PozostUwzgTransfery || 0) : 0;
-    const wolneRow = wolneVal > 0 ? `
-      <div class="mrow" style="background:rgba(130,201,154,.12)">
-        <div class="mrow-etap"><span class="etap-dot" style="background:var(--c-pozost)"></span>Wolne</div>
-        <div>
-          <div class="mrow-temat" style="color:var(--text)">Niezaangażowana rezerwa budżetowa na sygnaturze</div>
-          <div class="mrow-imnaz" data-full="">—</div>
-        </div>
-        <div class="mrow-dates">—</div>
-        <div class="mrow-dates">—</div>
-        <div class="mrow-cena" style="color:var(--c-pozost)">${fmtFull(wolneVal)}</div>
-      </div>` : '';
-    rows.sort((a, b) => {
-      const ea = normalizeEtap(a.etap_Kat), eb = normalizeEtap(b.etap_Kat);
-      if (ea === 'Zaksięgowane' && eb !== 'Zaksięgowane') return -1;
-      if (eb === 'Zaksięgowane' && ea !== 'Zaksięgowane') return 1;
-      return (+b.cena || 0) - (+a.cena || 0);
-    });
-
-    const total = rows.reduce((a, r) => a + (+r.cena || 0), 0);
-    const zaks  = rows.filter(r => String(r.etap_Kat||'').trim() === 'Zaksięgowane')
-                      .reduce((a, r) => a + (+r.cena || 0), 0);
-
-    const fmtDate = v => {
-      if (!v) return '—';
-      const d = typeof v === 'number' ? new Date(v * 1000) : new Date(v);
-      if (isNaN(d)) return String(v).slice(0,10);
-      return d.toLocaleDateString('pl-PL', {day:'2-digit', month:'2-digit', year:'numeric'});
-    };
-
-    const fmtPersons = raw => {
-      if (!raw) return '—';
-      return String(raw).split('*').map(s => s.trim()).filter(Boolean).join(' | ');
-    };
-
-    const header = `
-      <div class="mrow mrow-head">
-        <div style="color:var(--muted);font-size:9px;font-weight:600">Etap</div>
-        <div style="color:var(--muted);font-size:9px;font-weight:600">Temat · Uczestnik</div>
-        <div style="color:var(--muted);font-size:9px;font-weight:600;text-align:right">Od</div>
-        <div style="color:var(--muted);font-size:9px;font-weight:600;text-align:right">Do</div>
-        <div style="color:var(--muted);font-size:9px;font-weight:600;text-align:right">Cena</div>
-      </div>`;
-
-    const zaang = rows.filter(r => normalizeEtap(r.etap_Kat) === 'Zaangażowane')
-                      .reduce((a, r) => a + (+r.cena || 0), 0);
-
-    const mainRow   = allRawRecords.find(r => r.id === sygId);
-    const transVal  = mainRow ? pos(mainRow.wTransferach) : 0;
-    const execTotal = total + (expectedMenu || 0) + transVal;
-    const sumHtml = (rows.length || wniosekRow || transferRow || wolneRow) ? `
-      <div class="menu-sum-inline" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:flex-end">
-        <span>Zaksięgowane: <strong style="color:var(--c-zaks)">${fmtFull(zaks)}</strong></span>
-        <span>Zaangażowane: <strong style="color:var(--c-zaang)">${fmtFull(zaang)}</strong></span>
-        ${transVal > 0 ? `<span>Transfery: <strong style="color:var(--c-trans)">${fmtFull(transVal)}</strong></span>` : ''}
-        ${expectedMenu > 0 ? `<span>Wniosek: <strong style="color:var(--c-exp)">${fmtFull(expectedMenu)}</strong></span>` : ''}
-        <span style="min-width:110px;text-align:right">Wykonanie: <strong>${fmtFull(execTotal)}</strong></span>
-      </div>` : '';
-
-    const inner = rows.length || wniosekRow || transferRow || wolneRow
-      ? rezBar + header + rows.map(r => {
-          const kat   = normalizeEtap(r.etap_Kat);
-          const color = etapColor(r.etap_Kat);
-          const bg    = color
-            ? (kat === 'Zaksięgowane' ? 'rgba(139,126,200,.08)' : 'rgba(232,160,184,.10)')
-            : '';
-          const dot   = color ? `<span class="etap-dot" style="background:${color}"></span>` : '';
-          const persons = fmtPersons(r.im_naz);
-          return `
-          <div class="mrow" style="background:${bg}">
-            <div class="mrow-etap">${dot}${esc(kat || '—')}</div>
-            <div>
-              <div class="mrow-temat" style="color:var(--text)">${esc(r.temat || '—')}</div>
-              <div class="mrow-imnaz" data-full="${esc(persons)}">${esc(persons)}</div>
-            </div>
-            <div class="mrow-dates">${fmtDate(r.data_od)}</div>
-            <div class="mrow-dates">${fmtDate(r.data_do)}</div>
-            <div class="mrow-cena">${fmtFull(+r.cena || 0)}</div>
-          </div>`;
-        }).join('') + transferRow + wniosekRow + wolneRow
-      : `<div class="menu-loading-inline">Brak wpisów w Menu Szkoleń.</div>`;
-
-    expandRow.innerHTML = `<div style="grid-column:1/-1">${inner}${sumHtml}</div>`;
-
-    // attach hover for im_naz overflow tooltip
-    expandRow.querySelectorAll('.mrow-imnaz').forEach(el => {
-      const tip = document.createElement('div');
-      tip.className = 'mrow-imnaz-full';
-      tip.textContent = el.dataset.full;
-      document.body.appendChild(tip);
-      el.addEventListener('mouseenter', () => {
-        if (el.scrollWidth > el.clientWidth) tip.style.display = 'block';
-      });
-      el.addEventListener('mousemove', e => {
-        const ox = 8, oy = 8;
-        let left = e.clientX + ox, top = e.clientY + oy;
-        if (left + tip.offsetWidth > window.innerWidth - 4) left = e.clientX - tip.offsetWidth - ox;
-        tip.style.left = left + 'px'; tip.style.top = top + 'px';
-      });
-      el.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
-    });
-
-  } catch(err) {
-    expandRow.innerHTML = `<div style="grid-column:1/-1" class="menu-loading-inline" style="color:#c0392b">Błąd: ${esc(String(err))}</div>`;
   }
 }
 
-// ── Grist ──────────────────────────────────────────────────────────────────────
-// Oczekiwany widok: MAIN [by Rok, Konto, Admin] — summary table
-// Każdy rekord to już jedna grupa (jedno konto, jeden rok).
-// Kolumny summary: Rok, Konto, Admin, Zaks, Zaang, MenuWykonanie,
-//                  Expected_Menu, wTransferach, PozostUwzgTransfery, RP4_x_Transfery
-
+// ── Groups from records ───────────────────────────────────────────────────────
 function recordsToGroups(records) {
   const map = new Map();
-
   records
     .filter(r => String(r.Rok) === '2026' || String(r.Sygnatura || '').startsWith('2026'))
     .forEach(r => {
-      // Konto: kolumna Konto w MAIN = "41708" + fragment sygnatury
       const konto = String(r.Konto || '—');
       if (!map.has(konto)) {
         map.set(konto, { konto, zaks:0, zaang:0, exp:0, trans:0, pozost:0, rp4:0 });
@@ -1278,78 +1300,65 @@ function recordsToGroups(records) {
       g.pozost += Math.max(0, +r.PozostUwzgTransfery || 0);
       g.rp4    += pos(r.RP4_x_Transfery);
     });
-
   return [...map.values()]
     .filter(g => g.rp4 > 0 || (g.zaks + g.zaang + g.exp + g.trans + g.pozost) > 0)
     .sort((a, b) => a.konto.localeCompare(b.konto));
 }
 
+// ── Grist integration ─────────────────────────────────────────────────────────
 if (typeof grist !== 'undefined') {
   grist.ready({ requiredAccess: 'read table' });
   grist.onRecords(records => {
     allRawRecords = records;
     menuCache = null;
-    rezCache  = null; // invalidate cache on data change
+    rezCache  = null;
     render(recordsToGroups(records));
   });
 } else {
-  // DEMO — odpala się tylko lokalnie, poza Grist
+  // DEMO
   const demoRecords = [
     { id:1, Rok:2026, Konto:'41708001', Sygnatura:'2026-AY-S10-001-001', Opis:'Szkolenie ATC podstawowe',    Zaks:200000, Zaang:80000,  Expected_Menu:50000, wTransferach:20000, PozostUwzgTransfery:50000,  RP4_x_Transfery:400000 },
-    { id:2, Rok:2026, Konto:'41708001', Sygnatura:'2026-AY-S10-001-002', Opis:'Symulator ATCO',              Zaks:150000, Zaang:60000,  Expected_Menu:30000, wTransferach:10000, PozostUwzgTransfery:50000,  RP4_x_Transfery:300000 },
+    { id:2, Rok:2026, Konto:'41708001', Sygnatura:'2026-AY-S10-001-002', Opis:'Szkolenie ATC podstawowe',    Zaks:150000, Zaang:60000,  Expected_Menu:30000, wTransferach:10000, PozostUwzgTransfery:50000,  RP4_x_Transfery:300000 },
     { id:3, Rok:2026, Konto:'41708001', Sygnatura:'2026-AY-S10-001-003', Opis:'Kursy OJTI',                  Zaks:65000,  Zaang:40000,  Expected_Menu:10000, wTransferach:10000, PozostUwzgTransfery:75000,  RP4_x_Transfery:200000 },
     { id:4, Rok:2026, Konto:'41708003', Sygnatura:'2026-MF-F10-003-001', Opis:'Wdrożenie systemu finansowego',Zaks:90000, Zaang:60000,  Expected_Menu:80000, wTransferach:0,     PozostUwzgTransfery:70000,  RP4_x_Transfery:300000 },
     { id:5, Rok:2026, Konto:'41708004', Sygnatura:'2026-AL-H10-004-001', Opis:'Angielski – piloci',          Zaks:25000,  Zaang:12000,  Expected_Menu:18000, wTransferach:5000,  PozostUwzgTransfery:20000,  RP4_x_Transfery:80000  },
-    { id:6, Rok:2026, Konto:'41708004', Sygnatura:'2026-AL-H10-004-002', Opis:'MBA – kadra',                 Zaks:20000,  Zaang:8000,   Expected_Menu:12000, wTransferach:5000,  PozostUwzgTransfery:25000,  RP4_x_Transfery:70000  },
+    { id:6, Rok:2026, Konto:'41708004', Sygnatura:'2026-AL-H10-004-002', Opis:'Angielski – piloci',          Zaks:20000,  Zaang:8000,   Expected_Menu:12000, wTransferach:5000,  PozostUwzgTransfery:25000,  RP4_x_Transfery:70000  },
     { id:7, Rok:2026, Konto:'41708005', Sygnatura:'2026-AL-H10-005-001', Opis:'Leadership program',          Zaks:12000,  Zaang:8000,   Expected_Menu:20000, wTransferach:3000,  PozostUwzgTransfery:57000,  RP4_x_Transfery:100000 },
-    { id:8, Rok:2026, Konto:'41708005', Sygnatura:'2026-AL-H10-005-002', Opis:'Lean / Agile warsztaty',      Zaks:8000,   Zaang:4000,   Expected_Menu:10000, wTransferach:2000,  PozostUwzgTransfery:26000,  RP4_x_Transfery:50000  },
+    { id:8, Rok:2026, Konto:'41708005', Sygnatura:'2026-AL-H10-005-002', Opis:'Leadership program',          Zaks:8000,   Zaang:4000,   Expected_Menu:10000, wTransferach:2000,  PozostUwzgTransfery:26000,  RP4_x_Transfery:50000  },
     { id:9, Rok:2025, Konto:'41708001', Sygnatura:'2025-AY-S10-001-001', Opis:'Stary rok',                   Zaks:999999, Zaang:0,      Expected_Menu:0,     wTransferach:0,     PozostUwzgTransfery:0,      RP4_x_Transfery:999999 },
   ];
   allRawRecords = demoRecords;
 
-  // DEMO menu cache — symuluje dane z API_MenuWykonanie
   menuCache = [
-    // 2026-AY-S10-001-001
     { sygnatura:1, etap_Kat:'Zaksięgowane', temat:'Kurs podstawowy ATC',       im_naz:'Kowalski Jan',    data_od:1735689600, data_do:1735948800, cena:45000 },
     { sygnatura:1, etap_Kat:'Zaksięgowane', temat:'Kurs podstawowy ATC',       im_naz:'Nowak Anna',      data_od:1735689600, data_do:1735948800, cena:45000 },
     { sygnatura:1, etap_Kat:'Zaksięgowane', temat:'Symulator poziom 1',        im_naz:'Wiśniewski Piotr',data_od:1738368000, data_do:1738454400, cena:60000 },
     { sygnatura:1, etap_Kat:'Zaksięgowane', temat:'Symulator poziom 1',        im_naz:'Wójcik Maria',    data_od:1738368000, data_do:1738454400, cena:50000 },
     { sygnatura:1, etap_Kat:'Zaangażowane', temat:'Kurs zaawansowany ATC',     im_naz:'Lewandowski Adam',data_od:1743552000, data_do:1743811200, cena:40000 },
     { sygnatura:1, etap_Kat:'Zaangażowane', temat:'Kurs zaawansowany ATC',     im_naz:'Zielińska Ewa',   data_od:1743552000, data_do:1743811200, cena:40000 },
-    // 2026-AY-S10-001-002
     { sygnatura:2, etap_Kat:'Zaksięgowane', temat:'Symulator ATCO – moduł A',  im_naz:'Szymański Tomasz',data_od:1736294400, data_do:1736380800, cena:75000 },
     { sygnatura:2, etap_Kat:'Zaksięgowane', temat:'Symulator ATCO – moduł A',  im_naz:'Dąbrowska Zofia', data_od:1736294400, data_do:1736380800, cena:75000 },
     { sygnatura:2, etap_Kat:'Zaangażowane', temat:'Symulator ATCO – moduł B',  im_naz:'Kamińska Monika', data_od:1746144000, data_do:1746230400, cena:60000 },
-    // 2026-AY-S10-001-003
     { sygnatura:3, etap_Kat:'Zaksięgowane', temat:'OJTI – trener na stanowisku',im_naz:'Kowalczyk Robert',data_od:1737158400, data_do:1737417600, cena:32000 },
     { sygnatura:3, etap_Kat:'Zaangażowane', temat:'OJTI – trener na stanowisku',im_naz:'Mazur Katarzyna', data_od:1745020800, data_do:1745280000, cena:33000 },
-    // 2026-MF-F10-003-001
     { sygnatura:4, etap_Kat:'Zaksięgowane', temat:'SAP FI – użytkownicy',      im_naz:'Krawczyk Paweł',  data_od:1736899200, data_do:1737072000, cena:48000 },
     { sygnatura:4, etap_Kat:'Zaangażowane', temat:'SAP CO – kontroling',       im_naz:'Piotrowska Hanna',data_od:1746748800, data_do:1746921600, cena:42000 },
-    // 2026-AL-H10-004-001
     { sygnatura:5, etap_Kat:'Zaksięgowane', temat:'Angielski B2 – intensywny', im_naz:'Grabowski Michał',data_od:1736035200, data_do:1748736000, cena:12000 },
     { sygnatura:5, etap_Kat:'Zaangażowane', temat:'Angielski C1 – Aviation',   im_naz:'Nowakowska Julia',data_od:1743206400, data_do:1753920000, cena:13000 },
-    // 2026-AL-H10-004-002
     { sygnatura:6, etap_Kat:'Zaksięgowane', temat:'MBA – Executive Program',   im_naz:'Wieczorek Marek', data_od:1735948800, data_do:1751328000, cena:20000 },
-    // 2026-AL-H10-005-001
     { sygnatura:7, etap_Kat:'Zaksięgowane', temat:'Leadership Excellence',     im_naz:'Kwiatkowski Łuk.',data_od:1737763200, data_do:1737936000, cena:12000 },
-    // 2026-AL-H10-005-002
     { sygnatura:8, etap_Kat:'Zaksięgowane', temat:'Lean Manufacturing',        im_naz:'Woźniak Barbara', data_od:1738368000, data_do:1738454400, cena:8000  },
   ];
-  // map sygnatura text → id for demo matching
-  const sygMap = {};
-  demoRecords.forEach(r => { if(r.id) sygMap[r.Sygnatura] = r.id; });
 
-  // DEMO rezerwacje cache
   rezCache = [
-    { Sygnatura:1, WZ_Numer:'WZ/2026/001', Umowa_Numer:'UM/2026/ATC/001', WZ_Wartosc:400000, Umowa_Wartosc:400000, Spodz_Wartosc:400000, Expected_Cost:400000 },
-    { Sygnatura:2, WZ_Numer:'WZ/2026/002', Umowa_Numer:null,               WZ_Wartosc:300000, Umowa_Wartosc:null,   Spodz_Wartosc:300000, Expected_Cost:300000 },
-    { Sygnatura:3, WZ_Numer:null,           Umowa_Numer:null,               WZ_Wartosc:null,   Umowa_Wartosc:null,   Spodz_Wartosc:null,   Expected_Cost:200000 },
-    { Sygnatura:4, WZ_Numer:'WZ/2026/004', Umowa_Numer:'UM/2026/SAP/001',  WZ_Wartosc:300000, Umowa_Wartosc:300000, Spodz_Wartosc:300000, Expected_Cost:300000 },
-    { Sygnatura:5, WZ_Numer:'WZ/2026/005', Umowa_Numer:null,               WZ_Wartosc:80000,  Umowa_Wartosc:null,   Spodz_Wartosc:80000,  Expected_Cost:80000  },
-    { Sygnatura:6, WZ_Numer:null,           Umowa_Numer:'UM/2026/MBA/001',  WZ_Wartosc:null,   Umowa_Wartosc:70000,  Spodz_Wartosc:70000,  Expected_Cost:70000  },
-    { Sygnatura:7, WZ_Numer:'WZ/2026/007', Umowa_Numer:null,               WZ_Wartosc:100000, Umowa_Wartosc:null,   Spodz_Wartosc:100000, Expected_Cost:100000 },
-    { Sygnatura:8, WZ_Numer:null,           Umowa_Numer:null,               WZ_Wartosc:null,   Umowa_Wartosc:null,   Spodz_Wartosc:null,   Expected_Cost:50000  },
+    { Sygnatura:1, WZ_Numer:'WZ/2026/001', Umowa_Numer:'UM/2026/ATC/001', Expected_Cost:400000 },
+    { Sygnatura:2, WZ_Numer:'WZ/2026/002', Umowa_Numer:null,               Expected_Cost:300000 },
+    { Sygnatura:3, WZ_Numer:null,           Umowa_Numer:null,               Expected_Cost:200000 },
+    { Sygnatura:4, WZ_Numer:'WZ/2026/004', Umowa_Numer:'UM/2026/SAP/001',  Expected_Cost:300000 },
+    { Sygnatura:5, WZ_Numer:'WZ/2026/005', Umowa_Numer:null,               Expected_Cost:80000  },
+    { Sygnatura:6, WZ_Numer:null,           Umowa_Numer:'UM/2026/MBA/001',  Expected_Cost:70000  },
+    { Sygnatura:7, WZ_Numer:'WZ/2026/007', Umowa_Numer:null,               Expected_Cost:100000 },
+    { Sygnatura:8, WZ_Numer:null,           Umowa_Numer:null,               Expected_Cost:50000  },
   ];
 
   render(recordsToGroups(demoRecords));
