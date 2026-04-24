@@ -370,6 +370,8 @@ header h1 {
   color: var(--muted);
   font-weight: 400;
   margin-left: 2px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* ── SYGNATURA ROW (level 2) ── */
@@ -956,6 +958,7 @@ function renderDetail() {
     exp:    (a,b) => b.exp    - a.exp,
     trans:  (a,b) => b.trans  - a.trans,
     pozost: (a,b) => b.pozost - a.pozost,
+    count:  (a,b) => b.sygs.length - a.sygs.length,
   };
   opisGroups.sort(sortFns[detailSort] || sortFns.total);
 
@@ -968,6 +971,7 @@ function renderDetail() {
     { key:'exp',    label:'Wnioski zakup.' },
     { key:'trans',  label:'Transfery' },
     { key:'pozost', label:'Wolne' },
+    { key:'count',  label:'Liczba sygnatur' },
   ].map(b => `<button class="dsort-btn${detailSort===b.key?' active':''}" data-sort="${b.key}">${detailSort===b.key?'↓ ':''}${b.label}</button>`).join('');
 
   el.style.display = 'block';
@@ -1052,8 +1056,6 @@ function renderDetail() {
       sygExpandEl = document.createElement('div');
       sygExpandEl.className = 'syg-expand';
 
-      const sygMaxRp4 = Math.max(...og.sygs.map(s => s.rp4 || (s.zaks+s.zaang+s.exp+s.trans+s.pozost))) || 1;
-
       og.sygs.sort((a,b) => (b.zaks+b.zaang+b.exp+b.trans) - (a.zaks+a.zaang+a.exp+a.trans));
 
       og.sygs.forEach(sr => {
@@ -1068,7 +1070,7 @@ function renderDetail() {
             <div>Budżet <span style="color:var(--text);font-weight:600">${(+sr.rp4||0).toLocaleString('pl-PL',{maximumFractionDigits:0})} zł</span></div>
             <div style="color:var(--c-pozost)">Wolne <span style="font-weight:600">${(+sr.pozost||0).toLocaleString('pl-PL',{maximumFractionDigits:0})} zł</span></div>
           </div>
-          <div>${makeSegBar(sr, sygMaxRp4, 10)}</div>
+          <div>${makeSegBar(sr, maxRp4, 10)}</div>
         `;
 
         // Tooltip for syg bar
