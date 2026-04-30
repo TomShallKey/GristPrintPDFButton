@@ -327,7 +327,7 @@ header h1 {
 /* ── OPIS GROUP ROW (level 1 in detail) ── */
 .opis-row {
   display: grid;
-  grid-template-columns: 1fr 18% 1fr;
+  grid-template-columns: 1fr 130px minmax(100px, 1fr);
   align-items: center;
   gap: 8px;
   padding: 6px 6px;
@@ -383,10 +383,10 @@ header h1 {
 }
 .syg-row {
   display: grid;
-  grid-template-columns: 1fr 18% 1fr;
+  grid-template-columns: 1fr 130px minmax(100px, 1fr);
   align-items: center;
   gap: 8px;
-  padding: 4px 10px;
+  padding: 4px 6px;
   cursor: pointer;
   border-bottom: 1px solid rgba(0,0,0,.04);
   transition: background .1s;
@@ -643,11 +643,11 @@ function makeTipHtml(label, title, segs, pozost, denom, rp4) {
       <span class="tv">${fmtFull(s.val)}</span>
       <span class="tp">${pct(s.val, denom)}</span>
     </div>`).join('')}
-    <div class="tip-row">
+    ${pozost > 0 ? `<div class="tip-row">
       <span class="tl"><span class="tip-dot" style="background:var(--c-pozost)"></span>Wolne</span>
       <span class="tv">${fmtFull(pozost)}</span>
       <span class="tp">${pct(pozost, denom)}</span>
-    </div>
+    </div>` : ''}
     <hr class="tip-div"/>
     <div class="tip-row tip-sum">
       <span class="tl">Budżet</span>
