@@ -133,6 +133,7 @@ header h1 {
   min-width: 0;
   display: flex;
   align-items: center;
+  position: relative;
 }
 
 .bar-wrap {
@@ -175,6 +176,25 @@ header h1 {
 .seg-trans { background: var(--c-trans); }
 .seg-pozost { background: var(--c-pozost); }
 .seg-pozost .seg-label { color: rgba(255,255,255,.95); }
+
+/* ── LIMIT LINE (ręcznie wpisywany limit budżetu) ─── */
+.limit-line {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 9px;
+  margin-left: -4px;
+  z-index: 5;
+  cursor: pointer;
+}
+.limit-line::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 0;
+  bottom: 0;
+  border-left: 2px dashed #c0392b;
+}
 
 /* tooltip */
 .tip {
@@ -617,6 +637,20 @@ const KONTO_SHORT = {
   '41708005': 'Rozwojowe',
 };
 
+// Nazwa wyświetlana w popupie kreski limitu — zmień tu np. na "Plan 2.2", "Cel Q3" itp.
+const LIMIT_LABEL = 'Plan 2.2';
+
+// Ręcznie wpisywane limity budżetowe per konto (kwota w zł).
+// Edytuj bezpośrednio tutaj: wpisz liczbę, albo zostaw null gdy limit nie obowiązuje dla danego konta.
+// Limit jest porównywany z sumą Zaksięgowane + Zaangażowane + Wnioski zakupowe + W transferach
+// (czyli "wykonaniem"), niezależnie od tego w jakim jest to statusie.
+const KONTO_LIMITY = {
+  '41708001': null, // AY – Operacyjne
+  '41708003': null, // MKI – Inwestycyjne
+  '41708004': 2048999, // AL – Kursy językowe i studia
+  '41708005': 1720819, // AL – Rozwojowe
+};
+
 // ── Global tooltip ────────────────────────────────────────────────────────────
 const globalTip = document.createElement('div');
 globalTip.className = 'tip';
@@ -657,6 +691,30 @@ function makeTipHtml(label, title, segs, pozost, denom, rp4) {
   `;
 }
 
+function makeLimitTipHtml(limit, wykonanie) {
+  const over = wykonanie > limit;
+  const diff = Math.abs(wykonanie - limit);
+  return `
+    <div class="tip-opis" style="border-bottom:none;padding-bottom:0;margin-bottom:6px">${esc(LIMIT_LABEL)}</div>
+    <div class="tip-row">
+      <span class="tl">${esc(LIMIT_LABEL)}</span>
+      <span class="tv">${fmtFull(limit)}</span>
+      <span class="tp"></span>
+    </div>
+    <div class="tip-row">
+      <span class="tl">Wykonanie (wszystkie statusy)</span>
+      <span class="tv">${fmtFull(wykonanie)}</span>
+      <span class="tp"></span>
+    </div>
+    <hr class="tip-div"/>
+    <div class="tip-row tip-sum">
+      <span class="tl" style="color:${over ? '#c0392b' : '#2f9e58'}">${over ? 'Przekroczono o' : 'Zapas do limitu'}</span>
+      <span class="tv" style="color:${over ? '#c0392b' : '#2f9e58'}">${fmtFull(diff)}</span>
+      <span class="tp"></span>
+    </div>
+  `;
+}
+
 function attachBarTip(barEl, tipHtml) {
   barEl.addEventListener('mousemove', e => {
     globalTip.innerHTML = tipHtml;
@@ -684,6 +742,13 @@ function buildRow(g, idx, maxBudget) {
 
   const tipHtml = makeTipHtml(konto, opisKonta, segs, pozost, denom, rp4);
 
+  // ── Ręczny limit budżetu dla tego konta ──────────────────────────────────
+  const wykonanie = zaks + zaang + exp + trans;
+  const limit = KONTO_LIMITY[konto];
+  const hasLimit = limit != null && limit > 0;
+  const limitPct = hasLimit ? (limit / maxBudget * 100) : 0;
+  const limitVisible = hasLimit && limitPct <= 100;
+
   const row = document.createElement('div');
   row.className = 'row';
   row.style.animationDelay = (idx * 30) + 'ms';
@@ -698,6 +763,7 @@ function buildRow(g, idx, maxBudget) {
           ${pozost > 0 ? `<div class="seg seg-pozost" style="flex:1" data-pct="${pct(pozost,denom)}" data-mln="${fmtShort(pozost)}"></div>` : ''}
         </div>
       </div>
+      ${limitVisible ? `<div class="limit-line" style="left:${limitPct.toFixed(3)}%"></div>` : ''}
     </div>
     <div class="row-val">
       <div class="row-val-pct">${pct(zaks+zaang+exp+trans, rp4)}</div>
@@ -707,6 +773,11 @@ function buildRow(g, idx, maxBudget) {
 
   const barWrap = row.querySelector('.bar-wrap');
   attachBarTip(barWrap, tipHtml);
+
+  if (limitVisible) {
+    const limitLineEl = row.querySelector('.limit-line');
+    attachBarTip(limitLineEl, makeLimitTipHtml(limit, wykonanie));
+  }
 
   barWrap.addEventListener('click', () => {
     globalTip.style.display = 'none';
@@ -1308,7 +1379,13 @@ function recordsToGroups(records) {
 }
 
 // ── Grist integration ─────────────────────────────────────────────────────────
-if (typeof grist !== 'undefined') {
+// grist-plugin-api.js definiuje globalne `grist` nawet gdy strona jest otwarta
+// samodzielnie (poza Gristem) — więc same `typeof grist !== 'undefined'` nie
+// wystarczy. Prawdziwy widget Grista zawsze działa w iframe osadzonym przez
+// aplikację Grist, więc dodatkowo sprawdzamy, czy strona ma "rodzica".
+const isEmbeddedInGrist = typeof grist !== 'undefined' && window.top !== window.self;
+
+if (isEmbeddedInGrist) {
   grist.ready({ requiredAccess: 'read table' });
   grist.onRecords(records => {
     allRawRecords = records;
@@ -1362,6 +1439,10 @@ if (typeof grist !== 'undefined') {
     { Sygnatura:7, WZ_Numer:'WZ/2026/007', Umowa_Numer:null,               Expected_Cost:100000 },
     { Sygnatura:8, WZ_Numer:null,           Umowa_Numer:null,               Expected_Cost:50000  },
   ];
+
+  // Przykładowe limity w trybie demo — pokazują jak działa czerwona kreska:
+  KONTO_LIMITY['41708001'] = 850000; // celowo poniżej sumy budżetów kont AY, żeby zobaczyć przekroczenie
+  KONTO_LIMITY['41708004'] = 200000;
 
   render(recordsToGroups(demoRecords));
 }
