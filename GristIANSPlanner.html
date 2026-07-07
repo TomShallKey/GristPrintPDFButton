@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LEX-IANS — Wnioski szkoleniowe</title>
+
+  <!--
+    GRIST CUSTOM WIDGET — LEX-IANS Wnioski szkoleniowe
+    ====================================================
+    Tabele wymagane w dokumencie Grist:
+      BazaTerminow        (course_id, title_full, termin, termin_od, termin_do,
+                           dni_robocze, koszt, lokalizacja, Kurs_x_Termin, Termin_Detail)
+      Baza_UnikatoweReczne (title_full)
+      Main                (Pracownik→Pracownicy, Szkolenie→Baza_UnikatoweReczne,
+                           Termin→BazaTerminow, Priorytet, Uzasadnienie_Kierownika,
+                           Dyr_Akceptacja, Dyr_Komentarz, Prezes_Akceptacja, Prezes_Komentarz)
+      PanelSterowania     (EdycjaKiero, EdycjaDyr, AkceptacjaDyr, EdycjaPrezes2, AkceptacjaPrezes)
+      Pracownicy          (nazwisko, imie, kom_org_, Komorka, czyKier, czyDyr, czyPrez, email_prac)
+      Pracownicy_email    (email_prac, nazwisko, imie, kom_org)
+
+    Hosting: plik musi być dostępny pod publicznym URL-em.
+    Lokalnie: python -m http.server 8080  →  http://localhost:8080/widget_wnioski.html
+    Grist: Add Widget to Page → Custom → wklej URL → Access: Full document access
+  -->
+
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:       #1a237e;
+      --blue:       #3949ab;
+      --blue-light: #e8eaf6;
+      --blue-mid:   #7986cb;
+      --green:      #2e7d32;
+      --green-bg:   #e8f5e9;
+      --amber:      #e65100;
+      --amber-bg:   #fff3e0;
+      --red:        #c62828;
+      --red-bg:     #ffebee;
+      --purple:     #6a1b9a;
+      --purple-bg:  #f3e5f5;
+      --gray:       #757575;
+      --border:     #e0e0e0;
+      --bg:         #f5f6fa;
+      --white:      #ffffff;
+      --shadow-sm:  0 1px 3px rgba(0,0,0,.09);
+      --shadow-md:  0 4px 12px rgba(0,0,0,.13);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: #212121;
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    .app-header {
+      background: var(--navy);
+      color: var(--white);
+      padding: 13px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 60;
+      box-shadow: 0 2px 8px rgba(0,0,0,.3);
+    }
+    .app-header h1 { font-size: 15px; font-weight: 700; letter-spacing: .2px; }
+    .header-user {
+      margin-left: auto;
+      font-size: 12px;
+      opacity: .8;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .role-chip {
+      background: rgba(255,255,255,.18);
+      border-radius: 20px;
+      padding: 2px 9px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    /* ── Phase banner ── */
+    .phase-banner {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      border-bottom: 1px solid var(--border);
+    }
+    .phase-banner.phase-active   { background: #e3f2fd; color: #0d47a1; }
+    .phase-banner.phase-inactive { background: #fafafa; color: var(--gray); }
+    .phase-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .phase-active .phase-dot   { background: #1565c0; }
+    .phase-inactive .phase-dot { background: #bdbdbd; }
+
+    /* ── Tabs ── */
+    .tab-bar {
+      display: flex;
+      gap: 0;
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      padding: 0 20px;
+      overflow-x: auto;
+    }
+    .tab-btn {
+      padding: 11px 18px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--gray);
+      border-bottom: 3px solid transparent;
+      margin-bottom: -1px;
+      white-space: nowrap;
+      transition: color .15s, border-color .15s;
+    }
+    .tab-btn:hover { color: var(--blue); }
+    .tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 600; }
+    .tab-btn .badge-count {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--blue-light); color: var(--blue);
+      border-radius: 10px; min-width: 20px; height: 18px;
+      font-size: 11px; font-weight: 700; padding: 0 5px;
+      margin-left: 6px;
+    }
+    .tab-btn.tab-warn .badge-count { background: var(--amber-bg); color: var(--amber); }
+
+    /* ── Tab views ── */
+    .tab-view { display: none; padding: 16px 20px 40px; }
+    .tab-view.active { display: block; }
+
+    /* ── Toolbar ── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .toolbar-right { margin-left: auto; }
+
+    /* ── Cards ── */
+    .record-card {
+      background: var(--white);
+      border-radius: 9px;
+      padding: 13px 16px;
+      margin-bottom: 8px;
+      box-shadow: var(--shadow-sm);
+      border-left: 4px solid var(--blue-mid);
+      transition: box-shadow .15s;
+    }
+    .record-card:hover { box-shadow: var(--shadow-md); }
+    .record-card.status-approved { border-left-color: var(--green); }
+    .record-card.status-rejected { border-left-color: var(--red); }
+    .record-card.status-pending  { border-left-color: #bdbdbd; }
+
+    .rc-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 7px;
+    }
+    .rc-title { font-size: 13px; font-weight: 600; flex: 1; line-height: 1.4; }
+    .rc-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--gray);
+      margin-bottom: 6px;
+    }
+    .rc-meta span { display: flex; align-items: center; gap: 3px; }
+    .rc-note {
+      font-size: 12px;
+      color: #555;
+      background: #f9f9f9;
+      border-radius: 5px;
+      padding: 6px 10px;
+      margin-top: 7px;
+      border-left: 3px solid #e0e0e0;
+    }
+    .rc-note.note-dyr  { border-left-color: var(--blue-mid); }
+    .rc-note.note-prez { border-left-color: var(--purple); }
+    .rc-note.note-uzas { border-left-color: #ffb300; }
+    .rc-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 3px;
+      padding: 2px 9px; border-radius: 20px;
+      font-size: 11px; font-weight: 600; white-space: nowrap; flex-shrink: 0;
+    }
+    .badge-gray   { background: #f5f5f5;         color: #616161; }
+    .badge-blue   { background: var(--blue-light); color: var(--blue); }
+    .badge-green  { background: var(--green-bg);  color: var(--green); }
+    .badge-red    { background: var(--red-bg);    color: var(--red); }
+    .badge-amber  { background: var(--amber-bg);  color: var(--amber); }
+    .badge-purple { background: var(--purple-bg); color: var(--purple); }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 8px 16px; border-radius: 7px;
+      font-size: 13px; font-weight: 600;
+      border: none; cursor: pointer; transition: background .15s, opacity .15s;
+    }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-primary  { background: var(--blue);  color: var(--white); }
+    .btn-primary:hover:not(:disabled)  { background: var(--navy); }
+    .btn-success  { background: var(--green); color: var(--white); }
+    .btn-success:hover:not(:disabled)  { background: #1b5e20; }
+    .btn-danger   { background: var(--red);   color: var(--white); }
+    .btn-danger:hover:not(:disabled)   { background: #b71c1c; }
+    .btn-ghost    { background: #f5f5f5; color: #424242; }
+    .btn-ghost:hover:not(:disabled)    { background: #eeeeee; }
+    .btn-sm { padding: 5px 11px; font-size: 12px; }
+
+    /* ── Komentarz input in approvals ── */
+    .komentarz-wrap { margin-top: 9px; }
+    .komentarz-input {
+      width: 100%;
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 56px;
+      transition: border-color .15s;
+    }
+    .komentarz-input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(57,73,171,.1); }
+    .komentarz-label { font-size: 11px; font-weight: 600; color: var(--gray); margin-bottom: 4px; display: block; }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 80;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 16px;
+      overflow-y: auto;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal-box {
+      background: var(--white);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 520px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    }
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-header h2 { font-size: 16px; font-weight: 700; color: var(--navy); }
+    .modal-close {
+      background: none; border: none; cursor: pointer;
+      color: var(--gray); font-size: 20px; line-height: 1;
+      padding: 2px 6px; border-radius: 4px;
+    }
+    .modal-close:hover { background: #f5f5f5; color: #333; }
+    .modal-body { padding: 18px 20px; }
+    .modal-footer {
+      display: flex; gap: 10px; justify-content: flex-end;
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── Form fields ── */
+    .field { margin-bottom: 15px; }
+    .field:last-child { margin-bottom: 0; }
+    .field label {
+      display: block; font-size: 12px; font-weight: 600; color: #555; margin-bottom: 5px;
+    }
+    .field label .req { color: var(--red); margin-left: 2px; }
+    .field select, .field textarea, .field input {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      font-size: 13px;
+      font-family: inherit;
+      background: var(--white);
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .field select:focus, .field textarea:focus, .field input:focus {
+      outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(57,73,171,.1);
+    }
+    .field textarea { resize: vertical; min-height: 72px; }
+    .field-hint { font-size: 11px; color: var(--gray); margin-top: 3px; }
+
+    /* ── Empty / loading states ── */
+    .empty-state {
+      text-align: center; padding: 40px 20px; color: #bdbdbd;
+      font-size: 14px; font-style: italic;
+    }
+    .loading-state {
+      text-align: center; padding: 48px 20px; color: #aaa; font-size: 14px;
+    }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 20px; right: 20px; left: 20px;
+      max-width: 360px; margin: 0 auto;
+      padding: 11px 16px; border-radius: 8px;
+      font-size: 13px; color: var(--white);
+      opacity: 0; pointer-events: none;
+      transition: opacity .25s, transform .25s;
+      transform: translateY(8px);
+      z-index: 999;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.ok  { background: var(--green); }
+    .toast.err { background: var(--red); }
+
+    /* ── Phase info section ── */
+    .phase-info-card {
+      background: var(--white);
+      border-radius: 9px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .phase-flag {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 12px; font-weight: 500;
+    }
+    .flag-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .flag-on  .flag-dot { background: var(--green); }
+    .flag-off .flag-dot { background: #e0e0e0; }
+    .flag-on  { color: var(--green); }
+    .flag-off { color: #bdbdbd; }
+
+    /* ── Stats row ── */
+    .stats-row {
+      display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .stat-chip {
+      background: var(--white);
+      border-radius: 8px;
+      padding: 10px 16px;
+      box-shadow: var(--shadow-sm);
+      text-align: center;
+      flex: 1; min-width: 80px;
+    }
+    .stat-chip .stat-num { font-size: 22px; font-weight: 700; color: var(--navy); }
+    .stat-chip .stat-lbl { font-size: 11px; color: var(--gray); margin-top: 1px; }
+
+    /* ── Filters ── */
+    .filter-row {
+      display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;
+    }
+    .filter-chip {
+      padding: 5px 13px; border-radius: 20px;
+      font-size: 12px; font-weight: 600;
+      border: 1.5px solid var(--border); background: var(--white);
+      cursor: pointer; color: #555; transition: all .15s;
+    }
+    .filter-chip.active { background: var(--blue); border-color: var(--blue); color: var(--white); }
+
+    /* utility */
+    .hidden { display: none !important; }
+    .mt4 { margin-top: 4px; }
+    .sep { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+  </style>
+</head>
+<body>
+
+  <!-- ── Header ── -->
+  <header class="app-header">
+    <h1>LEX-IANS — Wnioski szkoleniowe</h1>
+    <div class="header-user" id="headerUser">
+      <span id="userLabel">…</span>
+      <span class="role-chip hidden" id="roleChip"></span>
+    </div>
+  </header>
+
+  <!-- ── Phase banner ── -->
+  <div class="phase-banner phase-inactive" id="phaseBanner">
+    <div class="phase-dot"></div>
+    <span id="phaseText">Ładowanie…</span>
+  </div>
+
+  <!-- ── Loading ── -->
+  <div id="loadingState" class="loading-state">Ładowanie danych…</div>
+
+  <!-- ── Main app ── -->
+  <div id="appRoot" class="hidden">
+
+    <!-- Tab bar -->
+    <div class="tab-bar" id="tabBar">
+      <button class="tab-btn active" data-tab="wnioski">
+        Wnioski <span class="badge-count" id="cntWnioski">0</span>
+      </button>
+      <button class="tab-btn tab-warn hidden" id="tabDyr" data-tab="akc-dyr">
+        Akceptacja Dyr. <span class="badge-count" id="cntDyr">0</span>
+      </button>
+      <button class="tab-btn hidden" id="tabPrez" data-tab="akc-prez">
+        Akceptacja Prezes <span class="badge-count" id="cntPrez">0</span>
+      </button>
+    </div>
+
+    <!-- ══ TAB: Wnioski ══ -->
+    <div class="tab-view active" id="tab-wnioski">
+
+      <!-- Stats -->
+      <div class="stats-row" id="statsRow"></div>
+
+      <!-- Phase flags quick overview -->
+      <div class="phase-info-card" id="phaseInfoCard"></div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <button class="btn btn-primary" id="btnDodaj">+ Nowy wniosek</button>
+        <div class="toolbar-right">
+          <button class="btn btn-ghost btn-sm" id="btnOdswiezWnioski">↻ Odśwież</button>
+        </div>
+      </div>
+
+      <!-- Filter chips -->
+      <div class="filter-row">
+        <button class="filter-chip active" data-filter="all">Wszystkie</button>
+        <button class="filter-chip" data-filter="pending">Oczekujące</button>
+        <button class="filter-chip" data-filter="dyr">Akc. Dyr.</button>
+        <button class="filter-chip" data-filter="approved">Zatwierdzone</button>
+      </div>
+
+      <div id="listaWnioskow">
+        <div class="empty-state">Brak wniosków.</div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: Akceptacja Dyrektora ══ -->
+    <div class="tab-view hidden" id="tab-akc-dyr">
+      <div class="toolbar">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:2px;">Wnioski do akceptacji Dyrektora</div>
+          <div style="font-size:12px;color:var(--gray);">Przejrzyj i zaakceptuj lub odrzuć wnioski podwładnych.</div>
+        </div>
+        <div class="toolbar-right">
+          <button class="btn btn-ghost btn-sm" id="btnOdswiezDyr">↻ Odśwież</button>
+        </div>
+      </div>
+      <div id="listaDyr">
+        <div class="empty-state">Brak wniosków oczekujących na akceptację dyrektora.</div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: Akceptacja Prezesa ══ -->
+    <div class="tab-view hidden" id="tab-akc-prez">
+      <div class="toolbar">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:2px;">Wnioski do akceptacji Prezesa</div>
+          <div style="font-size:12px;color:var(--gray);">Wnioski zaakceptowane przez dyrektorów, oczekujące na ostateczne zatwierdzenie.</div>
+        </div>
+        <div class="toolbar-right">
+          <button class="btn btn-ghost btn-sm" id="btnOdswiezPrez">↻ Odśwież</button>
+        </div>
+      </div>
+      <div id="listaPrez">
+        <div class="empty-state">Brak wniosków oczekujących na akceptację Prezesa.</div>
+      </div>
+    </div>
+
+  </div><!-- /appRoot -->
+
+  <!-- ══ Modal: Nowy wniosek ══ -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>Nowy wniosek szkoleniowy</h2>
+        <button class="modal-close" id="modalClose" title="Zamknij">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label for="selPracownik">Pracownik <span class="req">*</span></label>
+          <select id="selPracownik">
+            <option value="">— wybierz pracownika —</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="selSzkolenie">Szkolenie <span class="req">*</span></label>
+          <select id="selSzkolenie">
+            <option value="">— wybierz szkolenie —</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="selTermin">Termin <span class="req">*</span></label>
+          <select id="selTermin">
+            <option value="">— najpierw wybierz szkolenie —</option>
+          </select>
+          <div class="field-hint" id="terminHint"></div>
+        </div>
+        <div class="field">
+          <label for="selPriorytet">Priorytet</label>
+          <select id="selPriorytet">
+            <option value="">— brak —</option>
+            <option>Normalny</option>
+            <option>Wysoki</option>
+            <option>Pilny</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="txtUzasadnienie">Uzasadnienie kierownika</label>
+          <textarea id="txtUzasadnienie" placeholder="Opisz potrzebę szkolenia, korzyści, powiązanie ze stanowiskiem…"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="btnAnuluj">Anuluj</button>
+        <button class="btn btn-primary" id="btnZapisz">Zapisz wniosek</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       JAVASCRIPT
+  ════════════════════════════════════════════════════════════ -->
+  <script>
+    // ── XSS guard ──────────────────────────────────────────────────
+    function esc(s) {
+      return String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // ── Date formatting ────────────────────────────────────────────
+    // Grist Date columns are Unix timestamps in seconds
+    function fmtDate(ts) {
+      if (!ts) return '—';
+      return new Date(ts * 1000).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
+    // ── State ──────────────────────────────────────────────────────
+    const S = {
+      userEmail:   null,
+      userName:    null,
+      pracownicy:  [],   // Pracownicy rows
+      szkolenia:   [],   // Baza_UnikatoweReczne rows
+      terminy:     [],   // BazaTerminow rows
+      main:        [],   // Main rows
+      panel:       {},   // PanelSterowania row (first)
+      myPracId:    null, // id in Pracownicy matching logged-in user
+      isKier:      false,
+      isDyr:       false,
+      isPrez:      false,
+      filterWnioski: 'all',
+    };
+
+    // ── Grist columnar → row array ─────────────────────────────────
+    function colsToRows(data) {
+      const ids = data.id || [];
+      return ids.map((id, i) => {
+        const row = { id };
+        for (const [col, vals] of Object.entries(data)) {
+          row[col] = vals[i];
+        }
+        return row;
+      });
+    }
+
+    // ── Lookup helpers ─────────────────────────────────────────────
+    function getSzkolenieTitle(id) {
+      return S.szkolenia.find(s => s.id === id)?.title_full || `#${id}`;
+    }
+
+    function getTerminLabel(id) {
+      const t = S.terminy.find(x => x.id === id);
+      if (!t) return id ? `#${id}` : '—';
+      if (t.Termin_Detail) return t.Termin_Detail;
+      const od = fmtDate(t.termin_od);
+      const do_ = fmtDate(t.termin_do);
+      if (od !== '—' && do_ !== '—') return `${od} – ${do_}`;
+      return t.termin || `#${id}`;
+    }
+
+    function getTerminExtra(id) {
+      const t = S.terminy.find(x => x.id === id);
+      if (!t) return '';
+      const parts = [];
+      if (t.lokalizacja) parts.push(t.lokalizacja);
+      if (t.dni_robocze) parts.push(`${t.dni_robocze} dni`);
+      if (t.koszt) parts.push(t.koszt);
+      return parts.join(' · ');
+    }
+
+    function getPracownikLabel(id) {
+      const p = S.pracownicy.find(x => x.id === id);
+      if (!p) return id ? `#${id}` : '—';
+      const kom = (p.Komorka || (p.kom_org_ || '').split('-').pop() || '').trim();
+      return `${p.nazwisko} ${p.imie}${kom ? ' [' + kom + ']' : ''}`;
+    }
+
+    // ── Status badge ───────────────────────────────────────────────
+    function statusBadge(r) {
+      if (r.Prezes_Akceptacja === true)  return '<span class="badge badge-green">✓ Zatwierdzone</span>';
+      if (r.Prezes_Akceptacja === false && r.Prezes_Akceptacja !== null && r.Prezes_Akceptacja !== undefined && r.Dyr_Akceptacja === true) {
+        return '<span class="badge badge-red">✗ Odrzucone (Prezes)</span>';
+      }
+      if (r.Dyr_Akceptacja === true)  return '<span class="badge badge-blue">✓ Akc. Dyr.</span>';
+      if (r.Dyr_Akceptacja === false && r.Dyr_Akceptacja !== null && r.Dyr_Akceptacja !== undefined) {
+        return '<span class="badge badge-red">✗ Odrzucone (Dyr.)</span>';
+      }
+      return '<span class="badge badge-gray">Oczekuje</span>';
+    }
+
+    function statusClass(r) {
+      if (r.Prezes_Akceptacja === true) return 'status-approved';
+      if (r.Dyr_Akceptacja === false)   return 'status-rejected';
+      if (r.Prezes_Akceptacja === false) return 'status-rejected';
+      if (r.Dyr_Akceptacja === true)    return 'status-approved';
+      return 'status-pending';
+    }
+
+    function priorytetBadge(p) {
+      if (!p) return '';
+      const cls = p === 'Pilny' ? 'badge-red' : p === 'Wysoki' ? 'badge-amber' : 'badge-gray';
+      return `<span class="badge ${cls}">${esc(p)}</span>`;
+    }
+
+    // ── Toast ──────────────────────────────────────────────────────
+    let _toastTimer = null;
+    function toast(msg, type = 'ok') {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.className = `toast ${type} show`;
+      clearTimeout(_toastTimer);
+      _toastTimer = setTimeout(() => { el.classList.remove('show'); }, 3200);
+    }
+
+    // ── Grist init ─────────────────────────────────────────────────
+    grist.ready({ requiredAccess: 'full' });
+
+    async function loadAll() {
+      try {
+        // Try to get logged-in user email
+        try {
+          const u = await grist.getUserInfo();
+          S.userEmail = u?.email || null;
+          S.userName  = u?.name  || u?.email || null;
+        } catch (_) {
+          S.userEmail = null;
+          S.userName  = null;
+        }
+
+        const [prac, pracEmail, szk, term, main, panel] = await Promise.all([
+          grist.docApi.fetchTable('Pracownicy'),
+          grist.docApi.fetchTable('Pracownicy_email'),
+          grist.docApi.fetchTable('Baza_UnikatoweReczne'),
+          grist.docApi.fetchTable('BazaTerminow'),
+          grist.docApi.fetchTable('Main'),
+          grist.docApi.fetchTable('PanelSterowania'),
+        ]);
+
+        S.pracownicy = colsToRows(prac);
+        S.szkolenia  = colsToRows(szk);
+        S.terminy    = colsToRows(term);
+        S.main       = colsToRows(main);
+        S.panel      = colsToRows(panel)[0] || {};
+
+        // Resolve current user → Pracownicy row via email_prac formula column
+        if (S.userEmail) {
+          const myPrac = S.pracownicy.find(p => p.email_prac === S.userEmail);
+          if (myPrac) {
+            S.myPracId = myPrac.id;
+            S.isKier   = !!myPrac.czyKier;
+            S.isDyr    = !!myPrac.czyDyr;
+            S.isPrez   = !!myPrac.czyPrez;
+          }
+        }
+
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('appRoot').classList.remove('hidden');
+        render();
+
+      } catch (err) {
+        document.getElementById('loadingState').textContent =
+          '⚠ Błąd ładowania danych: ' + err.message;
+      }
+    }
+
+    // ── Refresh only Main + PanelSterowania ───────────────────────
+    async function refreshData() {
+      const [main, panel] = await Promise.all([
+        grist.docApi.fetchTable('Main'),
+        grist.docApi.fetchTable('PanelSterowania'),
+      ]);
+      S.main  = colsToRows(main);
+      S.panel = colsToRows(panel)[0] || {};
+      render();
+    }
+
+    // ── Render ─────────────────────────────────────────────────────
+    function render() {
+      renderHeaderUser();
+      renderPhaseBanner();
+      renderPhaseInfoCard();
+      renderStats();
+      renderWnioski();
+      renderDyr();
+      renderPrez();
+      updateTabVisibility();
+    }
+
+    function renderHeaderUser() {
+      const el  = document.getElementById('userLabel');
+      const chip = document.getElementById('roleChip');
+      el.textContent = S.userName || S.userEmail || 'Użytkownik';
+      let role = '';
+      if (S.isPrez) role = 'Prezes / Z-ca Prezesa';
+      else if (S.isDyr) role = 'Dyrektor';
+      else if (S.isKier) role = 'Kierownik';
+      if (role) { chip.textContent = role; chip.classList.remove('hidden'); }
+      else { chip.classList.add('hidden'); }
+    }
+
+    function renderPhaseBanner() {
+      const p = S.panel;
+      const el = document.getElementById('phaseBanner');
+      const phaseText = document.getElementById('phaseText');
+      const active = [];
+      if (p.EdycjaKiero)      active.push('Edycja kierowników');
+      if (p.EdycjaDyr)        active.push('Edycja dyrektorów');
+      if (p.AkceptacjaDyr)    active.push('Akceptacja dyrektorów');
+      if (p.EdycjaPrezes2)    active.push('Edycja prezesa');
+      if (p.AkceptacjaPrezes) active.push('Akceptacja prezesa');
+
+      if (active.length) {
+        el.className = 'phase-banner phase-active';
+        phaseText.innerHTML = 'Aktywna faza: <strong>' + active.map(esc).join(', ') + '</strong>';
+      } else {
+        el.className = 'phase-banner phase-inactive';
+        phaseText.textContent = 'Brak aktywnej fazy — panel sterowania wyłączony';
+      }
+    }
+
+    function renderPhaseInfoCard() {
+      const p = S.panel;
+      const flags = [
+        { key: 'EdycjaKiero',      label: 'Edycja Kierowników' },
+        { key: 'EdycjaDyr',        label: 'Edycja Dyrektorów' },
+        { key: 'AkceptacjaDyr',    label: 'Akceptacja Dyrektorów' },
+        { key: 'EdycjaPrezes2',    label: 'Edycja Prezesa' },
+        { key: 'AkceptacjaPrezes', label: 'Akceptacja Prezesa' },
+      ];
+      const card = document.getElementById('phaseInfoCard');
+      card.innerHTML = flags.map(f => {
+        const on = !!p[f.key];
+        return `<div class="phase-flag ${on ? 'flag-on' : 'flag-off'}">
+          <div class="flag-dot"></div>
+          <span>${esc(f.label)}</span>
+        </div>`;
+      }).join('');
+    }
+
+    function renderStats() {
+      const total    = S.main.length;
+      const pending  = S.main.filter(r => !r.Dyr_Akceptacja && r.Dyr_Akceptacja !== false).length;
+      const dyrOk    = S.main.filter(r => r.Dyr_Akceptacja === true && !r.Prezes_Akceptacja).length;
+      const approved = S.main.filter(r => r.Prezes_Akceptacja === true).length;
+
+      document.getElementById('statsRow').innerHTML = [
+        { num: total,    lbl: 'Wszystkich' },
+        { num: pending,  lbl: 'Oczekujące' },
+        { num: dyrOk,    lbl: 'Po Dyr.' },
+        { num: approved, lbl: 'Zatwierdzone' },
+      ].map(s => `
+        <div class="stat-chip">
+          <div class="stat-num">${s.num}</div>
+          <div class="stat-lbl">${esc(s.lbl)}</div>
+        </div>
+      `).join('');
+    }
+
+    function filterMain() {
+      const f = S.filterWnioski;
+      if (f === 'pending')   return S.main.filter(r => !r.Dyr_Akceptacja && r.Dyr_Akceptacja !== false);
+      if (f === 'dyr')       return S.main.filter(r => r.Dyr_Akceptacja === true && r.Prezes_Akceptacja !== true);
+      if (f === 'approved')  return S.main.filter(r => r.Prezes_Akceptacja === true);
+      return S.main;
+    }
+
+    function renderWnioski() {
+      const el     = document.getElementById('listaWnioskow');
+      const canAdd = !!S.panel.EdycjaKiero;
+      const btnDodaj = document.getElementById('btnDodaj');
+      btnDodaj.disabled = !canAdd;
+      btnDodaj.title    = canAdd ? '' : 'Edycja kierowników jest w tej chwili wyłączona';
+
+      document.getElementById('cntWnioski').textContent = S.main.length;
+
+      const rows = filterMain();
+
+      if (!rows.length) {
+        el.innerHTML = '<div class="empty-state">Brak wniosków spełniających kryteria.</div>';
+        return;
+      }
+
+      el.innerHTML = rows.map(r => {
+        const isDyrPhase = !!S.panel.AkceptacjaDyr;
+        const isPrePhase = !!S.panel.AkceptacjaPrezes;
+        const canEdit    = canAdd && !r.Dyr_Akceptacja;
+
+        return `
+        <div class="record-card ${statusClass(r)}">
+          <div class="rc-header">
+            <div class="rc-title">${esc(getSzkolenieTitle(r.Szkolenie))}</div>
+            ${statusBadge(r)}
+            ${priorytetBadge(r.Priorytet)}
+          </div>
+          <div class="rc-meta">
+            <span>👤 ${esc(getPracownikLabel(r.Pracownik))}</span>
+            <span>📅 ${esc(getTerminLabel(r.Termin))}</span>
+            ${getTerminExtra(r.Termin) ? `<span>📍 ${esc(getTerminExtra(r.Termin))}</span>` : ''}
+          </div>
+          ${r.Uzasadnienie_Kierownika ? `<div class="rc-note note-uzas">Uzasadnienie: ${esc(r.Uzasadnienie_Kierownika)}</div>` : ''}
+          ${r.Dyr_Komentarz  ? `<div class="rc-note note-dyr">Komentarz Dyr.: ${esc(r.Dyr_Komentarz)}</div>`   : ''}
+          ${r.Prezes_Komentarz ? `<div class="rc-note note-prez">Komentarz Prezes: ${esc(r.Prezes_Komentarz)}</div>` : ''}
+          ${canEdit ? `<div class="rc-actions"><button class="btn btn-ghost btn-sm" onclick="usunWniosek(${r.id})">Usuń</button></div>` : ''}
+        </div>`;
+      }).join('');
+    }
+
+    function renderDyr() {
+      const el     = document.getElementById('listaDyr');
+      const canAkc = !!S.panel.AkceptacjaDyr;
+      const pending = S.main.filter(r => r.Dyr_Akceptacja !== true && r.Dyr_Akceptacja !== false);
+
+      document.getElementById('cntDyr').textContent = pending.length;
+
+      if (!pending.length) {
+        el.innerHTML = '<div class="empty-state">Brak wniosków oczekujących na akceptację dyrektora.</div>';
+        return;
+      }
+
+      el.innerHTML = pending.map(r => `
+        <div class="record-card status-pending">
+          <div class="rc-header">
+            <div class="rc-title">${esc(getSzkolenieTitle(r.Szkolenie))}</div>
+            ${statusBadge(r)}
+            ${priorytetBadge(r.Priorytet)}
+          </div>
+          <div class="rc-meta">
+            <span>👤 ${esc(getPracownikLabel(r.Pracownik))}</span>
+            <span>📅 ${esc(getTerminLabel(r.Termin))}</span>
+            ${getTerminExtra(r.Termin) ? `<span>📍 ${esc(getTerminExtra(r.Termin))}</span>` : ''}
+          </div>
+          ${r.Uzasadnienie_Kierownika ? `<div class="rc-note note-uzas">Uzasadnienie: ${esc(r.Uzasadnienie_Kierownika)}</div>` : ''}
+          ${canAkc ? `
+            <div class="komentarz-wrap">
+              <label class="komentarz-label">Komentarz dyrektora (opcjonalnie)</label>
+              <textarea class="komentarz-input" id="kmt-dyr-${r.id}" placeholder="Wpisz komentarz…">${esc(r.Dyr_Komentarz || '')}</textarea>
+            </div>
+            <div class="rc-actions mt4">
+              <button class="btn btn-success btn-sm" onclick="akceptujDyr(${r.id}, true)">✓ Akceptuj</button>
+              <button class="btn btn-danger btn-sm"  onclick="akceptujDyr(${r.id}, false)">✗ Odrzuć</button>
+            </div>
+          ` : `<div class="rc-note">Faza akceptacji dyrektora jest nieaktywna.</div>`}
+        </div>
+      `).join('');
+    }
+
+    function renderPrez() {
+      const el     = document.getElementById('listaPrez');
+      const canAkc = !!S.panel.AkceptacjaPrezes;
+      const pending = S.main.filter(r => r.Dyr_Akceptacja === true && r.Prezes_Akceptacja !== true && r.Prezes_Akceptacja !== false);
+
+      document.getElementById('cntPrez').textContent = pending.length;
+
+      if (!pending.length) {
+        el.innerHTML = '<div class="empty-state">Brak wniosków oczekujących na akceptację Prezesa.</div>';
+        return;
+      }
+
+      el.innerHTML = pending.map(r => `
+        <div class="record-card status-pending">
+          <div class="rc-header">
+            <div class="rc-title">${esc(getSzkolenieTitle(r.Szkolenie))}</div>
+            ${statusBadge(r)}
+            ${priorytetBadge(r.Priorytet)}
+          </div>
+          <div class="rc-meta">
+            <span>👤 ${esc(getPracownikLabel(r.Pracownik))}</span>
+            <span>📅 ${esc(getTerminLabel(r.Termin))}</span>
+            ${getTerminExtra(r.Termin) ? `<span>📍 ${esc(getTerminExtra(r.Termin))}</span>` : ''}
+          </div>
+          ${r.Uzasadnienie_Kierownika ? `<div class="rc-note note-uzas">Uzasadnienie: ${esc(r.Uzasadnienie_Kierownika)}</div>` : ''}
+          ${r.Dyr_Komentarz ? `<div class="rc-note note-dyr">Komentarz Dyr.: ${esc(r.Dyr_Komentarz)}</div>` : ''}
+          ${canAkc ? `
+            <div class="komentarz-wrap">
+              <label class="komentarz-label">Komentarz Prezesa (opcjonalnie)</label>
+              <textarea class="komentarz-input" id="kmt-prez-${r.id}" placeholder="Wpisz komentarz…">${esc(r.Prezes_Komentarz || '')}</textarea>
+            </div>
+            <div class="rc-actions mt4">
+              <button class="btn btn-success btn-sm" onclick="akceptujPrezes(${r.id}, true)">✓ Zatwierdź</button>
+              <button class="btn btn-danger btn-sm"  onclick="akceptujPrezes(${r.id}, false)">✗ Odrzuć</button>
+            </div>
+          ` : `<div class="rc-note">Faza akceptacji Prezesa jest nieaktywna.</div>`}
+        </div>
+      `).join('');
+    }
+
+    function updateTabVisibility() {
+      const p = S.panel;
+      const tabDyr  = document.getElementById('tabDyr');
+      const tabPrez = document.getElementById('tabPrez');
+      const tabDyrView  = document.getElementById('tab-akc-dyr');
+      const tabPrezView = document.getElementById('tab-akc-prez');
+
+      // Show Dyr tab if user is director/prezes or if that phase is active
+      const showDyr  = S.isDyr || S.isPrez || p.AkceptacjaDyr || p.EdycjaDyr;
+      // Show Prez tab if user is prezes or if that phase is active
+      const showPrez = S.isPrez || p.AkceptacjaPrezes || p.EdycjaPrezes2;
+
+      tabDyr.classList.toggle('hidden', !showDyr);
+      tabPrez.classList.toggle('hidden', !showPrez);
+
+      // If active tab is now hidden, switch to Wnioski
+      const activeTab = document.querySelector('.tab-btn.active');
+      if (activeTab?.classList.contains('hidden')) {
+        switchTab('wnioski');
+      }
+    }
+
+    // ── Tab switching ──────────────────────────────────────────────
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-view').forEach(v => v.classList.add('hidden'));
+      const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+      const view = document.getElementById('tab-' + tabId);
+      if (btn)  btn.classList.add('active');
+      if (view) view.classList.remove('hidden');
+    }
+
+    document.getElementById('tabBar').addEventListener('click', e => {
+      const btn = e.target.closest('.tab-btn');
+      if (btn && !btn.classList.contains('hidden')) {
+        switchTab(btn.dataset.tab);
+      }
+    });
+
+    // ── Filter chips ───────────────────────────────────────────────
+    document.querySelectorAll('.filter-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        S.filterWnioski = chip.dataset.filter;
+        renderWnioski();
+      });
+    });
+
+    // ── Refresh buttons ────────────────────────────────────────────
+    document.getElementById('btnOdswiezWnioski').addEventListener('click', () => refreshData().catch(e => toast('Błąd odświeżania: ' + e.message, 'err')));
+    document.getElementById('btnOdswiezDyr').addEventListener('click',     () => refreshData().catch(e => toast('Błąd odświeżania: ' + e.message, 'err')));
+    document.getElementById('btnOdswiezPrez').addEventListener('click',    () => refreshData().catch(e => toast('Błąd odświeżania: ' + e.message, 'err')));
+
+    // ── Actions ────────────────────────────────────────────────────
+    async function usunWniosek(rowId) {
+      if (!confirm('Usunąć ten wniosek? Operacji nie można cofnąć.')) return;
+      try {
+        await grist.docApi.applyUserActions([['RemoveRecord', 'Main', rowId]]);
+        toast('Wniosek usunięty.');
+        await refreshData();
+      } catch (err) {
+        toast('Błąd usuwania: ' + err.message, 'err');
+      }
+    }
+
+    async function akceptujDyr(rowId, akceptacja) {
+      const verb = akceptacja ? 'Zaakceptować' : 'Odrzucić';
+      if (!confirm(`${verb} ten wniosek?`)) return;
+      const komentarz = (document.getElementById(`kmt-dyr-${rowId}`)?.value || '').trim();
+      try {
+        await grist.docApi.applyUserActions([[
+          'UpdateRecord', 'Main', rowId, {
+            Dyr_Akceptacja: akceptacja,
+            Dyr_Komentarz:  komentarz,
+          }
+        ]]);
+        toast(akceptacja ? 'Zaakceptowano wniosek.' : 'Wniosek odrzucony.');
+        await refreshData();
+      } catch (err) {
+        toast('Błąd aktualizacji: ' + err.message, 'err');
+      }
+    }
+
+    async function akceptujPrezes(rowId, akceptacja) {
+      const verb = akceptacja ? 'Zatwierdzić' : 'Odrzucić';
+      if (!confirm(`${verb} ten wniosek?`)) return;
+      const komentarz = (document.getElementById(`kmt-prez-${rowId}`)?.value || '').trim();
+      try {
+        await grist.docApi.applyUserActions([[
+          'UpdateRecord', 'Main', rowId, {
+            Prezes_Akceptacja: akceptacja,
+            Prezes_Komentarz:  komentarz,
+          }
+        ]]);
+        toast(akceptacja ? 'Zatwierdzono wniosek.' : 'Wniosek odrzucony przez Prezesa.');
+        await refreshData();
+      } catch (err) {
+        toast('Błąd aktualizacji: ' + err.message, 'err');
+      }
+    }
+
+    // ── Modal: Nowy wniosek ────────────────────────────────────────
+    function openModal() {
+      // Populate Pracownicy select
+      const selPrac = document.getElementById('selPracownik');
+      selPrac.innerHTML = '<option value="">— wybierz pracownika —</option>' +
+        [...S.pracownicy]
+          .sort((a, b) => (a.nazwisko || '').localeCompare(b.nazwisko || '', 'pl'))
+          .map(p => {
+            const kom = (p.Komorka || (p.kom_org_ || '').split('-').pop() || '').trim();
+            const sel = p.id === S.myPracId ? ' selected' : '';
+            return `<option value="${p.id}"${sel}>${esc(p.nazwisko)} ${esc(p.imie)}${kom ? ' [' + esc(kom) + ']' : ''}</option>`;
+          }).join('');
+
+      // Populate Szkolenie select
+      const selSzk = document.getElementById('selSzkolenie');
+      selSzk.innerHTML = '<option value="">— wybierz szkolenie —</option>' +
+        [...S.szkolenia]
+          .sort((a, b) => (a.title_full || '').localeCompare(b.title_full || '', 'pl'))
+          .map(s => `<option value="${s.id}">${esc(s.title_full)}</option>`)
+          .join('');
+
+      // Reset termin
+      document.getElementById('selTermin').innerHTML = '<option value="">— najpierw wybierz szkolenie —</option>';
+      document.getElementById('terminHint').textContent = '';
+      document.getElementById('selPriorytet').value = '';
+      document.getElementById('txtUzasadnienie').value = '';
+
+      document.getElementById('modal').classList.add('open');
+    }
+
+    function closeModal() {
+      document.getElementById('modal').classList.remove('open');
+    }
+
+    document.getElementById('btnDodaj').addEventListener('click', openModal);
+    document.getElementById('modalClose').addEventListener('click', closeModal);
+    document.getElementById('btnAnuluj').addEventListener('click', closeModal);
+    document.getElementById('modal').addEventListener('click', e => {
+      if (e.target === document.getElementById('modal')) closeModal();
+    });
+
+    // Termin select updates when Szkolenie changes
+    document.getElementById('selSzkolenie').addEventListener('change', () => {
+      const szkId    = parseInt(document.getElementById('selSzkolenie').value);
+      const selTermin = document.getElementById('selTermin');
+      const hint     = document.getElementById('terminHint');
+
+      if (!szkId) {
+        selTermin.innerHTML = '<option value="">— najpierw wybierz szkolenie —</option>';
+        hint.textContent = '';
+        return;
+      }
+
+      const szk = S.szkolenia.find(s => s.id === szkId);
+      const titleFull = szk?.title_full || '';
+
+      // Filter BazaTerminow by title_full
+      const matching = S.terminy.filter(t => t.title_full === titleFull);
+
+      if (!matching.length) {
+        selTermin.innerHTML = '<option value="">— brak dostępnych terminów —</option>';
+        hint.textContent = '';
+        return;
+      }
+
+      // Sort by termin_od ascending
+      matching.sort((a, b) => (a.termin_od || 0) - (b.termin_od || 0));
+
+      selTermin.innerHTML = '<option value="">— wybierz termin —</option>' +
+        matching.map(t => {
+          const label = t.Termin_Detail || (() => {
+            const od = fmtDate(t.termin_od);
+            const do_ = fmtDate(t.termin_do);
+            return od !== '—' ? `${od} – ${do_}` : (t.termin || `#${t.id}`);
+          })();
+          const extra = [t.lokalizacja, t.dni_robocze ? t.dni_robocze + ' dni' : '', t.koszt]
+            .filter(Boolean).join(' · ');
+          return `<option value="${t.id}">${esc(label)}${extra ? ' | ' + esc(extra) : ''}</option>`;
+        }).join('');
+      hint.textContent = `Znaleziono ${matching.length} termin(ów) dla wybranego szkolenia.`;
+    });
+
+    // Submit new record
+    document.getElementById('btnZapisz').addEventListener('click', async () => {
+      const pracId  = parseInt(document.getElementById('selPracownik').value) || 0;
+      const szkId   = parseInt(document.getElementById('selSzkolenie').value) || 0;
+      const termId  = parseInt(document.getElementById('selTermin').value)    || 0;
+      const prior   = document.getElementById('selPriorytet').value;
+      const uzas    = document.getElementById('txtUzasadnienie').value.trim();
+
+      if (!pracId || !szkId || !termId) {
+        toast('Uzupełnij wszystkie wymagane pola (Pracownik, Szkolenie, Termin).', 'err');
+        return;
+      }
+
+      const btn = document.getElementById('btnZapisz');
+      btn.disabled = true;
+      btn.textContent = 'Zapisywanie…';
+
+      try {
+        const fields = {
+          Pracownik: pracId,
+          Szkolenie: szkId,
+          Termin:    termId,
+        };
+        if (prior) fields.Priorytet = prior;
+        if (uzas)  fields.Uzasadnienie_Kierownika = uzas;
+
+        await grist.docApi.applyUserActions([['AddRecord', 'Main', null, fields]]);
+        closeModal();
+        toast('Wniosek zapisany.');
+        await refreshData();
+      } catch (err) {
+        toast('Błąd zapisu: ' + err.message, 'err');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Zapisz wniosek';
+      }
+    });
+
+    // ── Start ──────────────────────────────────────────────────────
+    loadAll();
+  </script>
+</body>
+</html>
