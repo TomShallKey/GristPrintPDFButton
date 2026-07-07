@@ -4,1154 +4,768 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LEX-IANS — Wnioski szkoleniowe</title>
-
   <!--
-    GRIST CUSTOM WIDGET — LEX-IANS Wnioski szkoleniowe
-    ====================================================
-    Tabele wymagane w dokumencie Grist:
-      BazaTerminow        (course_id, title_full, termin, termin_od, termin_do,
-                           dni_robocze, koszt, lokalizacja, Kurs_x_Termin, Termin_Detail)
-      Baza_UnikatoweReczne (title_full)
-      Main                (Pracownik→Pracownicy, Szkolenie→Baza_UnikatoweReczne,
-                           Termin→BazaTerminow, Priorytet, Uzasadnienie_Kierownika,
-                           Dyr_Akceptacja, Dyr_Komentarz, Prezes_Akceptacja, Prezes_Komentarz)
-      PanelSterowania     (EdycjaKiero, EdycjaDyr, AkceptacjaDyr, EdycjaPrezes2, AkceptacjaPrezes)
-      Pracownicy          (nazwisko, imie, kom_org_, Komorka, czyKier, czyDyr, czyPrez, email_prac)
-      Pracownicy_email    (email_prac, nazwisko, imie, kom_org)
-
-    Hosting: plik musi być dostępny pod publicznym URL-em.
-    Lokalnie: python -m http.server 8080  →  http://localhost:8080/widget_wnioski.html
-    Grist: Add Widget to Page → Custom → wklej URL → Access: Full document access
+    GRIST CUSTOM WIDGET — LEX-IANS
+    Tabele: Main, BazaTerminow, Baza_UnikatoweReczne, Pracownicy, PanelSterowania
+    Access: Full document access
   -->
-
-  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
-
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"><\/script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --navy:       #1a237e;
-      --blue:       #3949ab;
-      --blue-light: #e8eaf6;
-      --blue-mid:   #7986cb;
-      --green:      #2e7d32;
-      --green-bg:   #e8f5e9;
-      --amber:      #e65100;
-      --amber-bg:   #fff3e0;
-      --red:        #c62828;
-      --red-bg:     #ffebee;
-      --purple:     #6a1b9a;
-      --purple-bg:  #f3e5f5;
-      --gray:       #757575;
-      --border:     #e0e0e0;
-      --bg:         #f5f6fa;
-      --white:      #ffffff;
-      --shadow-sm:  0 1px 3px rgba(0,0,0,.09);
-      --shadow-md:  0 4px 12px rgba(0,0,0,.13);
+      --navy:    #1a237e;
+      --blue:    #3949ab;
+      --blue-lt: #e8eaf6;
+      --green:   #2e7d32;
+      --green-lt:#e8f5e9;
+      --amber:   #b45309;
+      --amber-lt:#fef3c7;
+      --red:     #b91c1c;
+      --red-lt:  #fee2e2;
+      --gray:    #6b7280;
+      --border:  #e5e7eb;
+      --bg:      #f9fafb;
+      --white:   #ffffff;
+      --text:    #111827;
+      --text-sm: #374151;
     }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: var(--bg);
-      color: #212121;
-      font-size: 14px;
+      color: var(--text);
+      font-size: 13px;
       line-height: 1.5;
-      min-height: 100vh;
     }
 
-    /* ── Header ── */
-    .app-header {
+    /* Header */
+    .hdr {
       background: var(--navy);
-      color: var(--white);
-      padding: 13px 20px;
+      color: #fff;
+      padding: 0 24px;
+      height: 52px;
       display: flex;
       align-items: center;
       gap: 12px;
       position: sticky;
       top: 0;
-      z-index: 60;
-      box-shadow: 0 2px 8px rgba(0,0,0,.3);
+      z-index: 50;
+      box-shadow: 0 1px 6px rgba(0,0,0,.35);
     }
-    .app-header h1 { font-size: 15px; font-weight: 700; letter-spacing: .2px; }
-    .header-user {
+    .hdr-title { font-size: 14px; font-weight: 700; letter-spacing: .1px; }
+    .hdr-sep   { width: 1px; height: 20px; background: rgba(255,255,255,.2); }
+    .hdr-sub   { font-size: 12px; opacity: .65; }
+    .hdr-user  {
       margin-left: auto;
-      font-size: 12px;
-      opacity: .8;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; opacity: .8;
     }
-    .role-chip {
-      background: rgba(255,255,255,.18);
-      border-radius: 20px;
-      padding: 2px 9px;
-      font-size: 11px;
-      font-weight: 600;
+    .hdr-role {
+      background: rgba(255,255,255,.15);
+      border-radius: 99px;
+      padding: 2px 10px;
+      font-size: 11px; font-weight: 600;
     }
 
-    /* ── Phase banner ── */
-    .phase-banner {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 9px 20px;
-      font-size: 13px;
-      font-weight: 500;
-      border-bottom: 1px solid var(--border);
-    }
-    .phase-banner.phase-active   { background: #e3f2fd; color: #0d47a1; }
-    .phase-banner.phase-inactive { background: #fafafa; color: var(--gray); }
-    .phase-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-    .phase-active .phase-dot   { background: #1565c0; }
-    .phase-inactive .phase-dot { background: #bdbdbd; }
-
-    /* ── Tabs ── */
-    .tab-bar {
-      display: flex;
-      gap: 0;
-      background: var(--white);
-      border-bottom: 1px solid var(--border);
-      padding: 0 20px;
-      overflow-x: auto;
-    }
-    .tab-btn {
-      padding: 11px 18px;
-      border: none;
-      background: none;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--gray);
-      border-bottom: 3px solid transparent;
-      margin-bottom: -1px;
-      white-space: nowrap;
-      transition: color .15s, border-color .15s;
-    }
-    .tab-btn:hover { color: var(--blue); }
-    .tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 600; }
-    .tab-btn .badge-count {
-      display: inline-flex; align-items: center; justify-content: center;
-      background: var(--blue-light); color: var(--blue);
-      border-radius: 10px; min-width: 20px; height: 18px;
-      font-size: 11px; font-weight: 700; padding: 0 5px;
-      margin-left: 6px;
-    }
-    .tab-btn.tab-warn .badge-count { background: var(--amber-bg); color: var(--amber); }
-
-    /* ── Tab views ── */
-    .tab-view { display: none; padding: 16px 20px 40px; }
-    .tab-view.active { display: block; }
-
-    /* ── Toolbar ── */
+    /* Toolbar */
     .toolbar {
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-bottom: 16px;
+      padding: 14px 24px 10px;
       flex-wrap: wrap;
     }
-    .toolbar-right { margin-left: auto; }
-
-    /* ── Cards ── */
-    .record-card {
-      background: var(--white);
-      border-radius: 9px;
-      padding: 13px 16px;
-      margin-bottom: 8px;
-      box-shadow: var(--shadow-sm);
-      border-left: 4px solid var(--blue-mid);
-      transition: box-shadow .15s;
+    .search-wrap { position: relative; flex: 1; min-width: 180px; max-width: 300px; }
+    .search-wrap svg {
+      position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+      color: var(--gray); pointer-events: none;
     }
-    .record-card:hover { box-shadow: var(--shadow-md); }
-    .record-card.status-approved { border-left-color: var(--green); }
-    .record-card.status-rejected { border-left-color: var(--red); }
-    .record-card.status-pending  { border-left-color: #bdbdbd; }
-
-    .rc-header {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      margin-bottom: 7px;
-    }
-    .rc-title { font-size: 13px; font-weight: 600; flex: 1; line-height: 1.4; }
-    .rc-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      font-size: 12px;
-      color: var(--gray);
-      margin-bottom: 6px;
-    }
-    .rc-meta span { display: flex; align-items: center; gap: 3px; }
-    .rc-note {
-      font-size: 12px;
-      color: #555;
-      background: #f9f9f9;
-      border-radius: 5px;
-      padding: 6px 10px;
-      margin-top: 7px;
-      border-left: 3px solid #e0e0e0;
-    }
-    .rc-note.note-dyr  { border-left-color: var(--blue-mid); }
-    .rc-note.note-prez { border-left-color: var(--purple); }
-    .rc-note.note-uzas { border-left-color: #ffb300; }
-    .rc-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-
-    /* ── Badges ── */
-    .badge {
-      display: inline-flex; align-items: center; gap: 3px;
-      padding: 2px 9px; border-radius: 20px;
-      font-size: 11px; font-weight: 600; white-space: nowrap; flex-shrink: 0;
-    }
-    .badge-gray   { background: #f5f5f5;         color: #616161; }
-    .badge-blue   { background: var(--blue-light); color: var(--blue); }
-    .badge-green  { background: var(--green-bg);  color: var(--green); }
-    .badge-red    { background: var(--red-bg);    color: var(--red); }
-    .badge-amber  { background: var(--amber-bg);  color: var(--amber); }
-    .badge-purple { background: var(--purple-bg); color: var(--purple); }
-
-    /* ── Buttons ── */
-    .btn {
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 8px 16px; border-radius: 7px;
-      font-size: 13px; font-weight: 600;
-      border: none; cursor: pointer; transition: background .15s, opacity .15s;
-    }
-    .btn:disabled { opacity: .45; cursor: not-allowed; }
-    .btn-primary  { background: var(--blue);  color: var(--white); }
-    .btn-primary:hover:not(:disabled)  { background: var(--navy); }
-    .btn-success  { background: var(--green); color: var(--white); }
-    .btn-success:hover:not(:disabled)  { background: #1b5e20; }
-    .btn-danger   { background: var(--red);   color: var(--white); }
-    .btn-danger:hover:not(:disabled)   { background: #b71c1c; }
-    .btn-ghost    { background: #f5f5f5; color: #424242; }
-    .btn-ghost:hover:not(:disabled)    { background: #eeeeee; }
-    .btn-sm { padding: 5px 11px; font-size: 12px; }
-
-    /* ── Komentarz input in approvals ── */
-    .komentarz-wrap { margin-top: 9px; }
-    .komentarz-input {
-      width: 100%;
-      padding: 7px 10px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      font-size: 13px;
-      font-family: inherit;
-      resize: vertical;
-      min-height: 56px;
-      transition: border-color .15s;
-    }
-    .komentarz-input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(57,73,171,.1); }
-    .komentarz-label { font-size: 11px; font-weight: 600; color: var(--gray); margin-bottom: 4px; display: block; }
-
-    /* ── Modal ── */
-    .modal-overlay {
-      display: none;
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,.45);
-      z-index: 80;
-      align-items: flex-start;
-      justify-content: center;
-      padding: 40px 16px;
-      overflow-y: auto;
-    }
-    .modal-overlay.open { display: flex; }
-
-    .modal-box {
-      background: var(--white);
-      border-radius: 12px;
-      width: 100%;
-      max-width: 520px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.25);
-    }
-    .modal-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 18px 20px 14px;
-      border-bottom: 1px solid var(--border);
-    }
-    .modal-header h2 { font-size: 16px; font-weight: 700; color: var(--navy); }
-    .modal-close {
-      background: none; border: none; cursor: pointer;
-      color: var(--gray); font-size: 20px; line-height: 1;
-      padding: 2px 6px; border-radius: 4px;
-    }
-    .modal-close:hover { background: #f5f5f5; color: #333; }
-    .modal-body { padding: 18px 20px; }
-    .modal-footer {
-      display: flex; gap: 10px; justify-content: flex-end;
-      padding: 14px 20px;
-      border-top: 1px solid var(--border);
-    }
-
-    /* ── Form fields ── */
-    .field { margin-bottom: 15px; }
-    .field:last-child { margin-bottom: 0; }
-    .field label {
-      display: block; font-size: 12px; font-weight: 600; color: #555; margin-bottom: 5px;
-    }
-    .field label .req { color: var(--red); margin-left: 2px; }
-    .field select, .field textarea, .field input {
-      width: 100%;
-      padding: 9px 12px;
-      border: 1px solid var(--border);
-      border-radius: 7px;
-      font-size: 13px;
-      font-family: inherit;
-      background: var(--white);
+    .search-input {
+      width: 100%; padding: 7px 10px 7px 34px;
+      border: 1px solid var(--border); border-radius: 7px;
+      font-size: 13px; background: var(--white);
       transition: border-color .15s, box-shadow .15s;
     }
-    .field select:focus, .field textarea:focus, .field input:focus {
+    .search-input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(57,73,171,.1); }
+
+    .filter-tabs { display: flex; gap: 4px; }
+    .ft {
+      padding: 6px 13px; border-radius: 6px;
+      font-size: 12px; font-weight: 600;
+      border: 1.5px solid var(--border);
+      background: var(--white); color: var(--gray);
+      cursor: pointer; transition: all .12s;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .ft:hover { border-color: var(--blue); color: var(--blue); }
+    .ft.on { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .ft .cnt {
+      background: rgba(255,255,255,.25);
+      border-radius: 99px; padding: 0 6px;
+      font-size: 10px; font-weight: 700; min-width: 18px; text-align: center;
+    }
+    .ft:not(.on) .cnt { background: #e5e7eb; color: var(--gray); }
+    .ml-auto { margin-left: auto; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 7px 14px; border-radius: 7px;
+      font-size: 13px; font-weight: 600; border: none;
+      cursor: pointer; transition: background .13s, opacity .13s; white-space: nowrap;
+    }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-primary { background: var(--blue); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: var(--navy); }
+    .btn-ghost   { background: var(--white); color: var(--text-sm); border: 1.5px solid var(--border); }
+    .btn-ghost:hover:not(:disabled) { background: var(--bg); }
+    .btn-success { background: var(--green); color: #fff; }
+    .btn-success:hover:not(:disabled) { background: #1b5e20; }
+    .btn-danger  { background: var(--red); color: #fff; }
+    .btn-danger:hover:not(:disabled)  { background: #991b1b; }
+    .btn-xs { padding: 3px 9px; font-size: 11px; border-radius: 5px; }
+
+    /* Table */
+    .tbl-wrap {
+      margin: 0 24px 32px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+    .tbl-wrap table {
+      width: 100%; border-collapse: collapse; table-layout: fixed;
+    }
+    col.c-prac  { width: 165px; }
+    col.c-szk   { width: auto; }
+    col.c-term  { width: 190px; }
+    col.c-prior { width: 90px; }
+    col.c-status{ width: 130px; }
+    col.c-uzas  { width: 175px; }
+    col.c-akc   { width: 175px; }
+
+    thead th {
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .6px;
+      color: var(--gray);
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      cursor: pointer; user-select: none;
+    }
+    thead th:hover { color: var(--blue); }
+    thead th .si { opacity: .3; margin-left: 3px; font-style: normal; }
+    thead th.sorted .si { opacity: 1; color: var(--blue); }
+
+    tbody tr {
+      border-bottom: 1px solid #f3f4f6;
+      transition: background .1s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr.data-row:hover { background: #f0f4ff; }
+    tbody tr.data-row { cursor: pointer; }
+    tbody tr.data-row.expanded-row { background: #f5f7ff; }
+
+    td {
+      padding: 10px 14px;
+      vertical-align: middle;
+      font-size: 13px;
+    }
+    .cell-main { font-weight: 600; color: var(--text); }
+    .cell-sub  { font-size: 11px; color: var(--gray); margin-top: 2px; }
+    .cell-trunc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 0; }
+
+    /* Badges */
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: 99px;
+      font-size: 11px; font-weight: 600; white-space: nowrap;
+    }
+    .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .b-gray  { background: #f3f4f6; color: #4b5563; }
+    .b-gray::before  { background: #9ca3af; }
+    .b-blue  { background: var(--blue-lt); color: var(--blue); }
+    .b-blue::before  { background: var(--blue); }
+    .b-green { background: var(--green-lt); color: var(--green); }
+    .b-green::before { background: var(--green); }
+    .b-red   { background: var(--red-lt); color: var(--red); }
+    .b-red::before   { background: var(--red); }
+    .b-amber { background: var(--amber-lt); color: var(--amber); }
+    .b-amber::before { background: var(--amber); }
+
+    /* Expand row */
+    .exp-td { padding: 0 !important; background: #f5f7ff; }
+    .exp-inner {
+      padding: 14px 18px 16px 38px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px 24px;
+      border-top: 1px solid #dde3f7;
+    }
+    .exp-sec h4 {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .5px; color: var(--gray); margin-bottom: 5px;
+    }
+    .exp-text {
+      font-size: 13px; color: var(--text-sm); white-space: pre-wrap; word-break: break-word;
+    }
+    .exp-full { grid-column: 1 / -1; }
+    .appr-form { display: flex; flex-direction: column; gap: 7px; }
+    .appr-form textarea {
+      width: 100%; padding: 7px 10px;
+      border: 1px solid var(--border); border-radius: 6px;
+      font-size: 12px; font-family: inherit;
+      resize: vertical; min-height: 52px;
+    }
+    .appr-form textarea:focus { outline: none; border-color: var(--blue); }
+    .appr-btns { display: flex; gap: 7px; }
+
+    /* Empty / loading */
+    .st-empty   { text-align: center; padding: 56px 20px; color: #9ca3af; font-size: 13px; font-style: italic; }
+    .st-loading { text-align: center; padding: 48px 20px; color: #9ca3af; }
+
+    /* Modal */
+    .overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(15,23,42,.5);
+      z-index: 80; align-items: center; justify-content: center;
+    }
+    .overlay.open { display: flex; }
+    .modal {
+      background: var(--white); border-radius: 12px;
+      width: 100%; max-width: 490px;
+      box-shadow: 0 24px 64px rgba(0,0,0,.2);
+      max-height: 90vh; overflow-y: auto;
+    }
+    .modal-hdr {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 22px 14px;
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; background: var(--white); z-index: 1;
+    }
+    .modal-hdr h2 { font-size: 15px; font-weight: 700; color: var(--navy); }
+    .modal-x {
+      background: none; border: none; cursor: pointer;
+      color: var(--gray); font-size: 18px; line-height: 1;
+      padding: 3px 7px; border-radius: 5px;
+    }
+    .modal-x:hover { background: var(--bg); }
+    .modal-body { padding: 18px 22px; }
+    .modal-ftr {
+      display: flex; gap: 9px; justify-content: flex-end;
+      padding: 14px 22px; border-top: 1px solid var(--border);
+      background: var(--white); position: sticky; bottom: 0;
+    }
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    .field label { display: block; font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 5px; }
+    .field .req  { color: var(--red); }
+    .field select, .field textarea {
+      width: 100%; padding: 8px 11px;
+      border: 1px solid var(--border); border-radius: 7px;
+      font-size: 13px; font-family: inherit; background: var(--white);
+      transition: border-color .13s, box-shadow .13s;
+    }
+    .field select:focus, .field textarea:focus {
       outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(57,73,171,.1);
     }
-    .field textarea { resize: vertical; min-height: 72px; }
+    .field textarea { resize: vertical; min-height: 68px; }
     .field-hint { font-size: 11px; color: var(--gray); margin-top: 3px; }
 
-    /* ── Empty / loading states ── */
-    .empty-state {
-      text-align: center; padding: 40px 20px; color: #bdbdbd;
-      font-size: 14px; font-style: italic;
-    }
-    .loading-state {
-      text-align: center; padding: 48px 20px; color: #aaa; font-size: 14px;
-    }
-
-    /* ── Toast ── */
+    /* Toast */
     .toast {
-      position: fixed; bottom: 20px; right: 20px; left: 20px;
-      max-width: 360px; margin: 0 auto;
-      padding: 11px 16px; border-radius: 8px;
-      font-size: 13px; color: var(--white);
+      position: fixed; bottom: 20px; right: 20px;
+      padding: 10px 16px; border-radius: 8px;
+      font-size: 13px; color: #fff;
       opacity: 0; pointer-events: none;
-      transition: opacity .25s, transform .25s;
-      transform: translateY(8px);
-      z-index: 999;
+      transition: opacity .22s, transform .22s;
+      transform: translateY(6px); z-index: 999;
+      box-shadow: 0 4px 12px rgba(0,0,0,.2);
     }
     .toast.show { opacity: 1; transform: translateY(0); }
     .toast.ok  { background: var(--green); }
     .toast.err { background: var(--red); }
 
-    /* ── Phase info section ── */
-    .phase-info-card {
-      background: var(--white);
-      border-radius: 9px;
-      padding: 14px 16px;
-      margin-bottom: 16px;
-      box-shadow: var(--shadow-sm);
-      display: flex;
-      gap: 14px;
-      flex-wrap: wrap;
-    }
-    .phase-flag {
-      display: flex; align-items: center; gap: 5px;
-      font-size: 12px; font-weight: 500;
-    }
-    .flag-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-    .flag-on  .flag-dot { background: var(--green); }
-    .flag-off .flag-dot { background: #e0e0e0; }
-    .flag-on  { color: var(--green); }
-    .flag-off { color: #bdbdbd; }
-
-    /* ── Stats row ── */
-    .stats-row {
-      display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;
-    }
-    .stat-chip {
-      background: var(--white);
-      border-radius: 8px;
-      padding: 10px 16px;
-      box-shadow: var(--shadow-sm);
-      text-align: center;
-      flex: 1; min-width: 80px;
-    }
-    .stat-chip .stat-num { font-size: 22px; font-weight: 700; color: var(--navy); }
-    .stat-chip .stat-lbl { font-size: 11px; color: var(--gray); margin-top: 1px; }
-
-    /* ── Filters ── */
-    .filter-row {
-      display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;
-    }
-    .filter-chip {
-      padding: 5px 13px; border-radius: 20px;
-      font-size: 12px; font-weight: 600;
-      border: 1.5px solid var(--border); background: var(--white);
-      cursor: pointer; color: #555; transition: all .15s;
-    }
-    .filter-chip.active { background: var(--blue); border-color: var(--blue); color: var(--white); }
-
-    /* utility */
     .hidden { display: none !important; }
-    .mt4 { margin-top: 4px; }
-    .sep { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
   </style>
 </head>
 <body>
 
-  <!-- ── Header ── -->
-  <header class="app-header">
-    <h1>LEX-IANS — Wnioski szkoleniowe</h1>
-    <div class="header-user" id="headerUser">
-      <span id="userLabel">…</span>
-      <span class="role-chip hidden" id="roleChip"></span>
-    </div>
-  </header>
-
-  <!-- ── Phase banner ── -->
-  <div class="phase-banner phase-inactive" id="phaseBanner">
-    <div class="phase-dot"></div>
-    <span id="phaseText">Ładowanie…</span>
+<header class="hdr">
+  <span class="hdr-title">LEX-IANS</span>
+  <div class="hdr-sep"></div>
+  <span class="hdr-sub">Wnioski szkoleniowe</span>
+  <div class="hdr-user">
+    <span id="hdrUser">…</span>
+    <span class="hdr-role hidden" id="hdrRole"></span>
   </div>
+</header>
 
-  <!-- ── Loading ── -->
-  <div id="loadingState" class="loading-state">Ładowanie danych…</div>
+<div id="stateLoading" class="st-loading">Ładowanie danych…</div>
 
-  <!-- ── Main app ── -->
-  <div id="appRoot" class="hidden">
-
-    <!-- Tab bar -->
-    <div class="tab-bar" id="tabBar">
-      <button class="tab-btn active" data-tab="wnioski">
-        Wnioski <span class="badge-count" id="cntWnioski">0</span>
-      </button>
-      <button class="tab-btn tab-warn hidden" id="tabDyr" data-tab="akc-dyr">
-        Akceptacja Dyr. <span class="badge-count" id="cntDyr">0</span>
-      </button>
-      <button class="tab-btn hidden" id="tabPrez" data-tab="akc-prez">
-        Akceptacja Prezes <span class="badge-count" id="cntPrez">0</span>
-      </button>
+<div id="appRoot" class="hidden">
+  <div class="toolbar">
+    <div class="search-wrap">
+      <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="9" cy="9" r="6"/><path d="M15 15l-3.5-3.5"/>
+      </svg>
+      <input id="searchInput" class="search-input" type="text" placeholder="Szukaj…" autocomplete="off">
     </div>
 
-    <!-- ══ TAB: Wnioski ══ -->
-    <div class="tab-view active" id="tab-wnioski">
-
-      <!-- Stats -->
-      <div class="stats-row" id="statsRow"></div>
-
-      <!-- Phase flags quick overview -->
-      <div class="phase-info-card" id="phaseInfoCard"></div>
-
-      <!-- Toolbar -->
-      <div class="toolbar">
-        <button class="btn btn-primary" id="btnDodaj">+ Nowy wniosek</button>
-        <div class="toolbar-right">
-          <button class="btn btn-ghost btn-sm" id="btnOdswiezWnioski">↻ Odśwież</button>
-        </div>
-      </div>
-
-      <!-- Filter chips -->
-      <div class="filter-row">
-        <button class="filter-chip active" data-filter="all">Wszystkie</button>
-        <button class="filter-chip" data-filter="pending">Oczekujące</button>
-        <button class="filter-chip" data-filter="dyr">Akc. Dyr.</button>
-        <button class="filter-chip" data-filter="approved">Zatwierdzone</button>
-      </div>
-
-      <div id="listaWnioskow">
-        <div class="empty-state">Brak wniosków.</div>
-      </div>
+    <div class="filter-tabs">
+      <button class="ft on" data-f="all">Wszystkie <span class="cnt" id="cntAll">0</span></button>
+      <button class="ft" data-f="pending">Oczekujące <span class="cnt" id="cntPending">0</span></button>
+      <button class="ft" data-f="dyr">Po Dyr. <span class="cnt" id="cntDyr">0</span></button>
+      <button class="ft" data-f="done">Zatwierdzone <span class="cnt" id="cntDone">0</span></button>
     </div>
 
-    <!-- ══ TAB: Akceptacja Dyrektora ══ -->
-    <div class="tab-view hidden" id="tab-akc-dyr">
-      <div class="toolbar">
-        <div>
-          <div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:2px;">Wnioski do akceptacji Dyrektora</div>
-          <div style="font-size:12px;color:var(--gray);">Przejrzyj i zaakceptuj lub odrzuć wnioski podwładnych.</div>
-        </div>
-        <div class="toolbar-right">
-          <button class="btn btn-ghost btn-sm" id="btnOdswiezDyr">↻ Odśwież</button>
-        </div>
-      </div>
-      <div id="listaDyr">
-        <div class="empty-state">Brak wniosków oczekujących na akceptację dyrektora.</div>
-      </div>
-    </div>
-
-    <!-- ══ TAB: Akceptacja Prezesa ══ -->
-    <div class="tab-view hidden" id="tab-akc-prez">
-      <div class="toolbar">
-        <div>
-          <div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:2px;">Wnioski do akceptacji Prezesa</div>
-          <div style="font-size:12px;color:var(--gray);">Wnioski zaakceptowane przez dyrektorów, oczekujące na ostateczne zatwierdzenie.</div>
-        </div>
-        <div class="toolbar-right">
-          <button class="btn btn-ghost btn-sm" id="btnOdswiezPrez">↻ Odśwież</button>
-        </div>
-      </div>
-      <div id="listaPrez">
-        <div class="empty-state">Brak wniosków oczekujących na akceptację Prezesa.</div>
-      </div>
-    </div>
-
-  </div><!-- /appRoot -->
-
-  <!-- ══ Modal: Nowy wniosek ══ -->
-  <div class="modal-overlay" id="modal">
-    <div class="modal-box">
-      <div class="modal-header">
-        <h2>Nowy wniosek szkoleniowy</h2>
-        <button class="modal-close" id="modalClose" title="Zamknij">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="field">
-          <label for="selPracownik">Pracownik <span class="req">*</span></label>
-          <select id="selPracownik">
-            <option value="">— wybierz pracownika —</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="selSzkolenie">Szkolenie <span class="req">*</span></label>
-          <select id="selSzkolenie">
-            <option value="">— wybierz szkolenie —</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="selTermin">Termin <span class="req">*</span></label>
-          <select id="selTermin">
-            <option value="">— najpierw wybierz szkolenie —</option>
-          </select>
-          <div class="field-hint" id="terminHint"></div>
-        </div>
-        <div class="field">
-          <label for="selPriorytet">Priorytet</label>
-          <select id="selPriorytet">
-            <option value="">— brak —</option>
-            <option>Normalny</option>
-            <option>Wysoki</option>
-            <option>Pilny</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="txtUzasadnienie">Uzasadnienie kierownika</label>
-          <textarea id="txtUzasadnienie" placeholder="Opisz potrzebę szkolenia, korzyści, powiązanie ze stanowiskiem…"></textarea>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-ghost" id="btnAnuluj">Anuluj</button>
-        <button class="btn btn-primary" id="btnZapisz">Zapisz wniosek</button>
-      </div>
+    <div class="ml-auto" style="display:flex;gap:8px;align-items:center;">
+      <button class="btn btn-ghost" id="btnRefresh">↻ Odśwież</button>
+      <button class="btn btn-primary" id="btnNew">+ Nowy wniosek</button>
     </div>
   </div>
 
-  <!-- Toast -->
-  <div class="toast" id="toast"></div>
+  <div class="tbl-wrap">
+    <table id="mainTable">
+      <colgroup>
+        <col class="c-prac"><col class="c-szk"><col class="c-term">
+        <col class="c-prior"><col class="c-status"><col class="c-uzas"><col class="c-akc">
+      </colgroup>
+      <thead>
+        <tr>
+          <th data-sort="prac">Pracownik <i class="si">↕</i></th>
+          <th data-sort="szk">Szkolenie <i class="si">↕</i></th>
+          <th data-sort="term">Termin <i class="si">↕</i></th>
+          <th data-sort="prior">Priorytet <i class="si">↕</i></th>
+          <th data-sort="status">Status <i class="si">↕</i></th>
+          <th>Uzasadnienie</th>
+          <th>Akcje</th>
+        </tr>
+      </thead>
+      <tbody id="tblBody">
+        <tr><td colspan="7" class="st-empty">Brak danych.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
 
-  <!-- ════════════════════════════════════════════════════════════
-       JAVASCRIPT
-  ════════════════════════════════════════════════════════════ -->
-  <script>
-    // ── XSS guard ──────────────────────────────────────────────────
-    function esc(s) {
-      return String(s ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+<!-- Modal -->
+<div class="overlay" id="modal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h2>Nowy wniosek szkoleniowy</h2>
+      <button class="modal-x" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Pracownik <span class="req">*</span></label>
+        <select id="mPrac"><option value="">— wybierz pracownika —</option></select>
+      </div>
+      <div class="field">
+        <label>Szkolenie <span class="req">*</span></label>
+        <select id="mSzk"><option value="">— wybierz szkolenie —</option></select>
+      </div>
+      <div class="field">
+        <label>Termin <span class="req">*</span></label>
+        <select id="mTerm"><option value="">— najpierw wybierz szkolenie —</option></select>
+        <div class="field-hint" id="mTermHint"></div>
+      </div>
+      <div class="field">
+        <label>Priorytet</label>
+        <select id="mPrior">
+          <option value="">— brak —</option>
+          <option>Normalny</option>
+          <option>Wysoki</option>
+          <option>Pilny</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Uzasadnienie</label>
+        <textarea id="mUzas" placeholder="Opisz potrzebę szkolenia…"></textarea>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn btn-ghost" id="modalCancel">Anuluj</button>
+      <button class="btn btn-primary" id="modalSave">Zapisz wniosek</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function fmtDate(ts) {
+  if (!ts) return null;
+  return new Date(ts * 1000).toLocaleDateString('pl-PL', {day:'2-digit',month:'2-digit',year:'numeric'});
+}
+
+const S = {
+  userEmail:null, userName:null,
+  pracownicy:[], szkolenia:[], terminy:[], main:[], panel:{},
+  myPracId:null, isKier:false, isDyr:false, isPrez:false,
+  filter:'all', search:'',
+  sortCol:null, sortDir:1,
+  expanded: new Set(),
+  expandMode: new Map(),
+};
+
+function colsToRows(data) {
+  return (data.id||[]).map((id,i) => {
+    const row = {id};
+    for (const [k,v] of Object.entries(data)) row[k] = v[i];
+    return row;
+  });
+}
+
+function getPrac(id) { return S.pracownicy.find(x=>x.id===id)||null; }
+function getSzk(id)  { return S.szkolenia.find(x=>x.id===id)||null; }
+function getTerm(id) { return S.terminy.find(x=>x.id===id)||null; }
+
+function pracLabel(id) {
+  const p = getPrac(id); if (!p) return {name:id?`#${id}`:'—',sub:''};
+  const kom = (p.Komorka||(p.kom_org_||'').split('-').pop()||'').trim();
+  return {name:`${p.nazwisko} ${p.imie}`, sub:kom};
+}
+function szkLabel(id) { return getSzk(id)?.title_full||(id?`#${id}`:'—'); }
+function termLabel(id) {
+  const t = getTerm(id); if (!t) return {main:id?`#${id}`:'—', sub:'', ts:0};
+  let main = '';
+  if (t.Termin_Detail) { main = t.Termin_Detail; }
+  else {
+    const od=fmtDate(t.termin_od), do_=fmtDate(t.termin_do);
+    main = od&&do_ ? `${od} – ${do_}` : (t.termin||`#${id}`);
+  }
+  const sub = [t.lokalizacja, t.dni_robocze?`${t.dni_robocze} dni`:null, t.koszt].filter(Boolean).join(' · ');
+  return {main, sub, ts:t.termin_od||0};
+}
+
+function statusInfo(r) {
+  if (r.Prezes_Akceptacja===true)  return ['b-green','Zatwierdzone'];
+  if (r.Prezes_Akceptacja===false) return ['b-red','Odrz. Prezes'];
+  if (r.Dyr_Akceptacja===true)     return ['b-blue','Akc. Dyr.'];
+  if (r.Dyr_Akceptacja===false)    return ['b-red','Odrz. Dyr.'];
+  return ['b-gray','Oczekuje'];
+}
+function priorityBadge(p) {
+  if (!p) return '';
+  const cls = p==='Pilny'?'b-red':p==='Wysoki'?'b-amber':'b-gray';
+  return `<span class="badge ${cls}">${esc(p)}</span>`;
+}
+
+function applyFilter(rows) {
+  let r = rows;
+  if (S.filter==='pending') r=r.filter(x=>x.Dyr_Akceptacja!==true&&x.Dyr_Akceptacja!==false);
+  if (S.filter==='dyr')     r=r.filter(x=>x.Dyr_Akceptacja===true&&x.Prezes_Akceptacja!==true&&x.Prezes_Akceptacja!==false);
+  if (S.filter==='done')    r=r.filter(x=>x.Prezes_Akceptacja===true);
+  if (S.search) {
+    const q=S.search.toLowerCase();
+    r=r.filter(x=>{
+      const pl=pracLabel(x.Pracownik), sl=szkLabel(x.Szkolenie), tl=termLabel(x.Termin);
+      return pl.name.toLowerCase().includes(q)||sl.toLowerCase().includes(q)
+            ||tl.main.toLowerCase().includes(q)||(x.Priorytet||'').toLowerCase().includes(q)
+            ||(x.Uzasadnienie_Kierownika||'').toLowerCase().includes(q);
+    });
+  }
+  return r;
+}
+
+function sortKey(r) {
+  switch(S.sortCol) {
+    case 'prac':   return (getPrac(r.Pracownik)?.nazwisko||'').toLowerCase();
+    case 'szk':    return szkLabel(r.Szkolenie).toLowerCase();
+    case 'term':   return getTerm(r.Termin)?.termin_od||0;
+    case 'prior': { const o={'Pilny':0,'Wysoki':1,'Normalny':2,'':3}; return o[r.Priorytet||'']??4; }
+    case 'status': return statusInfo(r)[1];
+    default: return r.id;
+  }
+}
+function applySort(rows) {
+  if (!S.sortCol) return rows;
+  return [...rows].sort((a,b)=>{
+    const ka=sortKey(a),kb=sortKey(b);
+    if(ka<kb) return -S.sortDir; if(ka>kb) return S.sortDir; return 0;
+  });
+}
+
+function renderCounts() {
+  document.getElementById('cntAll').textContent     = S.main.length;
+  document.getElementById('cntPending').textContent = S.main.filter(x=>x.Dyr_Akceptacja!==true&&x.Dyr_Akceptacja!==false).length;
+  document.getElementById('cntDyr').textContent     = S.main.filter(x=>x.Dyr_Akceptacja===true&&x.Prezes_Akceptacja!==true&&x.Prezes_Akceptacja!==false).length;
+  document.getElementById('cntDone').textContent    = S.main.filter(x=>x.Prezes_Akceptacja===true).length;
+}
+
+function renderTable() {
+  renderCounts();
+  const tbody = document.getElementById('tblBody');
+  const rows  = applySort(applyFilter(S.main));
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="st-empty">Brak wniosków spełniających kryteria.</td></tr>`;
+    return;
+  }
+
+  const canAdd  = !!S.panel.EdycjaKiero;
+  const canDyr  = !!S.panel.AkceptacjaDyr;
+  const canPrez = !!S.panel.AkceptacjaPrezes;
+
+  tbody.innerHTML = rows.map(r => {
+    const pl = pracLabel(r.Pracownik);
+    const sl = szkLabel(r.Szkolenie);
+    const tl = termLabel(r.Termin);
+    const [bCls,bTxt] = statusInfo(r);
+    const exp  = S.expanded.has(r.id);
+    const mode = S.expandMode.get(r.id)||null;
+
+    const acts = [];
+    if (canDyr && r.Dyr_Akceptacja!==true && r.Dyr_Akceptacja!==false)
+      acts.push(`<button class="btn btn-success btn-xs" onclick="event.stopPropagation();expandRow(${r.id},'dyr')">Akc. Dyrektora</button>`);
+    if (canPrez && r.Dyr_Akceptacja===true && r.Prezes_Akceptacja!==true && r.Prezes_Akceptacja!==false)
+      acts.push(`<button class="btn btn-success btn-xs" onclick="event.stopPropagation();expandRow(${r.id},'prez')">Akc. Prezesa</button>`);
+    if (canAdd && !r.Dyr_Akceptacja)
+      acts.push(`<button class="btn btn-ghost btn-xs" onclick="event.stopPropagation();delRow(${r.id})">Usuń</button>`);
+
+    const mainRow = `
+      <tr class="data-row${exp?' expanded-row':''}" onclick="toggleRow(${r.id})">
+        <td>
+          <div class="cell-main">${esc(pl.name)}</div>
+          ${pl.sub?`<div class="cell-sub">${esc(pl.sub)}</div>`:''}
+        </td>
+        <td class="cell-trunc" title="${esc(sl)}">${esc(sl)}</td>
+        <td>
+          <div>${esc(tl.main)}</div>
+          ${tl.sub?`<div class="cell-sub">${esc(tl.sub)}</div>`:''}
+        </td>
+        <td>${priorityBadge(r.Priorytet)}</td>
+        <td><span class="badge ${bCls}">${esc(bTxt)}</span></td>
+        <td class="cell-trunc" title="${esc(r.Uzasadnienie_Kierownika||'')}">${esc(r.Uzasadnienie_Kierownika||'—')}</td>
+        <td onclick="event.stopPropagation()" style="white-space:nowrap">
+          ${acts.join(' ')||'<span style="color:#d1d5db;font-size:11px">—</span>'}
+        </td>
+      </tr>`;
+
+    let expRow = '';
+    if (exp) {
+      const hasDetails = r.Uzasadnienie_Kierownika||r.Dyr_Komentarz||r.Prezes_Komentarz;
+      expRow = `
+        <tr>
+          <td colspan="7" class="exp-td">
+            <div class="exp-inner">
+              ${r.Uzasadnienie_Kierownika?`<div class="exp-sec exp-full"><h4>Uzasadnienie kierownika</h4><div class="exp-text">${esc(r.Uzasadnienie_Kierownika)}</div></div>`:''}
+              ${r.Dyr_Komentarz?`<div class="exp-sec"><h4>Komentarz Dyrektora</h4><div class="exp-text">${esc(r.Dyr_Komentarz)}</div></div>`:''}
+              ${r.Prezes_Komentarz?`<div class="exp-sec"><h4>Komentarz Prezesa</h4><div class="exp-text">${esc(r.Prezes_Komentarz)}</div></div>`:''}
+              ${mode==='dyr'&&canDyr?`
+                <div class="exp-sec exp-full">
+                  <h4>Akceptacja Dyrektora</h4>
+                  <div class="appr-form">
+                    <textarea id="kd${r.id}" placeholder="Komentarz (opcjonalnie)…">${esc(r.Dyr_Komentarz||'')}</textarea>
+                    <div class="appr-btns">
+                      <button class="btn btn-success btn-xs" onclick="akDyr(${r.id},true)">✓ Akceptuj</button>
+                      <button class="btn btn-danger btn-xs"  onclick="akDyr(${r.id},false)">✗ Odrzuć</button>
+                    </div>
+                  </div>
+                </div>`:''}
+              ${mode==='prez'&&canPrez?`
+                <div class="exp-sec exp-full">
+                  <h4>Akceptacja Prezesa</h4>
+                  <div class="appr-form">
+                    <textarea id="kp${r.id}" placeholder="Komentarz (opcjonalnie)…">${esc(r.Prezes_Komentarz||'')}</textarea>
+                    <div class="appr-btns">
+                      <button class="btn btn-success btn-xs" onclick="akPrez(${r.id},true)">✓ Zatwierdź</button>
+                      <button class="btn btn-danger btn-xs"  onclick="akPrez(${r.id},false)">✗ Odrzuć</button>
+                    </div>
+                  </div>
+                </div>`:''}
+              ${!hasDetails&&!mode?`<div class="exp-sec exp-full" style="color:#9ca3af;font-style:italic;font-size:12px">Brak dodatkowych informacji.</div>`:''}
+            </div>
+          </td>
+        </tr>`;
     }
+    return mainRow + expRow;
+  }).join('');
+}
 
-    // ── Date formatting ────────────────────────────────────────────
-    // Grist Date columns are Unix timestamps in seconds
-    function fmtDate(ts) {
-      if (!ts) return '—';
-      return new Date(ts * 1000).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    }
+function toggleRow(id) {
+  if (S.expanded.has(id)) { S.expanded.delete(id); S.expandMode.delete(id); }
+  else S.expanded.add(id);
+  renderTable();
+}
+function expandRow(id, mode) {
+  S.expanded.add(id); S.expandMode.set(id, mode);
+  renderTable();
+}
 
-    // ── State ──────────────────────────────────────────────────────
-    const S = {
-      userEmail:   null,
-      userName:    null,
-      pracownicy:  [],   // Pracownicy rows
-      szkolenia:   [],   // Baza_UnikatoweReczne rows
-      terminy:     [],   // BazaTerminow rows
-      main:        [],   // Main rows
-      panel:       {},   // PanelSterowania row (first)
-      myPracId:    null, // id in Pracownicy matching logged-in user
-      isKier:      false,
-      isDyr:       false,
-      isPrez:      false,
-      filterWnioski: 'all',
-    };
+async function delRow(id) {
+  if (!confirm('Usunąć ten wniosek?')) return;
+  try {
+    await grist.docApi.applyUserActions([['RemoveRecord','Main',id]]);
+    S.expanded.delete(id);
+    toast('Wniosek usunięty.');
+    await refresh();
+  } catch(e) { toast('Błąd: '+e.message,'err'); }
+}
+async function akDyr(id, val) {
+  if (!confirm(val?'Zaakceptować?':'Odrzucić?')) return;
+  const kmt=(document.getElementById(`kd${id}`)?.value||'').trim();
+  try {
+    await grist.docApi.applyUserActions([['UpdateRecord','Main',id,{Dyr_Akceptacja:val,Dyr_Komentarz:kmt}]]);
+    S.expanded.delete(id); S.expandMode.delete(id);
+    toast(val?'Zaakceptowano.':'Odrzucono.');
+    await refresh();
+  } catch(e) { toast('Błąd: '+e.message,'err'); }
+}
+async function akPrez(id, val) {
+  if (!confirm(val?'Zatwierdzić?':'Odrzucić?')) return;
+  const kmt=(document.getElementById(`kp${id}`)?.value||'').trim();
+  try {
+    await grist.docApi.applyUserActions([['UpdateRecord','Main',id,{Prezes_Akceptacja:val,Prezes_Komentarz:kmt}]]);
+    S.expanded.delete(id); S.expandMode.delete(id);
+    toast(val?'Zatwierdzono.':'Odrzucono (Prezes).');
+    await refresh();
+  } catch(e) { toast('Błąd: '+e.message,'err'); }
+}
 
-    // ── Grist columnar → row array ─────────────────────────────────
-    function colsToRows(data) {
-      const ids = data.id || [];
-      return ids.map((id, i) => {
-        const row = { id };
-        for (const [col, vals] of Object.entries(data)) {
-          row[col] = vals[i];
-        }
-        return row;
-      });
-    }
+// Sort
+document.querySelectorAll('thead th[data-sort]').forEach(th=>{
+  th.addEventListener('click',()=>{
+    const col=th.dataset.sort;
+    if(S.sortCol===col) S.sortDir*=-1; else {S.sortCol=col;S.sortDir=1;}
+    document.querySelectorAll('thead th').forEach(h=>h.classList.remove('sorted'));
+    th.classList.add('sorted');
+    th.querySelector('.si').textContent=S.sortDir===1?'↑':'↓';
+    renderTable();
+  });
+});
 
-    // ── Lookup helpers ─────────────────────────────────────────────
-    function getSzkolenieTitle(id) {
-      return S.szkolenia.find(s => s.id === id)?.title_full || `#${id}`;
-    }
+// Filter tabs
+document.querySelectorAll('.ft').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.ft').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); S.filter=b.dataset.f; renderTable();
+  });
+});
 
-    function getTerminLabel(id) {
-      const t = S.terminy.find(x => x.id === id);
-      if (!t) return id ? `#${id}` : '—';
-      if (t.Termin_Detail) return t.Termin_Detail;
-      const od = fmtDate(t.termin_od);
-      const do_ = fmtDate(t.termin_do);
-      if (od !== '—' && do_ !== '—') return `${od} – ${do_}`;
-      return t.termin || `#${id}`;
-    }
+// Search
+document.getElementById('searchInput').addEventListener('input',e=>{S.search=e.target.value.trim();renderTable();});
 
-    function getTerminExtra(id) {
-      const t = S.terminy.find(x => x.id === id);
-      if (!t) return '';
-      const parts = [];
-      if (t.lokalizacja) parts.push(t.lokalizacja);
-      if (t.dni_robocze) parts.push(`${t.dni_robocze} dni`);
-      if (t.koszt) parts.push(t.koszt);
-      return parts.join(' · ');
-    }
+// Refresh
+document.getElementById('btnRefresh').addEventListener('click',()=>refresh().catch(e=>toast('Błąd: '+e.message,'err')));
 
-    function getPracownikLabel(id) {
-      const p = S.pracownicy.find(x => x.id === id);
-      if (!p) return id ? `#${id}` : '—';
-      const kom = (p.Komorka || (p.kom_org_ || '').split('-').pop() || '').trim();
-      return `${p.nazwisko} ${p.imie}${kom ? ' [' + kom + ']' : ''}`;
-    }
+let _tt=null;
+function toast(msg,type='ok') {
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className=`toast ${type} show`;
+  clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('show'),3000);
+}
 
-    // ── Status badge ───────────────────────────────────────────────
-    function statusBadge(r) {
-      if (r.Prezes_Akceptacja === true)  return '<span class="badge badge-green">✓ Zatwierdzone</span>';
-      if (r.Prezes_Akceptacja === false && r.Prezes_Akceptacja !== null && r.Prezes_Akceptacja !== undefined && r.Dyr_Akceptacja === true) {
-        return '<span class="badge badge-red">✗ Odrzucone (Prezes)</span>';
-      }
-      if (r.Dyr_Akceptacja === true)  return '<span class="badge badge-blue">✓ Akc. Dyr.</span>';
-      if (r.Dyr_Akceptacja === false && r.Dyr_Akceptacja !== null && r.Dyr_Akceptacja !== undefined) {
-        return '<span class="badge badge-red">✗ Odrzucone (Dyr.)</span>';
-      }
-      return '<span class="badge badge-gray">Oczekuje</span>';
-    }
-
-    function statusClass(r) {
-      if (r.Prezes_Akceptacja === true) return 'status-approved';
-      if (r.Dyr_Akceptacja === false)   return 'status-rejected';
-      if (r.Prezes_Akceptacja === false) return 'status-rejected';
-      if (r.Dyr_Akceptacja === true)    return 'status-approved';
-      return 'status-pending';
-    }
-
-    function priorytetBadge(p) {
-      if (!p) return '';
-      const cls = p === 'Pilny' ? 'badge-red' : p === 'Wysoki' ? 'badge-amber' : 'badge-gray';
-      return `<span class="badge ${cls}">${esc(p)}</span>`;
-    }
-
-    // ── Toast ──────────────────────────────────────────────────────
-    let _toastTimer = null;
-    function toast(msg, type = 'ok') {
-      const el = document.getElementById('toast');
-      el.textContent = msg;
-      el.className = `toast ${type} show`;
-      clearTimeout(_toastTimer);
-      _toastTimer = setTimeout(() => { el.classList.remove('show'); }, 3200);
-    }
-
-    // ── Grist init ─────────────────────────────────────────────────
-    grist.ready({ requiredAccess: 'full' });
-
-    async function loadAll() {
-      try {
-        // Try to get logged-in user email
-        try {
-          const u = await grist.getUserInfo();
-          S.userEmail = u?.email || null;
-          S.userName  = u?.name  || u?.email || null;
-        } catch (_) {
-          S.userEmail = null;
-          S.userName  = null;
-        }
-
-        const [prac, pracEmail, szk, term, main, panel] = await Promise.all([
-          grist.docApi.fetchTable('Pracownicy'),
-          grist.docApi.fetchTable('Pracownicy_email'),
-          grist.docApi.fetchTable('Baza_UnikatoweReczne'),
-          grist.docApi.fetchTable('BazaTerminow'),
-          grist.docApi.fetchTable('Main'),
-          grist.docApi.fetchTable('PanelSterowania'),
-        ]);
-
-        S.pracownicy = colsToRows(prac);
-        S.szkolenia  = colsToRows(szk);
-        S.terminy    = colsToRows(term);
-        S.main       = colsToRows(main);
-        S.panel      = colsToRows(panel)[0] || {};
-
-        // Resolve current user → Pracownicy row via email_prac formula column
-        if (S.userEmail) {
-          const myPrac = S.pracownicy.find(p => p.email_prac === S.userEmail);
-          if (myPrac) {
-            S.myPracId = myPrac.id;
-            S.isKier   = !!myPrac.czyKier;
-            S.isDyr    = !!myPrac.czyDyr;
-            S.isPrez   = !!myPrac.czyPrez;
-          }
-        }
-
-        document.getElementById('loadingState').classList.add('hidden');
-        document.getElementById('appRoot').classList.remove('hidden');
-        render();
-
-      } catch (err) {
-        document.getElementById('loadingState').textContent =
-          '⚠ Błąd ładowania danych: ' + err.message;
-      }
-    }
-
-    // ── Refresh only Main + PanelSterowania ───────────────────────
-    async function refreshData() {
-      const [main, panel] = await Promise.all([
-        grist.docApi.fetchTable('Main'),
-        grist.docApi.fetchTable('PanelSterowania'),
-      ]);
-      S.main  = colsToRows(main);
-      S.panel = colsToRows(panel)[0] || {};
-      render();
-    }
-
-    // ── Render ─────────────────────────────────────────────────────
-    function render() {
-      renderHeaderUser();
-      renderPhaseBanner();
-      renderPhaseInfoCard();
-      renderStats();
-      renderWnioski();
-      renderDyr();
-      renderPrez();
-      updateTabVisibility();
-    }
-
-    function renderHeaderUser() {
-      const el  = document.getElementById('userLabel');
-      const chip = document.getElementById('roleChip');
-      el.textContent = S.userName || S.userEmail || 'Użytkownik';
-      let role = '';
-      if (S.isPrez) role = 'Prezes / Z-ca Prezesa';
-      else if (S.isDyr) role = 'Dyrektor';
-      else if (S.isKier) role = 'Kierownik';
-      if (role) { chip.textContent = role; chip.classList.remove('hidden'); }
-      else { chip.classList.add('hidden'); }
-    }
-
-    function renderPhaseBanner() {
-      const p = S.panel;
-      const el = document.getElementById('phaseBanner');
-      const phaseText = document.getElementById('phaseText');
-      const active = [];
-      if (p.EdycjaKiero)      active.push('Edycja kierowników');
-      if (p.EdycjaDyr)        active.push('Edycja dyrektorów');
-      if (p.AkceptacjaDyr)    active.push('Akceptacja dyrektorów');
-      if (p.EdycjaPrezes2)    active.push('Edycja prezesa');
-      if (p.AkceptacjaPrezes) active.push('Akceptacja prezesa');
-
-      if (active.length) {
-        el.className = 'phase-banner phase-active';
-        phaseText.innerHTML = 'Aktywna faza: <strong>' + active.map(esc).join(', ') + '</strong>';
-      } else {
-        el.className = 'phase-banner phase-inactive';
-        phaseText.textContent = 'Brak aktywnej fazy — panel sterowania wyłączony';
-      }
-    }
-
-    function renderPhaseInfoCard() {
-      const p = S.panel;
-      const flags = [
-        { key: 'EdycjaKiero',      label: 'Edycja Kierowników' },
-        { key: 'EdycjaDyr',        label: 'Edycja Dyrektorów' },
-        { key: 'AkceptacjaDyr',    label: 'Akceptacja Dyrektorów' },
-        { key: 'EdycjaPrezes2',    label: 'Edycja Prezesa' },
-        { key: 'AkceptacjaPrezes', label: 'Akceptacja Prezesa' },
-      ];
-      const card = document.getElementById('phaseInfoCard');
-      card.innerHTML = flags.map(f => {
-        const on = !!p[f.key];
-        return `<div class="phase-flag ${on ? 'flag-on' : 'flag-off'}">
-          <div class="flag-dot"></div>
-          <span>${esc(f.label)}</span>
-        </div>`;
+// Modal
+function openModal() {
+  document.getElementById('mPrac').innerHTML=
+    '<option value="">— wybierz pracownika —</option>'+
+    [...S.pracownicy]
+      .sort((a,b)=>(a.nazwisko||'').localeCompare(b.nazwisko||'','pl'))
+      .map(p=>{
+        const kom=(p.Komorka||(p.kom_org_||'').split('-').pop()||'').trim();
+        const sel=p.id===S.myPracId?' selected':'';
+        return `<option value="${p.id}"${sel}>${esc(p.nazwisko)} ${esc(p.imie)}${kom?' ['+esc(kom)+']':''}</option>`;
       }).join('');
+  document.getElementById('mSzk').innerHTML=
+    '<option value="">— wybierz szkolenie —</option>'+
+    [...S.szkolenia]
+      .sort((a,b)=>(a.title_full||'').localeCompare(b.title_full||'','pl'))
+      .map(s=>`<option value="${s.id}">${esc(s.title_full)}</option>`).join('');
+  document.getElementById('mTerm').innerHTML='<option value="">— najpierw wybierz szkolenie —</option>';
+  document.getElementById('mTermHint').textContent='';
+  document.getElementById('mPrior').value='';
+  document.getElementById('mUzas').value='';
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+
+document.getElementById('mSzk').addEventListener('change',()=>{
+  const szkId=parseInt(document.getElementById('mSzk').value);
+  const mTerm=document.getElementById('mTerm'), hint=document.getElementById('mTermHint');
+  if(!szkId){mTerm.innerHTML='<option value="">— najpierw wybierz szkolenie —</option>';hint.textContent='';return;}
+  const title=getSzk(szkId)?.title_full||'';
+  const matching=[...S.terminy].filter(t=>t.title_full===title).sort((a,b)=>(a.termin_od||0)-(b.termin_od||0));
+  if(!matching.length){mTerm.innerHTML='<option value="">— brak terminów —</option>';hint.textContent='';return;}
+  mTerm.innerHTML='<option value="">— wybierz termin —</option>'+
+    matching.map(t=>{const tl=termLabel(t.id);return`<option value="${t.id}">${esc(tl.main)}${tl.sub?' | '+esc(tl.sub):''}</option>`;}).join('');
+  hint.textContent=`${matching.length} termin(ów) dostępnych.`;
+});
+
+document.getElementById('btnNew').addEventListener('click',openModal);
+document.getElementById('modalClose').addEventListener('click',closeModal);
+document.getElementById('modalCancel').addEventListener('click',closeModal);
+document.getElementById('modal').addEventListener('click',e=>{if(e.target===document.getElementById('modal'))closeModal();});
+
+document.getElementById('modalSave').addEventListener('click',async()=>{
+  const pracId=parseInt(document.getElementById('mPrac').value)||0;
+  const szkId =parseInt(document.getElementById('mSzk').value)||0;
+  const termId=parseInt(document.getElementById('mTerm').value)||0;
+  const prior =document.getElementById('mPrior').value;
+  const uzas  =document.getElementById('mUzas').value.trim();
+  if(!pracId||!szkId||!termId){toast('Uzupełnij wymagane pola: Pracownik, Szkolenie, Termin.','err');return;}
+  const btn=document.getElementById('modalSave');
+  btn.disabled=true; btn.textContent='Zapisywanie…';
+  try {
+    const f={Pracownik:pracId,Szkolenie:szkId,Termin:termId};
+    if(prior) f.Priorytet=prior;
+    if(uzas)  f.Uzasadnienie_Kierownika=uzas;
+    await grist.docApi.applyUserActions([['AddRecord','Main',null,f]]);
+    closeModal(); toast('Wniosek zapisany.'); await refresh();
+  } catch(e){toast('Błąd: '+e.message,'err');}
+  finally{btn.disabled=false;btn.textContent='Zapisz wniosek';}
+});
+
+// Data
+grist.ready({requiredAccess:'full'});
+
+async function loadAll() {
+  try {
+    try { const u=await grist.getUserInfo(); S.userEmail=u?.email||null; S.userName=u?.name||u?.email||null; } catch(_){}
+    const [prac,szk,term,main,panel]=await Promise.all([
+      grist.docApi.fetchTable('Pracownicy'),
+      grist.docApi.fetchTable('Baza_UnikatoweReczne'),
+      grist.docApi.fetchTable('BazaTerminow'),
+      grist.docApi.fetchTable('Main'),
+      grist.docApi.fetchTable('PanelSterowania'),
+    ]);
+    S.pracownicy=colsToRows(prac); S.szkolenia=colsToRows(szk);
+    S.terminy=colsToRows(term); S.main=colsToRows(main); S.panel=colsToRows(panel)[0]||{};
+    if(S.userEmail) {
+      const p=S.pracownicy.find(x=>x.email_prac===S.userEmail);
+      if(p){S.myPracId=p.id;S.isKier=!!p.czyKier;S.isDyr=!!p.czyDyr;S.isPrez=!!p.czyPrez;}
     }
+    document.getElementById('hdrUser').textContent=S.userName||S.userEmail||'Użytkownik';
+    const chip=document.getElementById('hdrRole');
+    const role=S.isPrez?'Prezes':S.isDyr?'Dyrektor':S.isKier?'Kierownik':'';
+    if(role){chip.textContent=role;chip.classList.remove('hidden');}
+    document.getElementById('btnNew').disabled=!S.panel.EdycjaKiero;
+    document.getElementById('btnNew').title=S.panel.EdycjaKiero?'':'Edycja kierowników jest wyłączona';
+    document.getElementById('stateLoading').classList.add('hidden');
+    document.getElementById('appRoot').classList.remove('hidden');
+    renderTable();
+  } catch(e) { document.getElementById('stateLoading').textContent='⚠ Błąd: '+e.message; }
+}
 
-    function renderStats() {
-      const total    = S.main.length;
-      const pending  = S.main.filter(r => !r.Dyr_Akceptacja && r.Dyr_Akceptacja !== false).length;
-      const dyrOk    = S.main.filter(r => r.Dyr_Akceptacja === true && !r.Prezes_Akceptacja).length;
-      const approved = S.main.filter(r => r.Prezes_Akceptacja === true).length;
+async function refresh() {
+  const [main,panel]=await Promise.all([
+    grist.docApi.fetchTable('Main'),
+    grist.docApi.fetchTable('PanelSterowania'),
+  ]);
+  S.main=colsToRows(main); S.panel=colsToRows(panel)[0]||{};
+  document.getElementById('btnNew').disabled=!S.panel.EdycjaKiero;
+  renderTable();
+}
 
-      document.getElementById('statsRow').innerHTML = [
-        { num: total,    lbl: 'Wszystkich' },
-        { num: pending,  lbl: 'Oczekujące' },
-        { num: dyrOk,    lbl: 'Po Dyr.' },
-        { num: approved, lbl: 'Zatwierdzone' },
-      ].map(s => `
-        <div class="stat-chip">
-          <div class="stat-num">${s.num}</div>
-          <div class="stat-lbl">${esc(s.lbl)}</div>
-        </div>
-      `).join('');
-    }
-
-    function filterMain() {
-      const f = S.filterWnioski;
-      if (f === 'pending')   return S.main.filter(r => !r.Dyr_Akceptacja && r.Dyr_Akceptacja !== false);
-      if (f === 'dyr')       return S.main.filter(r => r.Dyr_Akceptacja === true && r.Prezes_Akceptacja !== true);
-      if (f === 'approved')  return S.main.filter(r => r.Prezes_Akceptacja === true);
-      return S.main;
-    }
-
-    function renderWnioski() {
-      const el     = document.getElementById('listaWnioskow');
-      const canAdd = !!S.panel.EdycjaKiero;
-      const btnDodaj = document.getElementById('btnDodaj');
-      btnDodaj.disabled = !canAdd;
-      btnDodaj.title    = canAdd ? '' : 'Edycja kierowników jest w tej chwili wyłączona';
-
-      document.getElementById('cntWnioski').textContent = S.main.length;
-
-      const rows = filterMain();
-
-      if (!rows.length) {
-        el.innerHTML = '<div class="empty-state">Brak wniosków spełniających kryteria.</div>';
-        return;
-      }
-
-      el.innerHTML = rows.map(r => {
-        const isDyrPhase = !!S.panel.AkceptacjaDyr;
-        const isPrePhase = !!S.panel.AkceptacjaPrezes;
-        const canEdit    = canAdd && !r.Dyr_Akceptacja;
-
-        return `
-        <div class="record-card ${statusClass(r)}">
-          <div class="rc-header">
-            <div class="rc-title">${esc(getSzkolenieTitle(r.Szkolenie))}</div>
-            ${statusBadge(r)}
-            ${priorytetBadge(r.Priorytet)}
-          </div>
-          <div class="rc-meta">
-            <span>👤 ${esc(getPracownikLabel(r.Pracownik))}</span>
-            <span>📅 ${esc(getTerminLabel(r.Termin))}</span>
-            ${getTerminExtra(r.Termin) ? `<span>📍 ${esc(getTerminExtra(r.Termin))}</span>` : ''}
-          </div>
-          ${r.Uzasadnienie_Kierownika ? `<div class="rc-note note-uzas">Uzasadnienie: ${esc(r.Uzasadnienie_Kierownika)}</div>` : ''}
-          ${r.Dyr_Komentarz  ? `<div class="rc-note note-dyr">Komentarz Dyr.: ${esc(r.Dyr_Komentarz)}</div>`   : ''}
-          ${r.Prezes_Komentarz ? `<div class="rc-note note-prez">Komentarz Prezes: ${esc(r.Prezes_Komentarz)}</div>` : ''}
-          ${canEdit ? `<div class="rc-actions"><button class="btn btn-ghost btn-sm" onclick="usunWniosek(${r.id})">Usuń</button></div>` : ''}
-        </div>`;
-      }).join('');
-    }
-
-    function renderDyr() {
-      const el     = document.getElementById('listaDyr');
-      const canAkc = !!S.panel.AkceptacjaDyr;
-      const pending = S.main.filter(r => r.Dyr_Akceptacja !== true && r.Dyr_Akceptacja !== false);
-
-      document.getElementById('cntDyr').textContent = pending.length;
-
-      if (!pending.length) {
-        el.innerHTML = '<div class="empty-state">Brak wniosków oczekujących na akceptację dyrektora.</div>';
-        return;
-      }
-
-      el.innerHTML = pending.map(r => `
-        <div class="record-card status-pending">
-          <div class="rc-header">
-            <div class="rc-title">${esc(getSzkolenieTitle(r.Szkolenie))}</div>
-            ${statusBadge(r)}
-            ${priorytetBadge(r.Priorytet)}
-          </div>
-          <div class="rc-meta">
-            <span>👤 ${esc(getPracownikLabel(r.Pracownik))}</span>
-            <span>📅 ${esc(getTerminLabel(r.Termin))}</span>
-            ${getTerminExtra(r.Termin) ? `<span>📍 ${esc(getTerminExtra(r.Termin))}</span>` : ''}
-          </div>
-          ${r.Uzasadnienie_Kierownika ? `<div class="rc-note note-uzas">Uzasadnienie: ${esc(r.Uzasadnienie_Kierownika)}</div>` : ''}
-          ${canAkc ? `
-            <div class="komentarz-wrap">
-              <label class="komentarz-label">Komentarz dyrektora (opcjonalnie)</label>
-              <textarea class="komentarz-input" id="kmt-dyr-${r.id}" placeholder="Wpisz komentarz…">${esc(r.Dyr_Komentarz || '')}</textarea>
-            </div>
-            <div class="rc-actions mt4">
-              <button class="btn btn-success btn-sm" onclick="akceptujDyr(${r.id}, true)">✓ Akceptuj</button>
-              <button class="btn btn-danger btn-sm"  onclick="akceptujDyr(${r.id}, false)">✗ Odrzuć</button>
-            </div>
-          ` : `<div class="rc-note">Faza akceptacji dyrektora jest nieaktywna.</div>`}
-        </div>
-      `).join('');
-    }
-
-    function renderPrez() {
-      const el     = document.getElementById('listaPrez');
-      const canAkc = !!S.panel.AkceptacjaPrezes;
-      const pending = S.main.filter(r => r.Dyr_Akceptacja === true && r.Prezes_Akceptacja !== true && r.Prezes_Akceptacja !== false);
-
-      document.getElementById('cntPrez').textContent = pending.length;
-
-      if (!pending.length) {
-        el.innerHTML = '<div class="empty-state">Brak wniosków oczekujących na akceptację Prezesa.</div>';
-        return;
-      }
-
-      el.innerHTML = pending.map(r => `
-        <div class="record-card status-pending">
-          <div class="rc-header">
-            <div class="rc-title">${esc(getSzkolenieTitle(r.Szkolenie))}</div>
-            ${statusBadge(r)}
-            ${priorytetBadge(r.Priorytet)}
-          </div>
-          <div class="rc-meta">
-            <span>👤 ${esc(getPracownikLabel(r.Pracownik))}</span>
-            <span>📅 ${esc(getTerminLabel(r.Termin))}</span>
-            ${getTerminExtra(r.Termin) ? `<span>📍 ${esc(getTerminExtra(r.Termin))}</span>` : ''}
-          </div>
-          ${r.Uzasadnienie_Kierownika ? `<div class="rc-note note-uzas">Uzasadnienie: ${esc(r.Uzasadnienie_Kierownika)}</div>` : ''}
-          ${r.Dyr_Komentarz ? `<div class="rc-note note-dyr">Komentarz Dyr.: ${esc(r.Dyr_Komentarz)}</div>` : ''}
-          ${canAkc ? `
-            <div class="komentarz-wrap">
-              <label class="komentarz-label">Komentarz Prezesa (opcjonalnie)</label>
-              <textarea class="komentarz-input" id="kmt-prez-${r.id}" placeholder="Wpisz komentarz…">${esc(r.Prezes_Komentarz || '')}</textarea>
-            </div>
-            <div class="rc-actions mt4">
-              <button class="btn btn-success btn-sm" onclick="akceptujPrezes(${r.id}, true)">✓ Zatwierdź</button>
-              <button class="btn btn-danger btn-sm"  onclick="akceptujPrezes(${r.id}, false)">✗ Odrzuć</button>
-            </div>
-          ` : `<div class="rc-note">Faza akceptacji Prezesa jest nieaktywna.</div>`}
-        </div>
-      `).join('');
-    }
-
-    function updateTabVisibility() {
-      const p = S.panel;
-      const tabDyr  = document.getElementById('tabDyr');
-      const tabPrez = document.getElementById('tabPrez');
-      const tabDyrView  = document.getElementById('tab-akc-dyr');
-      const tabPrezView = document.getElementById('tab-akc-prez');
-
-      // Show Dyr tab if user is director/prezes or if that phase is active
-      const showDyr  = S.isDyr || S.isPrez || p.AkceptacjaDyr || p.EdycjaDyr;
-      // Show Prez tab if user is prezes or if that phase is active
-      const showPrez = S.isPrez || p.AkceptacjaPrezes || p.EdycjaPrezes2;
-
-      tabDyr.classList.toggle('hidden', !showDyr);
-      tabPrez.classList.toggle('hidden', !showPrez);
-
-      // If active tab is now hidden, switch to Wnioski
-      const activeTab = document.querySelector('.tab-btn.active');
-      if (activeTab?.classList.contains('hidden')) {
-        switchTab('wnioski');
-      }
-    }
-
-    // ── Tab switching ──────────────────────────────────────────────
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-view').forEach(v => v.classList.add('hidden'));
-      const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
-      const view = document.getElementById('tab-' + tabId);
-      if (btn)  btn.classList.add('active');
-      if (view) view.classList.remove('hidden');
-    }
-
-    document.getElementById('tabBar').addEventListener('click', e => {
-      const btn = e.target.closest('.tab-btn');
-      if (btn && !btn.classList.contains('hidden')) {
-        switchTab(btn.dataset.tab);
-      }
-    });
-
-    // ── Filter chips ───────────────────────────────────────────────
-    document.querySelectorAll('.filter-chip').forEach(chip => {
-      chip.addEventListener('click', () => {
-        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-        chip.classList.add('active');
-        S.filterWnioski = chip.dataset.filter;
-        renderWnioski();
-      });
-    });
-
-    // ── Refresh buttons ────────────────────────────────────────────
-    document.getElementById('btnOdswiezWnioski').addEventListener('click', () => refreshData().catch(e => toast('Błąd odświeżania: ' + e.message, 'err')));
-    document.getElementById('btnOdswiezDyr').addEventListener('click',     () => refreshData().catch(e => toast('Błąd odświeżania: ' + e.message, 'err')));
-    document.getElementById('btnOdswiezPrez').addEventListener('click',    () => refreshData().catch(e => toast('Błąd odświeżania: ' + e.message, 'err')));
-
-    // ── Actions ────────────────────────────────────────────────────
-    async function usunWniosek(rowId) {
-      if (!confirm('Usunąć ten wniosek? Operacji nie można cofnąć.')) return;
-      try {
-        await grist.docApi.applyUserActions([['RemoveRecord', 'Main', rowId]]);
-        toast('Wniosek usunięty.');
-        await refreshData();
-      } catch (err) {
-        toast('Błąd usuwania: ' + err.message, 'err');
-      }
-    }
-
-    async function akceptujDyr(rowId, akceptacja) {
-      const verb = akceptacja ? 'Zaakceptować' : 'Odrzucić';
-      if (!confirm(`${verb} ten wniosek?`)) return;
-      const komentarz = (document.getElementById(`kmt-dyr-${rowId}`)?.value || '').trim();
-      try {
-        await grist.docApi.applyUserActions([[
-          'UpdateRecord', 'Main', rowId, {
-            Dyr_Akceptacja: akceptacja,
-            Dyr_Komentarz:  komentarz,
-          }
-        ]]);
-        toast(akceptacja ? 'Zaakceptowano wniosek.' : 'Wniosek odrzucony.');
-        await refreshData();
-      } catch (err) {
-        toast('Błąd aktualizacji: ' + err.message, 'err');
-      }
-    }
-
-    async function akceptujPrezes(rowId, akceptacja) {
-      const verb = akceptacja ? 'Zatwierdzić' : 'Odrzucić';
-      if (!confirm(`${verb} ten wniosek?`)) return;
-      const komentarz = (document.getElementById(`kmt-prez-${rowId}`)?.value || '').trim();
-      try {
-        await grist.docApi.applyUserActions([[
-          'UpdateRecord', 'Main', rowId, {
-            Prezes_Akceptacja: akceptacja,
-            Prezes_Komentarz:  komentarz,
-          }
-        ]]);
-        toast(akceptacja ? 'Zatwierdzono wniosek.' : 'Wniosek odrzucony przez Prezesa.');
-        await refreshData();
-      } catch (err) {
-        toast('Błąd aktualizacji: ' + err.message, 'err');
-      }
-    }
-
-    // ── Modal: Nowy wniosek ────────────────────────────────────────
-    function openModal() {
-      // Populate Pracownicy select
-      const selPrac = document.getElementById('selPracownik');
-      selPrac.innerHTML = '<option value="">— wybierz pracownika —</option>' +
-        [...S.pracownicy]
-          .sort((a, b) => (a.nazwisko || '').localeCompare(b.nazwisko || '', 'pl'))
-          .map(p => {
-            const kom = (p.Komorka || (p.kom_org_ || '').split('-').pop() || '').trim();
-            const sel = p.id === S.myPracId ? ' selected' : '';
-            return `<option value="${p.id}"${sel}>${esc(p.nazwisko)} ${esc(p.imie)}${kom ? ' [' + esc(kom) + ']' : ''}</option>`;
-          }).join('');
-
-      // Populate Szkolenie select
-      const selSzk = document.getElementById('selSzkolenie');
-      selSzk.innerHTML = '<option value="">— wybierz szkolenie —</option>' +
-        [...S.szkolenia]
-          .sort((a, b) => (a.title_full || '').localeCompare(b.title_full || '', 'pl'))
-          .map(s => `<option value="${s.id}">${esc(s.title_full)}</option>`)
-          .join('');
-
-      // Reset termin
-      document.getElementById('selTermin').innerHTML = '<option value="">— najpierw wybierz szkolenie —</option>';
-      document.getElementById('terminHint').textContent = '';
-      document.getElementById('selPriorytet').value = '';
-      document.getElementById('txtUzasadnienie').value = '';
-
-      document.getElementById('modal').classList.add('open');
-    }
-
-    function closeModal() {
-      document.getElementById('modal').classList.remove('open');
-    }
-
-    document.getElementById('btnDodaj').addEventListener('click', openModal);
-    document.getElementById('modalClose').addEventListener('click', closeModal);
-    document.getElementById('btnAnuluj').addEventListener('click', closeModal);
-    document.getElementById('modal').addEventListener('click', e => {
-      if (e.target === document.getElementById('modal')) closeModal();
-    });
-
-    // Termin select updates when Szkolenie changes
-    document.getElementById('selSzkolenie').addEventListener('change', () => {
-      const szkId    = parseInt(document.getElementById('selSzkolenie').value);
-      const selTermin = document.getElementById('selTermin');
-      const hint     = document.getElementById('terminHint');
-
-      if (!szkId) {
-        selTermin.innerHTML = '<option value="">— najpierw wybierz szkolenie —</option>';
-        hint.textContent = '';
-        return;
-      }
-
-      const szk = S.szkolenia.find(s => s.id === szkId);
-      const titleFull = szk?.title_full || '';
-
-      // Filter BazaTerminow by title_full
-      const matching = S.terminy.filter(t => t.title_full === titleFull);
-
-      if (!matching.length) {
-        selTermin.innerHTML = '<option value="">— brak dostępnych terminów —</option>';
-        hint.textContent = '';
-        return;
-      }
-
-      // Sort by termin_od ascending
-      matching.sort((a, b) => (a.termin_od || 0) - (b.termin_od || 0));
-
-      selTermin.innerHTML = '<option value="">— wybierz termin —</option>' +
-        matching.map(t => {
-          const label = t.Termin_Detail || (() => {
-            const od = fmtDate(t.termin_od);
-            const do_ = fmtDate(t.termin_do);
-            return od !== '—' ? `${od} – ${do_}` : (t.termin || `#${t.id}`);
-          })();
-          const extra = [t.lokalizacja, t.dni_robocze ? t.dni_robocze + ' dni' : '', t.koszt]
-            .filter(Boolean).join(' · ');
-          return `<option value="${t.id}">${esc(label)}${extra ? ' | ' + esc(extra) : ''}</option>`;
-        }).join('');
-      hint.textContent = `Znaleziono ${matching.length} termin(ów) dla wybranego szkolenia.`;
-    });
-
-    // Submit new record
-    document.getElementById('btnZapisz').addEventListener('click', async () => {
-      const pracId  = parseInt(document.getElementById('selPracownik').value) || 0;
-      const szkId   = parseInt(document.getElementById('selSzkolenie').value) || 0;
-      const termId  = parseInt(document.getElementById('selTermin').value)    || 0;
-      const prior   = document.getElementById('selPriorytet').value;
-      const uzas    = document.getElementById('txtUzasadnienie').value.trim();
-
-      if (!pracId || !szkId || !termId) {
-        toast('Uzupełnij wszystkie wymagane pola (Pracownik, Szkolenie, Termin).', 'err');
-        return;
-      }
-
-      const btn = document.getElementById('btnZapisz');
-      btn.disabled = true;
-      btn.textContent = 'Zapisywanie…';
-
-      try {
-        const fields = {
-          Pracownik: pracId,
-          Szkolenie: szkId,
-          Termin:    termId,
-        };
-        if (prior) fields.Priorytet = prior;
-        if (uzas)  fields.Uzasadnienie_Kierownika = uzas;
-
-        await grist.docApi.applyUserActions([['AddRecord', 'Main', null, fields]]);
-        closeModal();
-        toast('Wniosek zapisany.');
-        await refreshData();
-      } catch (err) {
-        toast('Błąd zapisu: ' + err.message, 'err');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Zapisz wniosek';
-      }
-    });
-
-    // ── Start ──────────────────────────────────────────────────────
-    loadAll();
-  </script>
+loadAll();
+<\/script>
 </body>
 </html>
