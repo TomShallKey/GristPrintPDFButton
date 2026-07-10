@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+</head>
+<body>
+  <script>
+    // window.grist istnieje tutaj ✅
+    grist.ready({ requiredAccess: 'full' });
+
+    // fetchTable ✅
+    grist.onRecords(async (records) => {
+      console.log(records);
+    });
+
+    // docApi ✅
+    grist.ready();
+    const tableData = await grist.docApi.fetchTable('MyTable');
+
+    // REST API bez CORS ✅ — użyj access tokena
+    const token = await grist.getAccessToken({ readOnly: true });
+    const res = await fetch(`https://docs.getgrist.com/api/docs/DOC_ID/tables`, {
+      headers: { Authorization: `Bearer ${token.token}` }
+    });
+  </script>
+</body>
+</html>
