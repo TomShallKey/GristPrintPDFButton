@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTC-8">
+<meta name+"viewpoint" content="width=device-width, initial-scale=1.0">
+<title>ATSEP GRIST</title>
+<link href="https://fonts.googleapis.com/css2?family=Petit+Formal+Script&family=Quicksand:wght@400;500&display=swap" rel="stylesheet">
+<style>
+html, body{
+margin: 0;
+padding: 0;
+height: 100%;
+}
+body{
+font-family: 'Quicksand', sans-serif;
+background-color: #fcf9f9;
+color: #5a4a4d;
+display: flex;
+flex-direction: column;
+min-height: 100vh;
+}
+.zawartosc{
+flex: 1 0 auto;
+padding: 50px 40px;
+}
+h1 {
+font-family: 'Petit Formal Script', cursive;
+text-align: center;
+color: #8c6b73;
+font-size: 4.5rem;
+margin-bottom: 55px;
+font-weight: 700;
+letter-spacing: 1px;
+}
+.grid-container {
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+gap: 30px;
+max-width: 1000px;
+margin: 0 auto;
+}
+.kafelek {
+background: white;
+border-radius: 20px;
+padding: 40px 30px;
+text-align: center;
+text-decoration: none;
+color: #5a4a4d;
+box-shadow: 0 5px 15px rgba(0, 0, 0, 0.03);
+transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+border: 2px solid transparent;
+}
+.kafelek:hover {
+transform: translateY(-8px);
+box-shadow: 0 12px 25px rgba(0, 0, 0, 0.07);
+border-color: #e3c4cb; 
+}
+.ikona {
+font-size: 45px;
+margin-bottom: 20px;
+}
+.tytul {
+font-size: 1.15rem;
+font-weight: 500;
+margin: 0;
+letter-spacing: 1px;
+text-transform: uppercase;
+}
+footer{
+flex-shrink: 0;
+text-align: center;
+padding: 25px;
+font-size: 0.95rem;
+color: #8c6b73;
+border-top: 1px solid #f0e6e8;
+background-color: #fcf9f9;
+}
+footer a{
+color: #8c6b73;
+text-decoration: none;
+font-weight: 700;
+transition: color 0.3s ease;
+}
+footer a:hover{
+color: #5a4a4d;
+text-decoration: underline;
+}
+</style>
+</head>
+<body>
+<div class="zawartosc">
+<h1>Co dzisiaj robimy?</h1>
+<div class="grid-container">
+<a href="https://vp-ay-grist.pansa.pl/o/ayx/ivuspzJ6m3XA/Karta-OJT?utm_id=share-doc" class="kafelek">
+<div class="ikona">🌍</div>
+<div class="tytul">Karty OJT</div>
+</a>
+<a href="https://vp-ay-grist.pansa.pl/o/ayx/hrd4Q8EebUVr/ATSEP-Oceny?utm_id=share-doc" class="kafelek">
+<div class="ikona">📜</div>
+<div class="tytul">Certyfikaty</div>
+</a>
+<a href="kolejny-grist-link" class="kafelek">
+<div class="ikona">✨</div>
+<div class="tytul">W trakcie tworzenia</div>
+</a>
+</div>
+</div>
+<footer>
+Coś nie działa? Daj znać: <a href="mailto: gabriela.ciurkowska@pansa.pl">gabriela.ciurkowska@pansa.pl</a>
+</footer>
+</body>
+</html>
