@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planowanie szkoleń</title>
+<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+<style>
+  :root{
+    --bg:#ffffff; --bg2:#F7F8FA; --line:#E9EAEE; --line2:#F1F2F5;
+    --txt:#1D1F24; --mut:#8A8F98; --mut2:#B4B8BF;
+    --kiero:#3B82F6; --dyr:#8B5CF6; --prezes:#10B981;
+    --kiero-bg:rgba(59,130,246,.055); --dyr-bg:rgba(139,92,246,.055); --prezes-bg:rgba(16,185,129,.06);
+    --radius:10px;
+    --shadow:0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    font-size:13px; color:var(--txt); background:var(--bg2);
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+
+  /* ---------- Toolbar ---------- */
+  .toolbar{
+    flex:0 0 auto; display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    padding:10px 14px; background:var(--bg); border-bottom:1px solid var(--line);
+  }
+  .brand{font-size:14px; font-weight:650; letter-spacing:-.01em; white-space:nowrap;}
+  .stagebar{
+    flex:0 0 auto; padding:7px 14px; background:var(--bg);
+    border-bottom:1px solid var(--line); overflow-x:auto;
+  }
+  .steps{display:flex; align-items:center; gap:4px;}
+  .step{
+    display:flex; align-items:center; gap:6px;
+    padding:4px 10px; border-radius:999px; color:var(--mut);
+    font-weight:500; white-space:nowrap; border:1px solid transparent;
+    transition:background .2s ease, color .2s ease, border-color .2s ease;
+  }
+  .step .dot{width:7px; height:7px; border-radius:50%; background:var(--mut2); transition:background .2s ease;}
+  .step.on{color:var(--txt); background:var(--bg2); border-color:var(--line); font-weight:600;}
+  .step.on.s-kiero .dot{background:var(--kiero); --pc:59,130,246;}
+  .step.on.s-dyr .dot{background:var(--dyr); --pc:139,92,246;}
+  .step.on.s-prezes .dot{background:var(--prezes); --pc:16,185,129;}
+  .step.on .dot{animation:pulse 2.6s ease-in-out 4; box-shadow:0 0 0 3px rgba(var(--pc),.16);}
+  @keyframes pulse{
+    0%,100%{box-shadow:0 0 0 3px rgba(var(--pc),.16);}
+    50%{box-shadow:0 0 0 6px rgba(var(--pc),.05);}
+  }
+  .step-arrow{color:var(--mut2); font-size:11px;}
+  .spacer{flex:1;}
+
+  input#search{
+    width:180px; padding:6px 12px; border:1px solid var(--line);
+    border-radius:8px; font:inherit; background:var(--bg); outline:none;
+    transition:border-color .18s ease, box-shadow .18s ease, width .22s cubic-bezier(.2,.7,.3,1);
+  }
+  input#search:hover{background:var(--bg);}
+  input#search:focus{width:240px; border-color:var(--kiero); box-shadow:0 0 0 3px var(--kiero-bg);}
+
+  .seg{display:flex; background:var(--bg2); border:1px solid var(--line); border-radius:8px; padding:2px;}
+  .seg button{
+    border:0; background:transparent; font:inherit; color:var(--mut);
+    padding:4px 10px; border-radius:6px; cursor:pointer; white-space:nowrap; font-weight:500;
+    transition:background .18s ease, color .18s ease, box-shadow .18s ease, transform .12s ease;
+  }
+  .seg button:hover:not(.on){color:var(--txt);}
+  .seg button:active{transform:scale(.95);}
+  .seg button.on{background:var(--bg); color:var(--txt); font-weight:600; box-shadow:var(--shadow);}
+
+  .btn{
+    display:inline-flex; align-items:center; gap:6px;
+    border:1px solid var(--line); background:var(--bg); color:var(--txt);
+    font:inherit; font-weight:550; padding:6px 12px; border-radius:8px; cursor:pointer;
+    transition:background .18s ease, opacity .18s ease, transform .12s ease, box-shadow .18s ease;
+  }
+  .btn:hover{background:var(--bg2);}
+  .btn:active:not(:disabled){transform:scale(.96);}
+  .btn.primary{background:var(--txt); border-color:var(--txt); color:#fff;}
+  .btn.primary:hover{opacity:.88;}
+  .btn:disabled{opacity:.4; cursor:not-allowed;}
+  .btn.icon{padding:6px 8px;}
+
+  /* ---------- Table ---------- */
+  .wrap{flex:1 1 auto; overflow:auto; padding:12px 14px 40px;}
+  .card{background:var(--bg); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); overflow:visible; min-width:min-content;}
+  table{border-collapse:separate; border-spacing:0; width:100%;}
+  thead th{
+    position:sticky; z-index:5; background:var(--bg);
+    font-size:11px; font-weight:600; color:var(--mut); text-align:left;
+    text-transform:uppercase; letter-spacing:.04em;
+    padding:7px 10px; border-bottom:1px solid var(--line); white-space:nowrap;
+  }
+  thead tr.sections th{
+    top:0; font-size:11px; letter-spacing:.05em; border-bottom:1px solid var(--line2);
+    padding:8px 10px 4px;
+  }
+  thead tr.cols th{top:29px;}
+  th.sec-kiero{color:var(--kiero);} th.sec-dyr{color:var(--dyr);} th.sec-prezes{color:var(--prezes);}
+  th .live{
+    display:inline-block; margin-left:7px; padding:1px 7px; border-radius:999px;
+    font-size:10px; letter-spacing:.02em; text-transform:none; font-weight:600;
+  }
+  th.sec-kiero .live{background:var(--kiero-bg); color:var(--kiero);}
+  th.sec-dyr .live{background:var(--dyr-bg); color:var(--dyr);}
+  th.sec-prezes .live{background:var(--prezes-bg); color:var(--prezes);}
+
+  tbody td{
+    padding:5px 10px; border-bottom:1px solid var(--line2);
+    vertical-align:middle; background:var(--bg); height:44px;
+    transition:background .14s ease;
+  }
+  tbody tr:hover td{background:#FBFBFC;}
+  tbody tr:last-child td{border-bottom:0;}
+
+  /* active-stage tint */
+  td.on.c-kiero{background:var(--kiero-bg);}
+  td.on.c-dyr{background:var(--dyr-bg);}
+  td.on.c-prezes{background:var(--prezes-bg);}
+  tbody tr:hover td.on.c-kiero{background:rgba(59,130,246,.09);}
+  tbody tr:hover td.on.c-dyr{background:rgba(139,92,246,.09);}
+  tbody tr:hover td.on.c-prezes{background:rgba(16,185,129,.09);}
+
+  /* glass pane on locked sections */
+  td.off{position:relative;}
+  td.off > *{opacity:.5; filter:grayscale(.35); pointer-events:none;}
+  td.off::after{content:""; position:absolute; inset:0; background:rgba(247,248,250,.45); cursor:not-allowed;}
+
+  /* group rows */
+  tr.group td{
+    background:var(--bg2); border-bottom:1px solid var(--line);
+    font-weight:650; font-size:12.5px; height:38px; cursor:pointer; user-select:none;
+    position:sticky; z-index:1;
+  }
+  tr.group td:hover{background:#F1F2F5;}
+  tr.group .chev{display:inline-block; width:16px; color:var(--mut); transition:transform .12s; font-size:10px;}
+  tr.group.collapsed .chev{transform:rotate(-90deg);}
+  tr.group .meta{margin-left:10px; color:var(--mut); font-weight:500; font-size:11.5px;}
+  tr.sub td{
+    background:#FCFCFD; font-weight:600; font-size:12px; color:var(--mut);
+    height:32px; padding-left:34px; border-bottom:1px solid var(--line2);
+  }
+  tr.sub .meta{margin-left:8px; font-weight:400;}
+
+  /* inputs */
+  select, input[type=text]{
+    width:100%; min-width:0; font:inherit; color:var(--txt);
+    border:1px solid transparent; background:transparent; border-radius:7px;
+    padding:5px 7px; outline:none; transition:border-color .12s, background .12s, box-shadow .12s;
+  }
+  select{cursor:pointer; appearance:none; -webkit-appearance:none;
+    background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23B4B8BF' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 7px center; padding-right:22px;
+  }
+  select:hover, input[type=text]:hover{background:rgba(255,255,255,.9); border-color:var(--line);}
+  select:focus, input[type=text]:focus{background:#fff; border-color:var(--kiero); box-shadow:0 0 0 3px var(--kiero-bg);}
+  select:disabled{color:var(--mut2); cursor:not-allowed; background-image:none;}
+  input::placeholder{color:var(--mut2);}
+  option{color:var(--txt);}
+
+  .empty-val{color:var(--mut2);}
+
+  /* switch */
+  .switch{position:relative; display:inline-block; width:34px; height:20px; vertical-align:middle;}
+  .switch input{opacity:0; width:0; height:0; position:absolute;}
+  .switch .track{
+    position:absolute; inset:0; border-radius:999px; background:#DFE1E6;
+    transition:background .2s ease; cursor:pointer;
+  }
+  .switch .track::before{
+    content:""; position:absolute; width:16px; height:16px; left:2px; top:2px;
+    border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.2);
+    transition:transform .28s cubic-bezier(.34,1.4,.64,1);
+  }
+  .switch:active .track::before{transform:scale(.92);}
+  .switch:active input:checked + .track::before{transform:translateX(14px) scale(.92);}
+  .switch input:checked + .track{background:var(--prezes);}
+  .switch.dyr input:checked + .track{background:var(--dyr);}
+  .switch input:checked + .track::before{transform:translateX(14px);}
+  .switch input:focus-visible + .track{box-shadow:0 0 0 3px var(--kiero-bg);}
+
+  /* details cell */
+  .detail{line-height:1.35; white-space:nowrap;}
+  .detail .l1{font-weight:500;}
+  .detail .l2{font-size:11.5px; color:var(--mut);}
+
+  /* prio dot */
+  .prio-wrap{display:flex; align-items:center; gap:6px;}
+  .prio-dot{width:8px; height:8px; border-radius:50%; flex:0 0 auto;}
+
+  /* row tools */
+  td.rowno{width:34px; text-align:right; color:var(--mut2); font-size:11px; font-variant-numeric:tabular-nums; padding-right:6px;}
+  .del{
+    border:0; background:transparent; color:var(--mut2); cursor:pointer;
+    font-size:13px; border-radius:6px; width:22px; height:22px; line-height:1;
+    visibility:hidden;
+  }
+  tbody tr:hover .del{visibility:visible;}
+  .del:hover{color:#DC2626; background:rgba(220,38,38,.08);}
+
+  /* empty & loading */
+  .state-msg{padding:60px 20px; text-align:center; color:var(--mut);}
+  .state-msg b{color:var(--txt);}
+
+  /* toast */
+  #toast{
+    position:fixed; bottom:16px; left:50%; transform:translateX(-50%) translateY(10px) scale(.96);
+    background:var(--txt); color:#fff; padding:8px 16px; border-radius:10px;
+    font-size:12.5px; opacity:0; pointer-events:none;
+    transition:opacity .22s ease, transform .3s cubic-bezier(.2,.9,.3,1.2);
+    z-index:50; box-shadow:0 4px 14px rgba(0,0,0,.18); max-width:80vw;
+  }
+  #toast.show{opacity:1; transform:translateX(-50%) translateY(0) scale(1);}
+  #toast.err{background:#DC2626;}
+
+  /* wejście wierszy (tylko przy załadowaniu / zmianie grupowania) */
+  @keyframes rowIn{from{opacity:0; transform:translateY(5px);} to{opacity:1; transform:none;}}
+  tbody.fx tr{animation:rowIn .3s cubic-bezier(.2,.7,.3,1) both;}
+
+  /* skeleton */
+  .skel{
+    height:11px; border-radius:6px; margin:8px 0;
+    background:linear-gradient(90deg,#EEF0F3 25%,#F7F8FA 50%,#EEF0F3 75%);
+    background-size:200% 100%; animation:shimmer 1.3s linear infinite;
+  }
+  @keyframes shimmer{from{background-position:200% 0;} to{background-position:-200% 0;}}
+
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{animation:none !important; transition:none !important;}
+  }
+
+  ::-webkit-scrollbar{width:10px; height:10px;}
+  ::-webkit-scrollbar-thumb{background:#D7D9DE; border-radius:99px; border:2px solid var(--bg2);}
+  ::-webkit-scrollbar-track{background:transparent;}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="brand">Planowanie szkoleń</div>
+  <div class="spacer"></div>
+  <div class="search">
+    <input id="search" type="text" placeholder="Szukaj…">
+  </div>
+  <div class="seg" id="groupSeg">
+    <button data-g="none" class="on">Brak</button>
+    <button data-g="komorka">Komórka</button>
+    <button data-g="pracownik">Pracownik</button>
+    <button data-g="szkolenie">Szkolenie</button>
+  </div>
+  <button class="btn icon" id="refreshBtn" title="Odśwież">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.3"/><path d="M21 3v6h-6"/></svg>
+  </button>
+  <button class="btn primary" id="addBtn">＋ Dodaj wpis</button>
+</div>
+
+<div class="stagebar">
+  <div class="steps" id="steps"></div>
+</div>
+
+<div class="wrap">
+  <div class="card">
+    <table id="tbl">
+      <thead>
+        <tr class="sections" id="secRow"></tr>
+        <tr class="cols" id="colRow"></tr>
+      </thead>
+      <tbody id="tbody">
+        <tr><td colspan="11" style="padding:18px 16px">
+          <div class="skel" style="width:62%"></div>
+          <div class="skel" style="width:84%"></div>
+          <div class="skel" style="width:71%"></div>
+          <div class="skel" style="width:78%"></div>
+        </td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   Planowanie szkoleń — custom widget dla Grist
+   Zapis przez applyUserActions; uprawnienia egzekwują Access Rules.
+   Widget jedynie wizualnie akcentuje aktywny etap (PanelSterowania)
+   i nakłada "taflę szkła" na sekcje nieaktywne.
+   ============================================================ */
+
+const state = {
+  main: [],
+  prac: new Map(),      // id -> rec Pracownicy
+  szk:  new Map(),      // id -> rec Baza_UnikatoweReczne
+  term: new Map(),      // id -> rec BazaTerminow
+  flags: { kiero:false, dyr:false, prezes:false },
+  prioChoices: [],
+  prioColors: {},       // choice -> fillColor
+  groupBy: 'none',
+  collapsed: new Set(),
+  search: '',
+  loaded: false,
+};
+
+let reloadPending = false;
+let reloadTimer = null;
+
+/* ---------- utils ---------- */
+
+function colToRecs(data){
+  const out = [];
+  const cols = Object.keys(data).filter(k => k !== 'id');
+  (data.id || []).forEach((id, i) => {
+    const r = { id };
+    for (const c of cols) r[c] = data[c][i];
+    out.push(r);
+  });
+  return out;
+}
+const esc = s => String(s ?? '').replace(/[&<>"']/g,
+  m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+function toast(msg, err){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show' + (err ? ' err' : '');
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.className = '', err ? 3500 : 1400);
+}
+
+const pracLabel = id => state.prac.get(id)?.Kom_Osoba || '';
+const pracKom   = id => state.prac.get(id)?.Komorka || '';
+const szkLabel  = id => state.szk.get(id)?.title_full || '';
+
+function termLabel(id){
+  const t = state.term.get(id);
+  if (!t) return '';
+  return t.termin + (t.lokalizacja ? ' · ' + t.lokalizacja : '');
+}
+
+/* ---------- data loading ---------- */
+
+async function loadAll(){
+  const api = grist.docApi;
+  const [main, prac, szk, term] = await Promise.all([
+    api.fetchTable('Main'),
+    api.fetchTable('Pracownicy'),
+    api.fetchTable('Baza_UnikatoweReczne'),
+    api.fetchTable('BazaTerminow'),
+  ]);
+  state.main = colToRecs(main);
+  state.prac = new Map(colToRecs(prac).map(r => [r.id, r]));
+  state.szk  = new Map(colToRecs(szk).map(r => [r.id, r]));
+  state.term = new Map(colToRecs(term).map(r => [r.id, r]));
+
+  // Flagi etapów: najpierw PanelSterowania, w razie braku dostępu — kolumny formułowe z Main.
+  let f = null;
+  try {
+    const p = colToRecs(await api.fetchTable('PanelSterowania'))[0];
+    if (p) f = { kiero: !!p.EdycjaKiero, dyr: !!p.AkceptacjaDyr, prezes: !!p.AkceptacjaPrezes };
+  } catch (e) { /* brak dostępu do panelu — fallback niżej */ }
+  if (!f && state.main.length){
+    const m = state.main[0];
+    f = { kiero: !!m.EdycjaKiero, dyr: !!m.AkceptacjaDyr, prezes: !!m.AkceptacjaPrezes };
+  }
+  if (f) state.flags = f;
+
+  if (!state.prioChoices.length) await loadPrioChoices();
+  const firstLoad = !state.loaded;
+  state.loaded = true;
+  render(firstLoad);
+}
+
+async function loadPrioChoices(){
+  try {
+    const tables = colToRecs(await grist.docApi.fetchTable('_grist_Tables'));
+    const mainT = tables.find(t => t.tableId === 'Main');
+    const cols = colToRecs(await grist.docApi.fetchTable('_grist_Tables_column'));
+    const col = cols.find(c => c.parentId === mainT.id && c.colId === 'Priorytet');
+    const wo = JSON.parse(col.widgetOptions || '{}');
+    state.prioChoices = wo.choices || [];
+    const co = wo.choiceOptions || {};
+    for (const k of Object.keys(co)) state.prioColors[k] = co[k].fillColor || '';
+  } catch (e) { /* metadane niedostępne */ }
+  // dołóż wartości występujące w danych, gdyby metadane były niepełne
+  for (const r of state.main){
+    if (r.Priorytet && !state.prioChoices.includes(r.Priorytet)) state.prioChoices.push(r.Priorytet);
+  }
+}
+
+function scheduleReload(){
+  // nie przerywaj użytkownikowi w trakcie pisania
+  const ae = document.activeElement;
+  if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'SELECT') && ae.closest('#tbody')){
+    reloadPending = true;
+    return;
+  }
+  clearTimeout(reloadTimer);
+  reloadTimer = setTimeout(() => loadAll().catch(console.error), 150);
+}
+
+/* ---------- writes ---------- */
+
+async function updateRec(id, fields){
+  const rec = state.main.find(r => r.id === id);
+  const prev = rec ? { ...rec } : null;
+  if (rec) Object.assign(rec, fields);   // optymistycznie
+  render();
+  try {
+    await grist.docApi.applyUserActions([['UpdateRecord', 'Main', id, fields]]);
+    toast('Zapisano');
+  } catch (e) {
+    if (rec && prev) Object.assign(rec, prev);
+    toast('Nie udało się zapisać — brak uprawnień na tym etapie?', true);
+    loadAll().catch(console.error);
+  }
+}
+
+async function addRec(){
+  try {
+    await grist.docApi.applyUserActions([['AddRecord', 'Main', null, {}]]);
+    toast('Dodano wpis');
+    loadAll().catch(console.error);
+  } catch (e) {
+    toast('Nie udało się dodać wpisu', true);
+  }
+}
+
+async function delRec(id){
+  if (!confirm('Usunąć ten wpis planu?')) return;
+  try {
+    await grist.docApi.applyUserActions([['RemoveRecord', 'Main', id]]);
+    toast('Usunięto');
+    loadAll().catch(console.error);
+  } catch (e) {
+    toast('Nie udało się usunąć', true);
+  }
+}
+
+/* ---------- rendering ---------- */
+
+function renderSteps(){
+  const f = state.flags;
+  const items = [
+    { k:'kiero',  t:'Kierownicy planują szkolenia pracowników',    on:f.kiero },
+    { k:'dyr',    t:'Dyrektorzy akceptują zaproponowane szkolenia', on:f.dyr },
+    { k:'prezes', t:'Prezesi zatwierdzają uczestnictwo',            on:f.prezes },
+  ];
+  document.getElementById('steps').innerHTML = items.map((s,i) =>
+    (i ? '<span class="step-arrow">›</span>' : '') +
+    `<span class="step s-${s.k}${s.on ? ' on' : ''}"><span class="dot"></span>${s.t}</span>`
+  ).join('');
+  const add = document.getElementById('addBtn');
+  add.disabled = !f.kiero;
+  add.title = f.kiero ? '' : 'Dodawanie możliwe tylko w etapie planowania';
+}
+
+function renderHead(){
+  const f = state.flags;
+  const live = ' <span class="live">aktywny etap</span>';
+  document.getElementById('secRow').innerHTML =
+    `<th></th>` +
+    `<th colspan="5" class="sec-kiero">Planowanie Kierowników${f.kiero ? live : ''}</th>` +
+    `<th></th>` +
+    `<th colspan="2" class="sec-dyr">Akceptacja Dyrektorów${f.dyr ? live : ''}</th>` +
+    `<th colspan="2" class="sec-prezes">Zatwierdzenie Prezesów${f.prezes ? live : ''}</th>`;
+  document.getElementById('colRow').innerHTML =
+    `<th></th>
+     <th style="min-width:200px">Pracownik</th>
+     <th style="min-width:220px">Szkolenie</th>
+     <th style="min-width:170px">Termin</th>
+     <th style="min-width:110px">Priorytet</th>
+     <th style="min-width:200px">Uzasadnienie</th>
+     <th style="min-width:190px">Szczegóły</th>
+     <th style="width:70px">Akcept.</th>
+     <th style="min-width:180px">Komentarz</th>
+     <th style="width:70px">Zatw.</th>
+     <th style="min-width:180px">Komentarz</th>`;
+}
+
+function optionsHtml(list, current, emptyLabel){
+  let html = `<option value="0"${!current ? ' selected' : ''}>${esc(emptyLabel)}</option>`;
+  let found = !current;
+  for (const [id, label] of list){
+    const sel = id === current;
+    if (sel) found = true;
+    html += `<option value="${id}"${sel ? ' selected' : ''}>${esc(label)}</option>`;
+  }
+  if (!found && current)
+    html += `<option value="${current}" selected>(rekord #${current})</option>`;
+  return html;
+}
+
+function cellPracownik(r, on){
+  const list = [...state.prac.values()]
+    .map(p => [p.id, p.Kom_Osoba])
+    .sort((a,b) => a[1].localeCompare(b[1], 'pl'));
+  return `<select data-id="${r.id}" data-col="Pracownik" ${on ? '' : 'disabled'}>
+    ${optionsHtml(list, r.Pracownik, '— wybierz —')}</select>`;
+}
+
+function cellSzkolenie(r, on){
+  const list = [...state.szk.values()]
+    .map(s => [s.id, s.title_full])
+    .sort((a,b) => a[1].localeCompare(b[1], 'pl'));
+  return `<select data-id="${r.id}" data-col="Szkolenie" ${on ? '' : 'disabled'}>
+    ${optionsHtml(list, r.Szkolenie, '— wybierz —')}</select>`;
+}
+
+function cellTermin(r, on){
+  const list = [...state.term.values()]
+    .filter(t => t.SzkolenieRef_id === r.Szkolenie && r.Szkolenie)
+    .map(t => [t.id, termLabel(t.id)])
+    .sort((a,b) => a[1].localeCompare(b[1], 'pl'));
+  const dis = !on || !r.Szkolenie;
+  const empty = r.Szkolenie ? '— wybierz —' : 'najpierw szkolenie';
+  return `<select data-id="${r.id}" data-col="Termin" ${dis ? 'disabled' : ''}>
+    ${optionsHtml(list, r.Termin, empty)}</select>`;
+}
+
+function cellPriorytet(r, on){
+  let html = `<option value=""${!r.Priorytet ? ' selected' : ''}>—</option>`;
+  let found = !r.Priorytet;
+  for (const c of state.prioChoices){
+    const sel = c === r.Priorytet;
+    if (sel) found = true;
+    html += `<option value="${esc(c)}"${sel ? ' selected' : ''}>${esc(c)}</option>`;
+  }
+  if (!found) html += `<option value="${esc(r.Priorytet)}" selected>${esc(r.Priorytet)}</option>`;
+  const color = state.prioColors[r.Priorytet];
+  const dot = r.Priorytet
+    ? `<span class="prio-dot" style="background:${color || 'var(--mut2)'}"></span>` : '';
+  return `<div class="prio-wrap">${dot}<select data-id="${r.id}" data-col="Priorytet" ${on ? '' : 'disabled'}>${html}</select></div>`;
+}
+
+function cellText(r, col, on, ph){
+  return `<input type="text" data-id="${r.id}" data-col="${col}"
+    value="${esc(r[col])}" placeholder="${esc(ph)}" ${on ? '' : 'disabled'}>`;
+}
+
+function cellSwitch(r, col, on, cls){
+  return `<label class="switch ${cls}">
+    <input type="checkbox" data-id="${r.id}" data-col="${col}" ${r[col] ? 'checked' : ''} ${on ? '' : 'disabled'}>
+    <span class="track"></span></label>`;
+}
+
+function cellDetail(r){
+  const t = state.term.get(r.Termin);
+  const l1 = t ? (t.Termin_Detail || t.termin || '') : '';
+  const parts = [];
+  if (r.Lokalizacja) parts.push(r.Lokalizacja);
+  if (r.Dni) parts.push(r.Dni + ' dn.');
+  if (r.Koszt) parts.push(r.Koszt);
+  if (!l1 && !parts.length) return '<span class="empty-val">—</span>';
+  return `<div class="detail">
+    <div class="l1">${esc(l1) || '&nbsp;'}</div>
+    <div class="l2">${esc(parts.join(' · '))}</div></div>`;
+}
+
+function rowHtml(r, idx){
+  const f = state.flags;
+  const k = f.kiero, d = f.dyr, p = f.prezes;
+  const cls = (sec, on) => `class="c-${sec} ${on ? 'on' : 'off'}"`;
+  return `<tr data-id="${r.id}">
+    <td class="rowno">${f.kiero
+      ? `<button class="del" data-del="${r.id}" title="Usuń wpis">✕</button>`
+      : (idx + 1)}</td>
+    <td ${cls('kiero',k)}>${cellPracownik(r,k)}</td>
+    <td ${cls('kiero',k)}>${cellSzkolenie(r,k)}</td>
+    <td ${cls('kiero',k)}>${cellTermin(r,k)}</td>
+    <td ${cls('kiero',k)}>${cellPriorytet(r,k)}</td>
+    <td ${cls('kiero',k)}>${cellText(r,'Uzasadnienie_Kierownika',k,'Uzasadnienie…')}</td>
+    <td>${cellDetail(r)}</td>
+    <td ${cls('dyr',d)} style="text-align:center">${cellSwitch(r,'Dyr_Akceptacja',d,'dyr')}</td>
+    <td ${cls('dyr',d)}>${cellText(r,'Dyr_Komentarz',d,'Komentarz…')}</td>
+    <td ${cls('prezes',p)} style="text-align:center">${cellSwitch(r,'Prezes_Akceptacja',p,'')}</td>
+    <td ${cls('prezes',p)}>${cellText(r,'Prezes_Komentarz',p,'Komentarz…')}</td>
+  </tr>`;
+}
+
+function groupRowHtml(key, label, count, dni){
+  const collapsed = state.collapsed.has(key);
+  const dniTxt = dni ? ` · ${Math.round(dni * 10) / 10} dni szkol.` : '';
+  return `<tr class="group${collapsed ? ' collapsed' : ''}" data-gkey="${esc(key)}">
+    <td colspan="11"><span class="chev">▾</span>${esc(label)}
+    <span class="meta">${count} ${count === 1 ? 'wpis' : (count < 5 ? 'wpisy' : 'wpisów')}${dniTxt}</span></td></tr>`;
+}
+
+function subRowHtml(label, count){
+  return `<tr class="sub"><td colspan="11">${esc(label)}
+    <span class="meta">· ${count} os.</span></td></tr>`;
+}
+
+function filteredRecords(){
+  const q = state.search.trim().toLowerCase();
+  let recs = state.main.slice();
+  if (q){
+    recs = recs.filter(r =>
+      pracLabel(r.Pracownik).toLowerCase().includes(q) ||
+      szkLabel(r.Szkolenie).toLowerCase().includes(q) ||
+      pracKom(r.Pracownik).toLowerCase().includes(q) ||
+      (r.Uzasadnienie_Kierownika || '').toLowerCase().includes(q)
+    );
+  }
+  return recs;
+}
+
+function render(fx){
+  renderSteps();
+  renderHead();
+  const tbody = document.getElementById('tbody');
+  tbody.classList.toggle('fx', !!fx);
+  const recs = filteredRecords();
+
+  if (!recs.length){
+    tbody.innerHTML = `<tr><td colspan="11"><div class="state-msg">
+      ${state.main.length ? 'Brak wyników dla tego filtra.' :
+        '<b>Brak wpisów.</b><br>' + (state.flags.kiero
+          ? 'Kliknij „Dodaj wpis”, aby rozpocząć planowanie.'
+          : 'Wpisy pojawią się po rozpoczęciu etapu planowania.')}
+    </div></td></tr>`;
+    return;
+  }
+
+  const byPrac = (a,b) => pracLabel(a.Pracownik).localeCompare(pracLabel(b.Pracownik), 'pl');
+  let html = '';
+  let idx = 0;
+  const emit = r => { html += rowHtml(r, idx++); };
+
+  if (state.groupBy === 'none'){
+    recs.sort(byPrac).forEach(emit);
+
+  } else if (state.groupBy === 'komorka' || state.groupBy === 'pracownik'){
+    const keyFn = state.groupBy === 'komorka'
+      ? r => pracKom(r.Pracownik) || '— bez przydziału'
+      : r => pracLabel(r.Pracownik) || '— bez przydziału';
+    const groups = new Map();
+    for (const r of recs){
+      const k = keyFn(r);
+      if (!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(r);
+    }
+    for (const k of [...groups.keys()].sort((a,b) => a.localeCompare(b,'pl'))){
+      const rows = groups.get(k).sort(byPrac);
+      const dni = rows.reduce((s,r) => s + (Number(r.Dni) || 0), 0);
+      html += groupRowHtml(k, k, rows.length, dni);
+      if (!state.collapsed.has(k)) rows.forEach(emit);
+    }
+
+  } else { // szkolenie → podgrupy per termin
+    const groups = new Map();
+    for (const r of recs){
+      const k = szkLabel(r.Szkolenie) || '— bez szkolenia';
+      if (!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(r);
+    }
+    for (const k of [...groups.keys()].sort((a,b) => a.localeCompare(b,'pl'))){
+      const rows = groups.get(k);
+      const dni = rows.reduce((s,r) => s + (Number(r.Dni) || 0), 0);
+      html += groupRowHtml(k, k, rows.length, dni);
+      if (state.collapsed.has(k)) continue;
+      // podgrupy per termin
+      const subs = new Map();
+      for (const r of rows){
+        const t = state.term.get(r.Termin);
+        const sk = t ? (t.Termin_Detail || t.termin) : '— bez terminu';
+        if (!subs.has(sk)) subs.set(sk, []);
+        subs.get(sk).push(r);
+      }
+      for (const sk of [...subs.keys()].sort((a,b) => a.localeCompare(b,'pl'))){
+        const srows = subs.get(sk).sort(byPrac);
+        html += subRowHtml(sk, srows.length);
+        srows.forEach(emit);
+      }
+    }
+  }
+
+  tbody.innerHTML = html;
+  if (fx){
+    let i = 0;
+    for (const tr of tbody.rows) tr.style.animationDelay = Math.min(i++ * 14, 280) + 'ms';
+    // bezpiecznik: gdy zegar animacji w iframe nie wystartuje (throttling),
+    // wiersze zostałyby na opacity:0 — po czasie animacji zdejmujemy efekt
+    clearTimeout(render._fxT);
+    render._fxT = setTimeout(() => tbody.classList.remove('fx'), 700);
+  }
+}
+
+/* ---------- events ---------- */
+
+document.getElementById('tbody').addEventListener('change', e => {
+  const el = e.target;
+  const id = Number(el.dataset.id);
+  const col = el.dataset.col;
+  if (!id || !col) return;
+
+  let value;
+  if (el.type === 'checkbox') value = el.checked;
+  else if (el.tagName === 'SELECT' && col !== 'Priorytet') value = Number(el.value);
+  else value = el.value;
+
+  const fields = { [col]: value };
+
+  // zmiana szkolenia unieważnia termin, jeśli nie pasuje do nowego szkolenia
+  if (col === 'Szkolenie'){
+    const rec = state.main.find(r => r.id === id);
+    const t = rec && state.term.get(rec.Termin);
+    if (!t || t.SzkolenieRef_id !== value) fields.Termin = 0;
+  }
+  updateRec(id, fields);
+});
+
+document.getElementById('tbody').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.type === 'text')
+    e.target.blur();
+});
+
+document.getElementById('tbody').addEventListener('focusout', () => {
+  if (reloadPending){ reloadPending = false; scheduleReload(); }
+});
+
+document.getElementById('tbody').addEventListener('click', e => {
+  const del = e.target.closest('[data-del]');
+  if (del){ delRec(Number(del.dataset.del)); return; }
+  const g = e.target.closest('tr.group');
+  if (g && !e.target.closest('input,select,button')){
+    const k = g.dataset.gkey;
+    state.collapsed.has(k) ? state.collapsed.delete(k) : state.collapsed.add(k);
+    render();
+  }
+});
+
+document.getElementById('groupSeg').addEventListener('click', e => {
+  const b = e.target.closest('button[data-g]');
+  if (!b) return;
+  state.groupBy = b.dataset.g;
+  state.collapsed.clear();
+  document.querySelectorAll('#groupSeg button')
+    .forEach(x => x.classList.toggle('on', x === b));
+  render(true);
+});
+
+document.getElementById('search').addEventListener('input', e => {
+  state.search = e.target.value;
+  render();
+});
+
+document.getElementById('addBtn').addEventListener('click', addRec);
+document.getElementById('refreshBtn').addEventListener('click', () => {
+  loadAll().then(() => toast('Odświeżono')).catch(() => toast('Błąd odświeżania', true));
+});
+
+/* ---------- init ---------- */
+
+grist.ready({ requiredAccess: 'full' });
+grist.onRecords(() => scheduleReload());
+
+loadAll().catch(err => {
+  console.error(err);
+  document.getElementById('tbody').innerHTML =
+    `<tr><td colspan="11"><div class="state-msg"><b>Nie udało się wczytać danych.</b><br>
+    Sprawdź, czy widget ma dostęp „pełny” (full access) i czy tabele Main / Pracownicy /
+    Baza_UnikatoweReczne / BazaTerminow są dostępne.</div></td></tr>`;
+});
+
+// PanelSterowania nie wyzwala onRecords dla Main u wszystkich — delikatny polling
+setInterval(() => { if (!document.hidden) scheduleReload(); }, 45000);
+</script>
+</body>
+</html>
