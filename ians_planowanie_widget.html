@@ -9,7 +9,7 @@
   :root{
     --bg:#ffffff; --bg2:#F7F8FA; --line:#E9EAEE; --line2:#F1F2F5;
     --txt:#1D1F24; --mut:#8A8F98; --mut2:#B4B8BF;
-    --kiero:#3B82F6; --dyr:#8B5CF6; --prezes:#10B981;
+    --kiero:#3B82F6; --dyr:#8B5CF6; --prezes:#10B981; --red:#DC2626;
     --kiero-bg:rgba(59,130,246,.055); --dyr-bg:rgba(139,92,246,.055); --prezes-bg:rgba(16,185,129,.06);
     --radius:10px;
     --shadow:0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
@@ -18,28 +18,24 @@
   html,body{height:100%;}
   body{
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-    font-size:13px; color:var(--txt); background:var(--bg2);
+    font-size:12.5px; color:var(--txt); background:var(--bg2);
     display:flex; flex-direction:column; overflow:hidden;
   }
 
   /* ---------- Toolbar ---------- */
   .toolbar{
-    flex:0 0 auto; display:flex; align-items:center; gap:14px; flex-wrap:wrap;
-    padding:10px 14px; background:var(--bg); border-bottom:1px solid var(--line);
+    flex:0 0 auto; display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    padding:9px 14px; background:var(--bg); border-bottom:1px solid var(--line);
   }
-  .brand{font-size:14px; font-weight:650; letter-spacing:-.01em; white-space:nowrap;}
-  .stagebar{
-    flex:0 0 auto; padding:7px 14px; background:var(--bg);
-    border-bottom:1px solid var(--line); overflow-x:auto;
-  }
-  .steps{display:flex; align-items:center; gap:4px;}
+  .brand{font-size:13.5px; font-weight:650; letter-spacing:-.01em; white-space:nowrap;}
+  .steps{display:flex; align-items:center; gap:3px; min-width:0; overflow:hidden;}
   .step{
     display:flex; align-items:center; gap:6px;
-    padding:4px 10px; border-radius:999px; color:var(--mut);
-    font-weight:500; white-space:nowrap; border:1px solid transparent;
+    padding:3px 9px; border-radius:999px; color:var(--mut);
+    font-weight:500; white-space:nowrap; border:1px solid transparent; font-size:12px;
     transition:background .2s ease, color .2s ease, border-color .2s ease;
   }
-  .step .dot{width:7px; height:7px; border-radius:50%; background:var(--mut2); transition:background .2s ease;}
+  .step .dot{width:6px; height:6px; border-radius:50%; background:var(--mut2); flex:0 0 auto; transition:background .2s ease;}
   .step.on{color:var(--txt); background:var(--bg2); border-color:var(--line); font-weight:600;}
   .step.on.s-kiero .dot{background:var(--kiero); --pc:59,130,246;}
   .step.on.s-dyr .dot{background:var(--dyr); --pc:139,92,246;}
@@ -53,17 +49,17 @@
   .spacer{flex:1;}
 
   input#search{
-    width:180px; padding:6px 12px; border:1px solid var(--line);
+    width:150px; padding:5px 11px; border:1px solid var(--line);
     border-radius:8px; font:inherit; background:var(--bg); outline:none;
     transition:border-color .18s ease, box-shadow .18s ease, width .22s cubic-bezier(.2,.7,.3,1);
   }
   input#search:hover{background:var(--bg);}
-  input#search:focus{width:240px; border-color:var(--kiero); box-shadow:0 0 0 3px var(--kiero-bg);}
+  input#search:focus{width:210px; border-color:var(--kiero); box-shadow:0 0 0 3px var(--kiero-bg);}
 
   .seg{display:flex; background:var(--bg2); border:1px solid var(--line); border-radius:8px; padding:2px;}
   .seg button{
-    border:0; background:transparent; font:inherit; color:var(--mut);
-    padding:4px 10px; border-radius:6px; cursor:pointer; white-space:nowrap; font-weight:500;
+    border:0; background:transparent; font:inherit; color:var(--mut); font-size:12px;
+    padding:3px 9px; border-radius:6px; cursor:pointer; white-space:nowrap; font-weight:500;
     transition:background .18s ease, color .18s ease, box-shadow .18s ease, transform .12s ease;
   }
   .seg button:hover:not(.on){color:var(--txt);}
@@ -73,31 +69,28 @@
   .btn{
     display:inline-flex; align-items:center; gap:6px;
     border:1px solid var(--line); background:var(--bg); color:var(--txt);
-    font:inherit; font-weight:550; padding:6px 12px; border-radius:8px; cursor:pointer;
+    font:inherit; font-weight:550; padding:5px 11px; border-radius:8px; cursor:pointer;
     transition:background .18s ease, opacity .18s ease, transform .12s ease, box-shadow .18s ease;
   }
   .btn:hover{background:var(--bg2);}
   .btn:active:not(:disabled){transform:scale(.96);}
-  .btn.primary{background:var(--txt); border-color:var(--txt); color:#fff;}
-  .btn.primary:hover{opacity:.88;}
   .btn:disabled{opacity:.4; cursor:not-allowed;}
-  .btn.icon{padding:6px 8px;}
+  .btn.icon{padding:5px 8px;}
+  .btn.danger{background:var(--red); border-color:var(--red); color:#fff;}
+  .btn.danger:hover{opacity:.88; background:var(--red);}
 
   /* ---------- Table ---------- */
-  .wrap{flex:1 1 auto; overflow:auto; padding:12px 14px 40px;}
+  .wrap{flex:1 1 auto; overflow:auto; padding:10px 14px 40px;}
   .card{background:var(--bg); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); overflow:visible; min-width:min-content;}
   table{border-collapse:separate; border-spacing:0; width:100%;}
   thead th{
     position:sticky; z-index:5; background:var(--bg);
-    font-size:11px; font-weight:600; color:var(--mut); text-align:left;
+    font-size:10.5px; font-weight:600; color:var(--mut); text-align:left;
     text-transform:uppercase; letter-spacing:.04em;
-    padding:7px 10px; border-bottom:1px solid var(--line); white-space:nowrap;
+    padding:6px 8px; border-bottom:1px solid var(--line); white-space:nowrap;
   }
-  thead tr.sections th{
-    top:0; font-size:11px; letter-spacing:.05em; border-bottom:1px solid var(--line2);
-    padding:8px 10px 4px;
-  }
-  thead tr.cols th{top:29px;}
+  thead tr.sections th{top:0; border-bottom:1px solid var(--line2); padding:7px 8px 3px;}
+  thead tr.cols th{top:26px;}
   th.sec-kiero{color:var(--kiero);} th.sec-dyr{color:var(--dyr);} th.sec-prezes{color:var(--prezes);}
   th .live{
     display:inline-block; margin-left:7px; padding:1px 7px; border-radius:999px;
@@ -106,14 +99,23 @@
   th.sec-kiero .live{background:var(--kiero-bg); color:var(--kiero);}
   th.sec-dyr .live{background:var(--dyr-bg); color:var(--dyr);}
   th.sec-prezes .live{background:var(--prezes-bg); color:var(--prezes);}
+  th.sortable{cursor:pointer; user-select:none;}
+  th.sortable:hover{color:var(--txt);}
+  th.sortable .arr{margin-left:4px; font-size:10px; opacity:0; transition:opacity .15s;}
+  th.sortable.sorted .arr{opacity:1; color:var(--kiero);}
+  th.selcol{width:30px; text-align:center; padding:6px 4px;}
 
   tbody td{
-    padding:5px 10px; border-bottom:1px solid var(--line2);
-    vertical-align:middle; background:var(--bg); height:44px;
+    padding:4px 8px; border-bottom:1px solid var(--line2);
+    vertical-align:middle; background:var(--bg);
     transition:background .14s ease;
   }
   tbody tr:hover td{background:#FBFBFC;}
   tbody tr:last-child td{border-bottom:0;}
+  td.selcol{width:30px; text-align:center; padding:4px;}
+  .rowsel{visibility:hidden; cursor:pointer; accent-color:var(--kiero);}
+  tbody tr:hover .rowsel, .rowsel:checked, tbody.has-sel .rowsel{visibility:visible;}
+  #selAll{cursor:pointer; accent-color:var(--kiero);}
 
   /* active-stage tint */
   td.on.c-kiero{background:var(--kiero-bg);}
@@ -123,85 +125,86 @@
   tbody tr:hover td.on.c-dyr{background:rgba(139,92,246,.09);}
   tbody tr:hover td.on.c-prezes{background:rgba(16,185,129,.09);}
 
-  /* glass pane on locked sections */
+  /* zablokowane sekcje: kontrolki nieaktywne, ale treść w pełni czytelna */
   td.off{position:relative;}
-  td.off > *{opacity:.5; filter:grayscale(.35); pointer-events:none;}
-  td.off::after{content:""; position:absolute; inset:0; background:rgba(247,248,250,.45); cursor:not-allowed;}
+  td.off > *{pointer-events:none;}
+  td.off input, td.off textarea, td.off select{color:var(--txt);}
+  td.off .switch{opacity:.75;}
+  td.off::after{content:""; position:absolute; inset:0; cursor:not-allowed;}
 
   /* group rows */
   tr.group td{
     background:var(--bg2); border-bottom:1px solid var(--line);
-    font-weight:650; font-size:12.5px; height:38px; cursor:pointer; user-select:none;
-    position:sticky; z-index:1;
+    font-weight:650; font-size:12px; height:34px; cursor:pointer; user-select:none;
   }
   tr.group td:hover{background:#F1F2F5;}
   tr.group .chev{display:inline-block; width:16px; color:var(--mut); transition:transform .12s; font-size:10px;}
   tr.group.collapsed .chev{transform:rotate(-90deg);}
-  tr.group .meta{margin-left:10px; color:var(--mut); font-weight:500; font-size:11.5px;}
+  tr.group .meta{margin-left:10px; color:var(--mut); font-weight:500; font-size:11px;}
   tr.sub td{
-    background:#FCFCFD; font-weight:600; font-size:12px; color:var(--mut);
-    height:32px; padding-left:34px; border-bottom:1px solid var(--line2);
+    background:#FCFCFD; font-weight:600; font-size:11.5px; color:var(--mut);
+    height:28px; padding-left:34px; border-bottom:1px solid var(--line2);
   }
   tr.sub .meta{margin-left:8px; font-weight:400;}
 
-  /* inputs */
-  select, input[type=text]{
-    width:100%; min-width:0; font:inherit; color:var(--txt);
-    border:1px solid transparent; background:transparent; border-radius:7px;
-    padding:5px 7px; outline:none; transition:border-color .12s, background .12s, box-shadow .12s;
+  /* wiersz "dodaj wpis" na dole gridu */
+  tr.addrow td{padding:0; background:var(--bg);}
+  .addline{
+    display:block; width:100%; text-align:left; border:0; background:transparent;
+    color:var(--mut); cursor:pointer; font:inherit; font-weight:550; padding:9px 12px;
+    transition:background .15s ease, color .15s ease;
   }
+  .addline:hover{background:var(--kiero-bg); color:var(--kiero);}
+
+  /* inputs */
+  select, input[type=text], textarea{
+    width:100%; min-width:0; font:inherit; color:var(--txt);
+    border:1px solid transparent; background:transparent; border-radius:6px;
+    padding:4px 6px; outline:none; transition:border-color .12s, background .12s, box-shadow .12s;
+  }
+  textarea{resize:none; overflow:hidden; line-height:1.4; display:block; field-sizing:content; min-height:26px;}
   select{cursor:pointer; appearance:none; -webkit-appearance:none;
     background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23B4B8BF' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat:no-repeat; background-position:right 7px center; padding-right:22px;
+    background-repeat:no-repeat; background-position:right 6px center; padding-right:20px;
   }
-  select:hover, input[type=text]:hover{background:rgba(255,255,255,.9); border-color:var(--line);}
-  select:focus, input[type=text]:focus{background:#fff; border-color:var(--kiero); box-shadow:0 0 0 3px var(--kiero-bg);}
+  select:hover, input[type=text]:hover, textarea:hover{background:rgba(255,255,255,.9); border-color:var(--line);}
+  select:focus, input[type=text]:focus, textarea:focus{background:#fff; border-color:var(--kiero); box-shadow:0 0 0 3px var(--kiero-bg);}
   select:disabled{color:var(--mut2); cursor:not-allowed; background-image:none;}
-  input::placeholder{color:var(--mut2);}
+  input::placeholder, textarea::placeholder{color:var(--mut2);}
   option{color:var(--txt);}
+  input[list]{text-overflow:ellipsis;}
 
+  .cellcol .sub{font-size:11px; color:var(--mut); margin-top:1px; padding-left:7px; white-space:nowrap;}
+  .cellcol .sub.online{color:var(--prezes); font-weight:600;}
   .empty-val{color:var(--mut2);}
 
   /* switch */
-  .switch{position:relative; display:inline-block; width:34px; height:20px; vertical-align:middle;}
+  .switch{position:relative; display:inline-block; width:32px; height:19px; vertical-align:middle;}
   .switch input{opacity:0; width:0; height:0; position:absolute;}
   .switch .track{
     position:absolute; inset:0; border-radius:999px; background:#DFE1E6;
     transition:background .2s ease; cursor:pointer;
   }
   .switch .track::before{
-    content:""; position:absolute; width:16px; height:16px; left:2px; top:2px;
+    content:""; position:absolute; width:15px; height:15px; left:2px; top:2px;
     border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.2);
     transition:transform .28s cubic-bezier(.34,1.4,.64,1);
   }
   .switch:active .track::before{transform:scale(.92);}
-  .switch:active input:checked + .track::before{transform:translateX(14px) scale(.92);}
+  .switch:active input:checked + .track::before{transform:translateX(13px) scale(.92);}
   .switch input:checked + .track{background:var(--prezes);}
   .switch.dyr input:checked + .track{background:var(--dyr);}
-  .switch input:checked + .track::before{transform:translateX(14px);}
+  .switch input:checked + .track::before{transform:translateX(13px);}
   .switch input:focus-visible + .track{box-shadow:0 0 0 3px var(--kiero-bg);}
 
   /* details cell */
   .detail{line-height:1.35; white-space:nowrap;}
   .detail .l1{font-weight:500;}
-  .detail .l2{font-size:11.5px; color:var(--mut);}
-
-  /* prio dot */
-  .prio-wrap{display:flex; align-items:center; gap:6px;}
-  .prio-dot{width:8px; height:8px; border-radius:50%; flex:0 0 auto;}
-
-  /* row tools */
-  td.rowno{width:34px; text-align:right; color:var(--mut2); font-size:11px; font-variant-numeric:tabular-nums; padding-right:6px;}
-  .del{
-    border:0; background:transparent; color:var(--mut2); cursor:pointer;
-    font-size:13px; border-radius:6px; width:22px; height:22px; line-height:1;
-    visibility:hidden;
-  }
-  tbody tr:hover .del{visibility:visible;}
-  .del:hover{color:#DC2626; background:rgba(220,38,38,.08);}
+  .detail .l2{font-size:11px; color:var(--mut);}
+  .cost-paid{color:var(--red); font-weight:650;}
 
   /* empty & loading */
-  .state-msg{padding:60px 20px; text-align:center; color:var(--mut);}
+  .state-msg{padding:50px 20px; text-align:center; color:var(--mut);}
   .state-msg b{color:var(--txt);}
 
   /* toast */
@@ -213,7 +216,7 @@
     z-index:50; box-shadow:0 4px 14px rgba(0,0,0,.18); max-width:80vw;
   }
   #toast.show{opacity:1; transform:translateX(-50%) translateY(0) scale(1);}
-  #toast.err{background:#DC2626;}
+  #toast.err{background:var(--red);}
 
   /* wejście wierszy (tylko przy załadowaniu / zmianie grupowania) */
   @keyframes rowIn{from{opacity:0; transform:translateY(5px);} to{opacity:1; transform:none;}}
@@ -240,10 +243,10 @@
 
 <div class="toolbar">
   <div class="brand">Planowanie szkoleń</div>
+  <div class="steps" id="steps"></div>
   <div class="spacer"></div>
-  <div class="search">
-    <input id="search" type="text" placeholder="Szukaj…">
-  </div>
+  <button class="btn danger" id="bulkDel" hidden>Usuń zaznaczone</button>
+  <input id="search" type="text" placeholder="Szukaj…">
   <div class="seg" id="groupSeg">
     <button data-g="none" class="on">Brak</button>
     <button data-g="komorka">Komórka</button>
@@ -253,11 +256,6 @@
   <button class="btn icon" id="refreshBtn" title="Odśwież">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.3"/><path d="M21 3v6h-6"/></svg>
   </button>
-  <button class="btn primary" id="addBtn">＋ Dodaj wpis</button>
-</div>
-
-<div class="stagebar">
-  <div class="steps" id="steps"></div>
 </div>
 
 <div class="wrap">
@@ -279,6 +277,7 @@
   </div>
 </div>
 
+<div id="datalists"></div>
 <div id="toast"></div>
 
 <script>
@@ -288,8 +287,10 @@
    Planowanie szkoleń — custom widget dla Grist
    Zapis przez applyUserActions; uprawnienia egzekwują Access Rules.
    Widget jedynie wizualnie akcentuje aktywny etap (PanelSterowania)
-   i nakłada "taflę szkła" na sekcje nieaktywne.
+   i blokuje kontrolki sekcji nieaktywnych (treść zostaje czytelna).
    ============================================================ */
+
+const REF_COLS = ['Pracownik', 'Szkolenie', 'Termin'];
 
 const state = {
   main: [],
@@ -298,15 +299,24 @@ const state = {
   term: new Map(),      // id -> rec BazaTerminow
   flags: { kiero:false, dyr:false, prezes:false },
   prioChoices: [],
-  prioColors: {},       // choice -> fillColor
   groupBy: 'none',
   collapsed: new Set(),
+  selected: new Set(),  // zaznaczone wiersze (checkboxy)
+  sort: null,           // {col, dir} | null (null = kolejność naturalna, nowe na dole)
   search: '',
   loaded: false,
+  // cache wydajnościowy — budowane raz przy załadowaniu danych
+  pracOpts: [], szkOpts: [],
+  termOptsBySzk: new Map(),   // szkolenieId -> [[id, termin], ...]
+  pracByLabel: new Map(), szkByLabel: new Map(),
+  termByKey: new Map(),       // "szkId|termin" -> terminId
+  lastMainJson: '',
+  suppressUntil: 0,           // okno ignorowania echa onRecords po własnym zapisie
 };
 
 let reloadPending = false;
 let reloadTimer = null;
+let searchTimer = null;
 
 /* ---------- utils ---------- */
 
@@ -335,10 +345,10 @@ const pracLabel = id => state.prac.get(id)?.Kom_Osoba || '';
 const pracKom   = id => state.prac.get(id)?.Komorka || '';
 const szkLabel  = id => state.szk.get(id)?.title_full || '';
 
-function termLabel(id){
-  const t = state.term.get(id);
-  if (!t) return '';
-  return t.termin + (t.lokalizacja ? ' · ' + t.lokalizacja : '');
+// termin ważny tylko, gdy należy do wybranego szkolenia (odpowiednik Termin_Cleared)
+function validTermin(rec){
+  const t = state.term.get(rec.Termin);
+  return (t && t.SzkolenieRef_id === rec.Szkolenie) ? t : null;
 }
 
 /* ---------- data loading ---------- */
@@ -352,26 +362,76 @@ async function loadAll(){
     api.fetchTable('BazaTerminow'),
   ]);
   state.main = colToRecs(main);
+  state.lastMainJson = JSON.stringify(main);
   state.prac = new Map(colToRecs(prac).map(r => [r.id, r]));
   state.szk  = new Map(colToRecs(szk).map(r => [r.id, r]));
   state.term = new Map(colToRecs(term).map(r => [r.id, r]));
+  buildOpts();
+  await loadFlags();
+  if (!state.prioChoices.length) await loadPrioChoices();
+  const firstLoad = !state.loaded;
+  state.loaded = true;
+  render(firstLoad);
+}
 
-  // Flagi etapów: najpierw PanelSterowania, w razie braku dostępu — kolumny formułowe z Main.
+async function loadFlags(){
   let f = null;
   try {
-    const p = colToRecs(await api.fetchTable('PanelSterowania'))[0];
+    const p = colToRecs(await grist.docApi.fetchTable('PanelSterowania'))[0];
     if (p) f = { kiero: !!p.EdycjaKiero, dyr: !!p.AkceptacjaDyr, prezes: !!p.AkceptacjaPrezes };
   } catch (e) { /* brak dostępu do panelu — fallback niżej */ }
   if (!f && state.main.length){
     const m = state.main[0];
     f = { kiero: !!m.EdycjaKiero, dyr: !!m.AkceptacjaDyr, prezes: !!m.AkceptacjaPrezes };
   }
+  const changed = f && JSON.stringify(f) !== JSON.stringify(state.flags);
   if (f) state.flags = f;
+  return changed;
+}
 
-  if (!state.prioChoices.length) await loadPrioChoices();
-  const firstLoad = !state.loaded;
-  state.loaded = true;
-  render(firstLoad);
+// listy opcji, mapy label->id i wspólne <datalist> — raz, nie per komórka
+function buildOpts(){
+  const byLabel = (a,b) => a[1].localeCompare(b[1], 'pl');
+  state.pracOpts = [...state.prac.values()].map(p => [p.id, p.Kom_Osoba]).sort(byLabel);
+  state.szkOpts  = [...state.szk.values()].map(s => [s.id, s.title_full]).sort(byLabel);
+  state.pracByLabel = new Map(state.pracOpts.map(([id,l]) => [l, id]));
+  state.szkByLabel  = new Map(state.szkOpts.map(([id,l]) => [l, id]));
+
+  state.termOptsBySzk = new Map();
+  state.termByKey = new Map();
+  for (const t of state.term.values()){
+    const k = t.SzkolenieRef_id;
+    if (!k) continue;
+    if (!state.termOptsBySzk.has(k)) state.termOptsBySzk.set(k, []);
+    state.termOptsBySzk.get(k).push([t.id, t.termin || '']);
+    const key = k + '|' + (t.termin || '');
+    if (!state.termByKey.has(key)) state.termByKey.set(key, t.id);
+  }
+  for (const list of state.termOptsBySzk.values()) list.sort(byLabel);
+
+  let dl = `<datalist id="dl-prac">${state.pracOpts.map(([,l]) => `<option value="${esc(l)}">`).join('')}</datalist>`;
+  dl += `<datalist id="dl-szk">${state.szkOpts.map(([,l]) => `<option value="${esc(l)}">`).join('')}</datalist>`;
+  for (const [szkId, list] of state.termOptsBySzk){
+    dl += `<datalist id="dl-term-${szkId}">${list.map(([tid, label]) => {
+      const t = state.term.get(tid);
+      return `<option value="${esc(label)}" label="${esc(t.lokalizacja || '')}">`;
+    }).join('')}</datalist>`;
+  }
+  document.getElementById('datalists').innerHTML = dl;
+}
+
+// lekki refetch: tylko Main + flagi etapów (słowniki dociąga loadAll)
+async function loadMain(){
+  const main = await grist.docApi.fetchTable('Main');
+  const flagsChanged = await loadFlags();
+  const j = JSON.stringify(main);
+  if (j === state.lastMainJson && !flagsChanged) return;  // nic się nie zmieniło
+  state.lastMainJson = j;
+  state.main = colToRecs(main);
+  // wyczyść zaznaczenia wierszy, które zniknęły
+  state.selected = new Set([...state.selected].filter(id => state.main.some(r => r.id === id)));
+  updateBulkBtn();
+  render();
 }
 
 async function loadPrioChoices(){
@@ -382,35 +442,60 @@ async function loadPrioChoices(){
     const col = cols.find(c => c.parentId === mainT.id && c.colId === 'Priorytet');
     const wo = JSON.parse(col.widgetOptions || '{}');
     state.prioChoices = wo.choices || [];
-    const co = wo.choiceOptions || {};
-    for (const k of Object.keys(co)) state.prioColors[k] = co[k].fillColor || '';
   } catch (e) { /* metadane niedostępne */ }
-  // dołóż wartości występujące w danych, gdyby metadane były niepełne
   for (const r of state.main){
     if (r.Priorytet && !state.prioChoices.includes(r.Priorytet)) state.prioChoices.push(r.Priorytet);
   }
 }
 
 function scheduleReload(){
+  // echo własnego zapisu — stan lokalny jest już aktualny, nie refetchuj
+  if (Date.now() < state.suppressUntil) return;
   // nie przerywaj użytkownikowi w trakcie pisania
   const ae = document.activeElement;
-  if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'SELECT') && ae.closest('#tbody')){
+  if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'SELECT' || ae.tagName === 'TEXTAREA') && ae.closest('#tbody')){
     reloadPending = true;
     return;
   }
   clearTimeout(reloadTimer);
-  reloadTimer = setTimeout(() => loadAll().catch(console.error), 150);
+  reloadTimer = setTimeout(() => loadMain().catch(console.error), 150);
 }
 
 /* ---------- writes ---------- */
 
+// podmienia tylko jeden wiersz zamiast przebudowywać całą tabelę
+function rerenderRow(id){
+  const tr = document.querySelector(`#tbody tr[data-id="${id}"]`);
+  const rec = state.main.find(r => r.id === id);
+  if (!tr || !rec){ render(); return; }
+  const tmp = document.createElement('tbody');
+  tmp.innerHTML = rowHtml(rec);
+  const fresh = tmp.firstElementChild;
+  tr.replaceWith(fresh);
+  fitTextareas(fresh);
+}
+
 async function updateRec(id, fields){
   const rec = state.main.find(r => r.id === id);
   const prev = rec ? { ...rec } : null;
-  if (rec) Object.assign(rec, fields);   // optymistycznie
-  render();
+  if (rec){
+    Object.assign(rec, fields);   // optymistycznie
+    // lokalna aktualizacja Szczegółów (serwer policzy formuły, my nie czekamy)
+    if ('Termin' in fields || 'Szkolenie' in fields){
+      const t = validTermin(rec);
+      rec.Lokalizacja = t ? t.lokalizacja : '';
+      rec.Dni = t ? t.dni_robocze : 0;
+      rec.Koszt = t ? (t.koszt || '') : '';
+    }
+  }
+  // pełny render tylko, gdy edycja zmienia przypisanie do grupy lub sortowanie
+  const structural =
+    (state.groupBy !== 'none' && REF_COLS.some(c => c in fields)) ||
+    (state.sort && state.sort.col in fields);
+  structural ? render() : rerenderRow(id);
   try {
     await grist.docApi.applyUserActions([['UpdateRecord', 'Main', id, fields]]);
+    state.suppressUntil = Date.now() + 2500;
     toast('Zapisano');
   } catch (e) {
     if (rec && prev) Object.assign(rec, prev);
@@ -423,21 +508,32 @@ async function addRec(){
   try {
     await grist.docApi.applyUserActions([['AddRecord', 'Main', null, {}]]);
     toast('Dodano wpis');
-    loadAll().catch(console.error);
+    loadMain().catch(console.error);
   } catch (e) {
     toast('Nie udało się dodać wpisu', true);
   }
 }
 
-async function delRec(id){
-  if (!confirm('Usunąć ten wpis planu?')) return;
+async function delSelected(){
+  const ids = [...state.selected];
+  if (!ids.length) return;
+  if (!confirm(`Usunąć ${ids.length} ${ids.length === 1 ? 'wpis' : (ids.length < 5 ? 'wpisy' : 'wpisów')}?`)) return;
   try {
-    await grist.docApi.applyUserActions([['RemoveRecord', 'Main', id]]);
+    await grist.docApi.applyUserActions([['BulkRemoveRecord', 'Main', ids]]);
+    state.selected.clear();
+    updateBulkBtn();
     toast('Usunięto');
-    loadAll().catch(console.error);
+    loadMain().catch(console.error);
   } catch (e) {
     toast('Nie udało się usunąć', true);
   }
+}
+
+function updateBulkBtn(){
+  const b = document.getElementById('bulkDel');
+  b.hidden = state.selected.size === 0;
+  b.textContent = `Usuń zaznaczone (${state.selected.size})`;
+  document.getElementById('tbody').classList.toggle('has-sel', state.selected.size > 0);
 }
 
 /* ---------- rendering ---------- */
@@ -445,80 +541,72 @@ async function delRec(id){
 function renderSteps(){
   const f = state.flags;
   const items = [
-    { k:'kiero',  t:'Kierownicy planują szkolenia pracowników',    on:f.kiero },
-    { k:'dyr',    t:'Dyrektorzy akceptują zaproponowane szkolenia', on:f.dyr },
-    { k:'prezes', t:'Prezesi zatwierdzają uczestnictwo',            on:f.prezes },
+    { k:'kiero',  full:'Kierownicy planują szkolenia pracowników',     short:'Kierownicy',  on:f.kiero },
+    { k:'dyr',    full:'Dyrektorzy akceptują zaproponowane szkolenia', short:'Dyrektorzy',  on:f.dyr },
+    { k:'prezes', full:'Prezesi zatwierdzają uczestnictwo',            short:'Prezesi',     on:f.prezes },
   ];
   document.getElementById('steps').innerHTML = items.map((s,i) =>
     (i ? '<span class="step-arrow">›</span>' : '') +
-    `<span class="step s-${s.k}${s.on ? ' on' : ''}"><span class="dot"></span>${s.t}</span>`
+    `<span class="step s-${s.k}${s.on ? ' on' : ''}" title="${esc(s.full)}">
+      <span class="dot"></span>${esc(s.on ? s.full : s.short)}</span>`
   ).join('');
-  const add = document.getElementById('addBtn');
-  add.disabled = !f.kiero;
-  add.title = f.kiero ? '' : 'Dodawanie możliwe tylko w etapie planowania';
 }
 
 function renderHead(){
   const f = state.flags;
   const live = ' <span class="live">aktywny etap</span>';
   document.getElementById('secRow').innerHTML =
-    `<th></th>` +
+    `<th class="selcol"></th>` +
     `<th colspan="5" class="sec-kiero">Planowanie Kierowników${f.kiero ? live : ''}</th>` +
     `<th></th>` +
     `<th colspan="2" class="sec-dyr">Akceptacja Dyrektorów${f.dyr ? live : ''}</th>` +
     `<th colspan="2" class="sec-prezes">Zatwierdzenie Prezesów${f.prezes ? live : ''}</th>`;
-  document.getElementById('colRow').innerHTML =
-    `<th></th>
-     <th style="min-width:200px">Pracownik</th>
-     <th style="min-width:220px">Szkolenie</th>
-     <th style="min-width:170px">Termin</th>
-     <th style="min-width:110px">Priorytet</th>
-     <th style="min-width:200px">Uzasadnienie</th>
-     <th style="min-width:190px">Szczegóły</th>
-     <th style="width:70px">Akcept.</th>
-     <th style="min-width:180px">Komentarz</th>
-     <th style="width:70px">Zatw.</th>
-     <th style="min-width:180px">Komentarz</th>`;
-}
 
-function optionsHtml(list, current, emptyLabel){
-  let html = `<option value="0"${!current ? ' selected' : ''}>${esc(emptyLabel)}</option>`;
-  let found = !current;
-  for (const [id, label] of list){
-    const sel = id === current;
-    if (sel) found = true;
-    html += `<option value="${id}"${sel ? ' selected' : ''}>${esc(label)}</option>`;
-  }
-  if (!found && current)
-    html += `<option value="${current}" selected>(rekord #${current})</option>`;
-  return html;
+  const sortTh = (col, label, w) => {
+    const sorted = state.sort && state.sort.col === col;
+    const arr = sorted ? (state.sort.dir > 0 ? '↑' : '↓') : '↑';
+    return `<th class="sortable${sorted ? ' sorted' : ''}" data-sortcol="${col}"
+      style="min-width:${w}px" title="Sortuj">${label}<span class="arr">${arr}</span></th>`;
+  };
+  document.getElementById('colRow').innerHTML =
+    `<th class="selcol"><input type="checkbox" id="selAll" title="Zaznacz wszystkie"></th>
+     ${sortTh('Pracownik', 'Pracownik', 170)}
+     ${sortTh('Szkolenie', 'Szkolenie', 180)}
+     ${sortTh('Termin', 'Termin', 110)}
+     <th style="min-width:90px">Priorytet</th>
+     <th style="min-width:180px">Uzasadnienie</th>
+     <th style="min-width:170px">Szczegóły</th>
+     <th style="width:60px">Akcept.</th>
+     <th style="min-width:150px">Komentarz</th>
+     <th style="width:60px">Zatw.</th>
+     <th style="min-width:150px">Komentarz</th>`;
 }
 
 function cellPracownik(r, on){
-  const list = [...state.prac.values()]
-    .map(p => [p.id, p.Kom_Osoba])
-    .sort((a,b) => a[1].localeCompare(b[1], 'pl'));
-  return `<select data-id="${r.id}" data-col="Pracownik" ${on ? '' : 'disabled'}>
-    ${optionsHtml(list, r.Pracownik, '— wybierz —')}</select>`;
+  return `<input type="text" data-id="${r.id}" data-col="Pracownik" list="dl-prac"
+    value="${esc(pracLabel(r.Pracownik))}" placeholder="— wybierz —"
+    title="${esc(pracLabel(r.Pracownik))}" ${on ? '' : 'disabled'}>`;
 }
 
 function cellSzkolenie(r, on){
-  const list = [...state.szk.values()]
-    .map(s => [s.id, s.title_full])
-    .sort((a,b) => a[1].localeCompare(b[1], 'pl'));
-  return `<select data-id="${r.id}" data-col="Szkolenie" ${on ? '' : 'disabled'}>
-    ${optionsHtml(list, r.Szkolenie, '— wybierz —')}</select>`;
+  const label = szkLabel(r.Szkolenie);
+  const t = validTermin(r);
+  const skrot = t && t.course_id ? t.course_id : '';
+  return `<div class="cellcol">
+    <input type="text" data-id="${r.id}" data-col="Szkolenie" list="dl-szk"
+      value="${esc(label)}" placeholder="— wybierz —" title="${esc(label)}" ${on ? '' : 'disabled'}>
+    ${skrot ? `<div class="sub">${esc(skrot)}</div>` : ''}</div>`;
 }
 
 function cellTermin(r, on){
-  const list = [...state.term.values()]
-    .filter(t => t.SzkolenieRef_id === r.Szkolenie && r.Szkolenie)
-    .map(t => [t.id, termLabel(t.id)])
-    .sort((a,b) => a[1].localeCompare(b[1], 'pl'));
+  const t = validTermin(r);
   const dis = !on || !r.Szkolenie;
-  const empty = r.Szkolenie ? '— wybierz —' : 'najpierw szkolenie';
-  return `<select data-id="${r.id}" data-col="Termin" ${dis ? 'disabled' : ''}>
-    ${optionsHtml(list, r.Termin, empty)}</select>`;
+  const loc = t ? (t.lokalizacja || '') : '';
+  return `<div class="cellcol">
+    <input type="text" data-id="${r.id}" data-col="Termin" list="dl-term-${r.Szkolenie || 0}"
+      value="${esc(t ? t.termin : '')}" placeholder="${r.Szkolenie ? '— termin —' : 'najpierw szkolenie'}"
+      ${dis ? 'disabled' : ''}>
+    ${loc ? `<div class="sub${/online|zdaln/i.test(loc) ? ' online' : ''}">${esc(loc)}</div>` : ''}</div>`;
 }
 
 function cellPriorytet(r, on){
@@ -530,15 +618,13 @@ function cellPriorytet(r, on){
     html += `<option value="${esc(c)}"${sel ? ' selected' : ''}>${esc(c)}</option>`;
   }
   if (!found) html += `<option value="${esc(r.Priorytet)}" selected>${esc(r.Priorytet)}</option>`;
-  const color = state.prioColors[r.Priorytet];
-  const dot = r.Priorytet
-    ? `<span class="prio-dot" style="background:${color || 'var(--mut2)'}"></span>` : '';
-  return `<div class="prio-wrap">${dot}<select data-id="${r.id}" data-col="Priorytet" ${on ? '' : 'disabled'}>${html}</select></div>`;
+  return `<select data-id="${r.id}" data-col="Priorytet" ${on ? '' : 'disabled'}>${html}</select>`;
 }
 
+// textarea: zawija tekst, Shift+Enter = nowa linia, Enter = zapis
 function cellText(r, col, on, ph){
-  return `<input type="text" data-id="${r.id}" data-col="${col}"
-    value="${esc(r[col])}" placeholder="${esc(ph)}" ${on ? '' : 'disabled'}>`;
+  return `<textarea rows="1" data-id="${r.id}" data-col="${col}"
+    placeholder="${esc(ph)}" ${on ? '' : 'disabled'}>${esc(r[col])}</textarea>`;
 }
 
 function cellSwitch(r, col, on, cls){
@@ -548,26 +634,31 @@ function cellSwitch(r, col, on, cls){
 }
 
 function cellDetail(r){
-  const t = state.term.get(r.Termin);
-  const l1 = t ? (t.Termin_Detail || t.termin || '') : '';
-  const parts = [];
-  if (r.Lokalizacja) parts.push(r.Lokalizacja);
-  if (r.Dni) parts.push(r.Dni + ' dn.');
-  if (r.Koszt) parts.push(r.Koszt);
-  if (!l1 && !parts.length) return '<span class="empty-val">—</span>';
+  const t = validTermin(r);
+  const l1 = [];
+  if (t){
+    if (t.Termin_Detail || t.termin) l1.push(t.Termin_Detail || t.termin);
+    if (t.termin_dt) l1.push(t.termin_dt);          // godziny od-do
+  }
+  const l2 = [];
+  if (r.Dni) l2.push(esc(r.Dni + ' dn.'));
+  if (r.Koszt){
+    const paid = !/bezkoszt/i.test(r.Koszt);
+    l2.push(`<span class="${paid ? 'cost-paid' : ''}">${esc(r.Koszt)}</span>`);
+  }
+  if (!l1.length && !l2.length) return '<span class="empty-val">—</span>';
   return `<div class="detail">
-    <div class="l1">${esc(l1) || '&nbsp;'}</div>
-    <div class="l2">${esc(parts.join(' · '))}</div></div>`;
+    <div class="l1">${esc(l1.join(' · ')) || '&nbsp;'}</div>
+    <div class="l2">${l2.join(' · ')}</div></div>`;
 }
 
-function rowHtml(r, idx){
+function rowHtml(r){
   const f = state.flags;
   const k = f.kiero, d = f.dyr, p = f.prezes;
   const cls = (sec, on) => `class="c-${sec} ${on ? 'on' : 'off'}"`;
   return `<tr data-id="${r.id}">
-    <td class="rowno">${f.kiero
-      ? `<button class="del" data-del="${r.id}" title="Usuń wpis">✕</button>`
-      : (idx + 1)}</td>
+    <td class="selcol"><input type="checkbox" class="rowsel" data-selid="${r.id}"
+      ${state.selected.has(r.id) ? 'checked' : ''}></td>
     <td ${cls('kiero',k)}>${cellPracownik(r,k)}</td>
     <td ${cls('kiero',k)}>${cellSzkolenie(r,k)}</td>
     <td ${cls('kiero',k)}>${cellTermin(r,k)}</td>
@@ -581,17 +672,22 @@ function rowHtml(r, idx){
   </tr>`;
 }
 
-function groupRowHtml(key, label, count, dni){
+function groupRowHtml(key, label, count){
   const collapsed = state.collapsed.has(key);
-  const dniTxt = dni ? ` · ${Math.round(dni * 10) / 10} dni szkol.` : '';
   return `<tr class="group${collapsed ? ' collapsed' : ''}" data-gkey="${esc(key)}">
     <td colspan="11"><span class="chev">▾</span>${esc(label)}
-    <span class="meta">${count} ${count === 1 ? 'wpis' : (count < 5 ? 'wpisy' : 'wpisów')}${dniTxt}</span></td></tr>`;
+    <span class="meta">${count} ${count === 1 ? 'wpis' : (count < 5 ? 'wpisy' : 'wpisów')}</span></td></tr>`;
 }
 
 function subRowHtml(label, count){
   return `<tr class="sub"><td colspan="11">${esc(label)}
     <span class="meta">· ${count} os.</span></td></tr>`;
+}
+
+function addRowHtml(){
+  if (!state.flags.kiero) return '';
+  return `<tr class="addrow"><td colspan="11">
+    <button class="addline" id="addLine">＋ Dodaj wpis</button></td></tr>`;
 }
 
 function filteredRecords(){
@@ -608,11 +704,38 @@ function filteredRecords(){
   return recs;
 }
 
+function sortKey(r, col){
+  if (col === 'Pracownik') return pracLabel(r.Pracownik);
+  if (col === 'Szkolenie') return szkLabel(r.Szkolenie);
+  if (col === 'Termin'){ const t = validTermin(r); return t ? (t.termin || '') : ''; }
+  return '';
+}
+
+// bez sortowania: kolejność naturalna (nowe wpisy zostają na dole)
+function cmpRecs(a, b){
+  if (!state.sort) return a.id - b.id;
+  const {col, dir} = state.sort;
+  return sortKey(a, col).localeCompare(sortKey(b, col), 'pl') * dir || (a.id - b.id);
+}
+
+// przeglądarki z field-sizing:content (Chrome/Edge 123+) rosną same, bez JS;
+// fallback robi zapisy i odczyty wsadowo (1 reflow zamiast jednego na textarea)
+const FIELD_SIZING = typeof CSS !== 'undefined' && CSS.supports && CSS.supports('field-sizing', 'content');
+function fitTextareas(scope){
+  if (FIELD_SIZING) return;
+  const tas = [...scope.querySelectorAll('textarea')];
+  if (!tas.length) return;
+  for (const ta of tas) ta.style.height = 'auto';
+  const hs = tas.map(ta => ta.scrollHeight);
+  tas.forEach((ta, i) => ta.style.height = (hs[i] + 2) + 'px');
+}
+
 function render(fx){
   renderSteps();
   renderHead();
   const tbody = document.getElementById('tbody');
   tbody.classList.toggle('fx', !!fx);
+  tbody.classList.toggle('has-sel', state.selected.size > 0);
   const recs = filteredRecords();
 
   if (!recs.length){
@@ -621,17 +744,15 @@ function render(fx){
         '<b>Brak wpisów.</b><br>' + (state.flags.kiero
           ? 'Kliknij „Dodaj wpis”, aby rozpocząć planowanie.'
           : 'Wpisy pojawią się po rozpoczęciu etapu planowania.')}
-    </div></td></tr>`;
+    </div></td></tr>` + addRowHtml();
     return;
   }
 
-  const byPrac = (a,b) => pracLabel(a.Pracownik).localeCompare(pracLabel(b.Pracownik), 'pl');
   let html = '';
-  let idx = 0;
-  const emit = r => { html += rowHtml(r, idx++); };
+  const emit = r => { html += rowHtml(r); };
 
   if (state.groupBy === 'none'){
-    recs.sort(byPrac).forEach(emit);
+    recs.sort(cmpRecs).forEach(emit);
 
   } else if (state.groupBy === 'komorka' || state.groupBy === 'pracownik'){
     const keyFn = state.groupBy === 'komorka'
@@ -644,9 +765,8 @@ function render(fx){
       groups.get(k).push(r);
     }
     for (const k of [...groups.keys()].sort((a,b) => a.localeCompare(b,'pl'))){
-      const rows = groups.get(k).sort(byPrac);
-      const dni = rows.reduce((s,r) => s + (Number(r.Dni) || 0), 0);
-      html += groupRowHtml(k, k, rows.length, dni);
+      const rows = groups.get(k).sort(cmpRecs);
+      html += groupRowHtml(k, k, rows.length);
       if (!state.collapsed.has(k)) rows.forEach(emit);
     }
 
@@ -659,26 +779,25 @@ function render(fx){
     }
     for (const k of [...groups.keys()].sort((a,b) => a.localeCompare(b,'pl'))){
       const rows = groups.get(k);
-      const dni = rows.reduce((s,r) => s + (Number(r.Dni) || 0), 0);
-      html += groupRowHtml(k, k, rows.length, dni);
+      html += groupRowHtml(k, k, rows.length);
       if (state.collapsed.has(k)) continue;
-      // podgrupy per termin
       const subs = new Map();
       for (const r of rows){
-        const t = state.term.get(r.Termin);
+        const t = validTermin(r);
         const sk = t ? (t.Termin_Detail || t.termin) : '— bez terminu';
         if (!subs.has(sk)) subs.set(sk, []);
         subs.get(sk).push(r);
       }
       for (const sk of [...subs.keys()].sort((a,b) => a.localeCompare(b,'pl'))){
-        const srows = subs.get(sk).sort(byPrac);
+        const srows = subs.get(sk).sort(cmpRecs);
         html += subRowHtml(sk, srows.length);
         srows.forEach(emit);
       }
     }
   }
 
-  tbody.innerHTML = html;
+  tbody.innerHTML = html + addRowHtml();
+  fitTextareas(tbody);
   if (fx){
     let i = 0;
     for (const tr of tbody.rows) tr.style.animationDelay = Math.min(i++ * 14, 280) + 'ms';
@@ -691,31 +810,80 @@ function render(fx){
 
 /* ---------- events ---------- */
 
+// mapowanie tekstu z comboboxa na id rekordu; undefined = nie znaleziono
+function resolveRef(col, txt, rec){
+  if (!txt) return 0;
+  if (col === 'Pracownik') return state.pracByLabel.get(txt);
+  if (col === 'Szkolenie') return state.szkByLabel.get(txt);
+  if (col === 'Termin')    return state.termByKey.get(rec.Szkolenie + '|' + txt);
+}
+
+function refLabel(col, rec){
+  if (col === 'Pracownik') return pracLabel(rec.Pracownik);
+  if (col === 'Szkolenie') return szkLabel(rec.Szkolenie);
+  if (col === 'Termin'){ const t = validTermin(rec); return t ? t.termin : ''; }
+  return '';
+}
+
 document.getElementById('tbody').addEventListener('change', e => {
   const el = e.target;
+
+  // zaznaczanie wierszy
+  if (el.classList.contains('rowsel')){
+    const id = Number(el.dataset.selid);
+    el.checked ? state.selected.add(id) : state.selected.delete(id);
+    updateBulkBtn();
+    return;
+  }
+
   const id = Number(el.dataset.id);
   const col = el.dataset.col;
   if (!id || !col) return;
+  const rec = state.main.find(r => r.id === id);
+  if (!rec) return;
 
   let value;
-  if (el.type === 'checkbox') value = el.checked;
-  else if (el.tagName === 'SELECT' && col !== 'Priorytet') value = Number(el.value);
-  else value = el.value;
+  if (el.type === 'checkbox'){
+    value = el.checked;
+  } else if (REF_COLS.includes(col)){
+    value = resolveRef(col, el.value.trim(), rec);
+    if (value === undefined){
+      el.value = refLabel(col, rec);           // przywróć poprzednią wartość
+      toast('Nie znaleziono takiej pozycji na liście', true);
+      return;
+    }
+    if (value === (rec[col] || 0)) { el.value = refLabel(col, rec); return; }
+  } else {
+    value = el.value;
+    if (value === (rec[col] || '')) return;
+  }
 
   const fields = { [col]: value };
 
   // zmiana szkolenia unieważnia termin, jeśli nie pasuje do nowego szkolenia
   if (col === 'Szkolenie'){
-    const rec = state.main.find(r => r.id === id);
-    const t = rec && state.term.get(rec.Termin);
+    const t = state.term.get(rec.Termin);
     if (!t || t.SzkolenieRef_id !== value) fields.Termin = 0;
   }
   updateRec(id, fields);
 });
 
 document.getElementById('tbody').addEventListener('keydown', e => {
-  if (e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.type === 'text')
-    e.target.blur();
+  if (e.key !== 'Enter') return;
+  const el = e.target;
+  if (el.tagName === 'TEXTAREA'){
+    if (e.shiftKey) return;          // Shift+Enter = nowa linia
+    e.preventDefault(); el.blur();   // Enter = zapis
+  } else if (el.tagName === 'INPUT' && el.type === 'text'){
+    el.blur();
+  }
+});
+
+document.getElementById('tbody').addEventListener('input', e => {
+  if (e.target.tagName === 'TEXTAREA' && !FIELD_SIZING){
+    e.target.style.height = 'auto';
+    e.target.style.height = (e.target.scrollHeight + 2) + 'px';
+  }
 });
 
 document.getElementById('tbody').addEventListener('focusout', () => {
@@ -723,14 +891,33 @@ document.getElementById('tbody').addEventListener('focusout', () => {
 });
 
 document.getElementById('tbody').addEventListener('click', e => {
-  const del = e.target.closest('[data-del]');
-  if (del){ delRec(Number(del.dataset.del)); return; }
+  if (e.target.closest('#addLine')){ addRec(); return; }
   const g = e.target.closest('tr.group');
-  if (g && !e.target.closest('input,select,button')){
+  if (g && !e.target.closest('input,select,button,textarea')){
     const k = g.dataset.gkey;
     state.collapsed.has(k) ? state.collapsed.delete(k) : state.collapsed.add(k);
     render();
   }
+});
+
+// sortowanie po kliknięciu nagłówka: rosnąco → malejąco → wyłączone
+document.getElementById('colRow').addEventListener('click', e => {
+  const th = e.target.closest('th.sortable');
+  if (!th) return;
+  const col = th.dataset.sortcol;
+  if (!state.sort || state.sort.col !== col) state.sort = { col, dir: 1 };
+  else if (state.sort.dir === 1) state.sort.dir = -1;
+  else state.sort = null;
+  render();
+});
+
+// zaznacz / odznacz wszystkie widoczne
+document.getElementById('colRow').addEventListener('change', e => {
+  if (e.target.id !== 'selAll') return;
+  if (e.target.checked) filteredRecords().forEach(r => state.selected.add(r.id));
+  else state.selected.clear();
+  updateBulkBtn();
+  render();
 });
 
 document.getElementById('groupSeg').addEventListener('click', e => {
@@ -744,11 +931,11 @@ document.getElementById('groupSeg').addEventListener('click', e => {
 });
 
 document.getElementById('search').addEventListener('input', e => {
-  state.search = e.target.value;
-  render();
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => { state.search = e.target.value; render(); }, 180);
 });
 
-document.getElementById('addBtn').addEventListener('click', addRec);
+document.getElementById('bulkDel').addEventListener('click', delSelected);
 document.getElementById('refreshBtn').addEventListener('click', () => {
   loadAll().then(() => toast('Odświeżono')).catch(() => toast('Błąd odświeżania', true));
 });
