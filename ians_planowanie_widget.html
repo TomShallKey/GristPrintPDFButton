@@ -125,6 +125,11 @@
   tbody tr:hover td.on.c-dyr{background:rgba(139,92,246,.09);}
   tbody tr:hover td.on.c-prezes{background:rgba(16,185,129,.09);}
 
+  /* zielony obwód aktywnej sekcji */
+  td.on.sec-l{box-shadow:inset 2.5px 0 0 rgba(16,185,129,.45);}
+  td.on.sec-r{box-shadow:inset -2.5px 0 0 rgba(16,185,129,.45);}
+  tr.sections th.sec-act{box-shadow:inset 0 -2px 0 rgba(16,185,129,.55);}
+
   /* zablokowane sekcje: kontrolki nieaktywne, ale treść w pełni czytelna */
   td.off{position:relative;}
   td.off > *{pointer-events:none;}
@@ -175,7 +180,7 @@
   input[list]{text-overflow:ellipsis;}
 
   .cellcol .sub{font-size:11px; color:var(--mut); margin-top:1px; padding-left:7px; white-space:nowrap;}
-  .cellcol .sub.online{color:var(--prezes); font-weight:600;}
+  .cellcol .sub.online, .cellcol .sub .online{color:var(--prezes); font-weight:600;}
   .empty-val{color:var(--mut2);}
 
   /* switch */
@@ -194,14 +199,12 @@
   .switch:active input:checked + .track::before{transform:translateX(13px) scale(.92);}
   .switch input:checked + .track{background:var(--prezes);}
   .switch.dyr input:checked + .track{background:var(--dyr);}
+  .switch.kiero input:checked + .track{background:var(--kiero);}
   .switch input:checked + .track::before{transform:translateX(13px);}
   .switch input:focus-visible + .track{box-shadow:0 0 0 3px var(--kiero-bg);}
 
-  /* details cell */
-  .detail{line-height:1.35; white-space:nowrap;}
-  .detail .l1{font-weight:500;}
-  .detail .l2{font-size:11px; color:var(--mut);}
   .cost-paid{color:var(--red); font-weight:650;}
+  .cost-free{color:var(--prezes); font-weight:650;}
 
   /* empty & loading */
   .state-msg{padding:50px 20px; text-align:center; color:var(--mut);}
@@ -249,6 +252,7 @@
   <input id="search" type="text" placeholder="Szukaj…">
   <div class="seg" id="groupSeg">
     <button data-g="none" class="on">Brak</button>
+    <button data-g="biuro">Biuro</button>
     <button data-g="komorka">Komórka</button>
     <button data-g="pracownik">Pracownik</button>
     <button data-g="szkolenie">Szkolenie</button>
@@ -266,7 +270,7 @@
         <tr class="cols" id="colRow"></tr>
       </thead>
       <tbody id="tbody">
-        <tr><td colspan="11" style="padding:18px 16px">
+        <tr><td colspan="10" style="padding:18px 16px">
           <div class="skel" style="width:62%"></div>
           <div class="skel" style="width:84%"></div>
           <div class="skel" style="width:71%"></div>
@@ -298,7 +302,6 @@ const state = {
   szk:  new Map(),      // id -> rec Baza_UnikatoweReczne
   term: new Map(),      // id -> rec BazaTerminow
   flags: { kiero:false, dyr:false, prezes:false },
-  prioChoices: [],
   groupBy: 'none',
   collapsed: new Set(),
   selected: new Set(),  // zaznaczone wiersze (checkboxy)
@@ -368,7 +371,6 @@ async function loadAll(){
   state.term = new Map(colToRecs(term).map(r => [r.id, r]));
   buildOpts();
   await loadFlags();
-  if (!state.prioChoices.length) await loadPrioChoices();
   const firstLoad = !state.loaded;
   state.loaded = true;
   render(firstLoad);
@@ -434,20 +436,6 @@ async function loadMain(){
   render();
 }
 
-async function loadPrioChoices(){
-  try {
-    const tables = colToRecs(await grist.docApi.fetchTable('_grist_Tables'));
-    const mainT = tables.find(t => t.tableId === 'Main');
-    const cols = colToRecs(await grist.docApi.fetchTable('_grist_Tables_column'));
-    const col = cols.find(c => c.parentId === mainT.id && c.colId === 'Priorytet');
-    const wo = JSON.parse(col.widgetOptions || '{}');
-    state.prioChoices = wo.choices || [];
-  } catch (e) { /* metadane niedostępne */ }
-  for (const r of state.main){
-    if (r.Priorytet && !state.prioChoices.includes(r.Priorytet)) state.prioChoices.push(r.Priorytet);
-  }
-}
-
 function scheduleReload(){
   // echo własnego zapisu — stan lokalny jest już aktualny, nie refetchuj
   if (Date.now() < state.suppressUntil) return;
@@ -478,16 +466,7 @@ function rerenderRow(id){
 async function updateRec(id, fields){
   const rec = state.main.find(r => r.id === id);
   const prev = rec ? { ...rec } : null;
-  if (rec){
-    Object.assign(rec, fields);   // optymistycznie
-    // lokalna aktualizacja Szczegółów (serwer policzy formuły, my nie czekamy)
-    if ('Termin' in fields || 'Szkolenie' in fields){
-      const t = validTermin(rec);
-      rec.Lokalizacja = t ? t.lokalizacja : '';
-      rec.Dni = t ? t.dni_robocze : 0;
-      rec.Koszt = t ? (t.koszt || '') : '';
-    }
-  }
+  if (rec) Object.assign(rec, fields);   // optymistycznie
   // pełny render tylko, gdy edycja zmienia przypisanie do grupy lub sortowanie
   const structural =
     (state.groupBy !== 'none' && REF_COLS.some(c => c in fields)) ||
@@ -557,10 +536,9 @@ function renderHead(){
   const live = ' <span class="live">aktywny etap</span>';
   document.getElementById('secRow').innerHTML =
     `<th class="selcol"></th>` +
-    `<th colspan="5" class="sec-kiero">Planowanie Kierowników${f.kiero ? live : ''}</th>` +
-    `<th></th>` +
-    `<th colspan="2" class="sec-dyr">Akceptacja Dyrektorów${f.dyr ? live : ''}</th>` +
-    `<th colspan="2" class="sec-prezes">Zatwierdzenie Prezesów${f.prezes ? live : ''}</th>`;
+    `<th colspan="5" class="sec-kiero${f.kiero ? ' sec-act' : ''}">Planowanie Kierowników${f.kiero ? live : ''}</th>` +
+    `<th colspan="2" class="sec-dyr${f.dyr ? ' sec-act' : ''}">Akceptacja Dyrektorów${f.dyr ? live : ''}</th>` +
+    `<th colspan="2" class="sec-prezes${f.prezes ? ' sec-act' : ''}">Zatwierdzenie Prezesów${f.prezes ? live : ''}</th>`;
 
   const sortTh = (col, label, w) => {
     const sorted = state.sort && state.sort.col === col;
@@ -571,11 +549,10 @@ function renderHead(){
   document.getElementById('colRow').innerHTML =
     `<th class="selcol"><input type="checkbox" id="selAll" title="Zaznacz wszystkie"></th>
      ${sortTh('Pracownik', 'Pracownik', 170)}
-     ${sortTh('Szkolenie', 'Szkolenie', 180)}
-     ${sortTh('Termin', 'Termin', 110)}
-     <th style="min-width:90px">Priorytet</th>
+     ${sortTh('Szkolenie', 'Szkolenie', 260)}
+     ${sortTh('Termin', 'Termin', 190)}
+     <th style="width:64px">Priorytet</th>
      <th style="min-width:180px">Uzasadnienie</th>
-     <th style="min-width:170px">Szczegóły</th>
      <th style="width:60px">Akcept.</th>
      <th style="min-width:150px">Komentarz</th>
      <th style="width:60px">Zatw.</th>
@@ -601,24 +578,25 @@ function cellSzkolenie(r, on){
 function cellTermin(r, on){
   const t = validTermin(r);
   const dis = !on || !r.Szkolenie;
-  const loc = t ? (t.lokalizacja || '') : '';
+  // druga linia: lokalizacja · dni tygodnia · liczba dni · koszt
+  const parts = [];
+  if (t){
+    const loc = t.lokalizacja || '';
+    if (loc) parts.push(`<span class="${/online|zdaln/i.test(loc) ? 'online' : ''}">${esc(loc)}</span>`);
+    const dniTyg = ((t.Termin_Detail || '').match(/\(([^)]+)\)\s*$/) || [])[1];
+    if (dniTyg) parts.push(esc(dniTyg));
+    if (t.dni_robocze) parts.push(esc(t.dni_robocze + ' dn.'));
+    if (t.koszt){
+      const free = /bezkoszt/i.test(t.koszt);
+      parts.push(`<span class="${free ? 'cost-free' : 'cost-paid'}">${esc(t.koszt)}</span>`);
+    }
+  }
+  const tip = t ? [t.Termin_Detail, t.termin_dt].filter(Boolean).join(' · ') : '';
   return `<div class="cellcol">
     <input type="text" data-id="${r.id}" data-col="Termin" list="dl-term-${r.Szkolenie || 0}"
       value="${esc(t ? t.termin : '')}" placeholder="${r.Szkolenie ? '— termin —' : 'najpierw szkolenie'}"
-      ${dis ? 'disabled' : ''}>
-    ${loc ? `<div class="sub${/online|zdaln/i.test(loc) ? ' online' : ''}">${esc(loc)}</div>` : ''}</div>`;
-}
-
-function cellPriorytet(r, on){
-  let html = `<option value=""${!r.Priorytet ? ' selected' : ''}>—</option>`;
-  let found = !r.Priorytet;
-  for (const c of state.prioChoices){
-    const sel = c === r.Priorytet;
-    if (sel) found = true;
-    html += `<option value="${esc(c)}"${sel ? ' selected' : ''}>${esc(c)}</option>`;
-  }
-  if (!found) html += `<option value="${esc(r.Priorytet)}" selected>${esc(r.Priorytet)}</option>`;
-  return `<select data-id="${r.id}" data-col="Priorytet" ${on ? '' : 'disabled'}>${html}</select>`;
+      title="${esc(tip)}" ${dis ? 'disabled' : ''}>
+    ${parts.length ? `<div class="sub">${parts.join(' · ')}</div>` : ''}</div>`;
 }
 
 // textarea: zawija tekst, Shift+Enter = nowa linia, Enter = zapis
@@ -633,60 +611,40 @@ function cellSwitch(r, col, on, cls){
     <span class="track"></span></label>`;
 }
 
-function cellDetail(r){
-  const t = validTermin(r);
-  const l1 = [];
-  if (t){
-    if (t.Termin_Detail || t.termin) l1.push(t.Termin_Detail || t.termin);
-    if (t.termin_dt) l1.push(t.termin_dt);          // godziny od-do
-  }
-  const l2 = [];
-  if (r.Dni) l2.push(esc(r.Dni + ' dn.'));
-  if (r.Koszt){
-    const paid = !/bezkoszt/i.test(r.Koszt);
-    l2.push(`<span class="${paid ? 'cost-paid' : ''}">${esc(r.Koszt)}</span>`);
-  }
-  if (!l1.length && !l2.length) return '<span class="empty-val">—</span>';
-  return `<div class="detail">
-    <div class="l1">${esc(l1.join(' · ')) || '&nbsp;'}</div>
-    <div class="l2">${l2.join(' · ')}</div></div>`;
-}
-
 function rowHtml(r){
   const f = state.flags;
   const k = f.kiero, d = f.dyr, p = f.prezes;
-  const cls = (sec, on) => `class="c-${sec} ${on ? 'on' : 'off'}"`;
+  const cls = (sec, on, edge) => `class="c-${sec} ${on ? 'on' : 'off'}${edge ? ' ' + edge : ''}"`;
   return `<tr data-id="${r.id}">
     <td class="selcol"><input type="checkbox" class="rowsel" data-selid="${r.id}"
       ${state.selected.has(r.id) ? 'checked' : ''}></td>
-    <td ${cls('kiero',k)}>${cellPracownik(r,k)}</td>
+    <td ${cls('kiero',k,'sec-l')}>${cellPracownik(r,k)}</td>
     <td ${cls('kiero',k)}>${cellSzkolenie(r,k)}</td>
     <td ${cls('kiero',k)}>${cellTermin(r,k)}</td>
-    <td ${cls('kiero',k)}>${cellPriorytet(r,k)}</td>
-    <td ${cls('kiero',k)}>${cellText(r,'Uzasadnienie_Kierownika',k,'Uzasadnienie…')}</td>
-    <td>${cellDetail(r)}</td>
-    <td ${cls('dyr',d)} style="text-align:center">${cellSwitch(r,'Dyr_Akceptacja',d,'dyr')}</td>
-    <td ${cls('dyr',d)}>${cellText(r,'Dyr_Komentarz',d,'Komentarz…')}</td>
-    <td ${cls('prezes',p)} style="text-align:center">${cellSwitch(r,'Prezes_Akceptacja',p,'')}</td>
-    <td ${cls('prezes',p)}>${cellText(r,'Prezes_Komentarz',p,'Komentarz…')}</td>
+    <td ${cls('kiero',k)} style="text-align:center">${cellSwitch(r,'Priorytet',k,'kiero')}</td>
+    <td ${cls('kiero',k,'sec-r')}>${cellText(r,'Uzasadnienie_Kierownika',k,'Uzasadnienie…')}</td>
+    <td ${cls('dyr',d,'sec-l')} style="text-align:center">${cellSwitch(r,'Dyr_Akceptacja',d,'dyr')}</td>
+    <td ${cls('dyr',d,'sec-r')}>${cellText(r,'Dyr_Komentarz',d,'Komentarz…')}</td>
+    <td ${cls('prezes',p,'sec-l')} style="text-align:center">${cellSwitch(r,'Prezes_Akceptacja',p,'')}</td>
+    <td ${cls('prezes',p,'sec-r')}>${cellText(r,'Prezes_Komentarz',p,'Komentarz…')}</td>
   </tr>`;
 }
 
 function groupRowHtml(key, label, count){
   const collapsed = state.collapsed.has(key);
   return `<tr class="group${collapsed ? ' collapsed' : ''}" data-gkey="${esc(key)}">
-    <td colspan="11"><span class="chev">▾</span>${esc(label)}
+    <td colspan="10"><span class="chev">▾</span>${esc(label)}
     <span class="meta">${count} ${count === 1 ? 'wpis' : (count < 5 ? 'wpisy' : 'wpisów')}</span></td></tr>`;
 }
 
 function subRowHtml(label, count){
-  return `<tr class="sub"><td colspan="11">${esc(label)}
+  return `<tr class="sub"><td colspan="10">${esc(label)}
     <span class="meta">· ${count} os.</span></td></tr>`;
 }
 
 function addRowHtml(){
   if (!state.flags.kiero) return '';
-  return `<tr class="addrow"><td colspan="11">
+  return `<tr class="addrow"><td colspan="10">
     <button class="addline" id="addLine">＋ Dodaj wpis</button></td></tr>`;
 }
 
@@ -739,7 +697,7 @@ function render(fx){
   const recs = filteredRecords();
 
   if (!recs.length){
-    tbody.innerHTML = `<tr><td colspan="11"><div class="state-msg">
+    tbody.innerHTML = `<tr><td colspan="10"><div class="state-msg">
       ${state.main.length ? 'Brak wyników dla tego filtra.' :
         '<b>Brak wpisów.</b><br>' + (state.flags.kiero
           ? 'Kliknij „Dodaj wpis”, aby rozpocząć planowanie.'
@@ -754,10 +712,11 @@ function render(fx){
   if (state.groupBy === 'none'){
     recs.sort(cmpRecs).forEach(emit);
 
-  } else if (state.groupBy === 'komorka' || state.groupBy === 'pracownik'){
-    const keyFn = state.groupBy === 'komorka'
-      ? r => pracKom(r.Pracownik) || '— bez przydziału'
-      : r => pracLabel(r.Pracownik) || '— bez przydziału';
+  } else if (state.groupBy !== 'szkolenie'){
+    const keyFn =
+      state.groupBy === 'biuro'   ? r => (r.Pracownik_biuro || '— bez biura') :
+      state.groupBy === 'komorka' ? r => (pracKom(r.Pracownik) || '— bez przydziału')
+                                  : r => (pracLabel(r.Pracownik) || '— bez przydziału');
     const groups = new Map();
     for (const r of recs){
       const k = keyFn(r);
@@ -886,7 +845,24 @@ document.getElementById('tbody').addEventListener('input', e => {
   }
 });
 
-document.getElementById('tbody').addEventListener('focusout', () => {
+// combobox: fokus pokazuje od razu pełną listę (wartość chowa się do placeholdera);
+// wyjście bez wyboru przywraca poprzednią wartość
+document.getElementById('tbody').addEventListener('focusin', e => {
+  const el = e.target;
+  if (el.tagName === 'INPUT' && el.hasAttribute('list') && !el.disabled){
+    el.dataset.prev = el.value;
+    el.dataset.ph = el.placeholder;
+    if (el.value){ el.placeholder = el.value; el.value = ''; }
+  }
+});
+
+document.getElementById('tbody').addEventListener('focusout', e => {
+  const el = e.target;
+  if (el.isConnected && el.tagName === 'INPUT' && el.hasAttribute('list')){
+    if (el.value === '' && el.dataset.prev) el.value = el.dataset.prev;
+    if (el.dataset.ph !== undefined) el.placeholder = el.dataset.ph;
+    delete el.dataset.prev; delete el.dataset.ph;
+  }
   if (reloadPending){ reloadPending = false; scheduleReload(); }
 });
 
@@ -948,7 +924,7 @@ grist.onRecords(() => scheduleReload());
 loadAll().catch(err => {
   console.error(err);
   document.getElementById('tbody').innerHTML =
-    `<tr><td colspan="11"><div class="state-msg"><b>Nie udało się wczytać danych.</b><br>
+    `<tr><td colspan="10"><div class="state-msg"><b>Nie udało się wczytać danych.</b><br>
     Sprawdź, czy widget ma dostęp „pełny” (full access) i czy tabele Main / Pracownicy /
     Baza_UnikatoweReczne / BazaTerminow są dostępne.</div></td></tr>`;
 });
