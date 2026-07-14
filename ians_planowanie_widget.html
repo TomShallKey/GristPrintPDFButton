@@ -92,8 +92,8 @@
     text-transform:uppercase; letter-spacing:.04em;
     padding:6px 8px; border-bottom:1px solid var(--line); white-space:nowrap;
   }
-  thead tr.sections th{top:0; border-bottom:1px solid var(--line2); padding:7px 8px 3px;}
-  thead tr.cols th{top:26px;} /* adjusted dynamically by renderHead() */
+  thead tr.sections th{top:0; z-index:6; border-bottom:1px solid var(--line2); padding:7px 8px 3px;}
+  thead tr.cols th{top:26px; z-index:5;} /* top adjusted dynamically by renderHead() */
   th.sec-kiero{color:var(--kiero);} th.sec-dyr{color:var(--dyr);} th.sec-prezes{color:var(--prezes);}
   th .live{
     display:inline-block; margin-left:7px; padding:1px 7px; border-radius:999px;
