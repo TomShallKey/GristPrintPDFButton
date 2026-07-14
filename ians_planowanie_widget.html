@@ -83,8 +83,8 @@
   .btn.danger:hover{opacity:.88; background:var(--red);}
 
   /* ---------- Table ---------- */
-  .wrap{flex:1 1 auto; overflow:auto; padding:10px 14px 40px;}
-  .card{background:var(--bg); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); overflow:visible; min-width:min-content;}
+  .wrap{flex:1 1 auto; overflow:auto; padding:0 14px 40px;}
+  .card{background:var(--bg); border:1px solid var(--line); border-top:0; border-radius:0 0 var(--radius) var(--radius); box-shadow:var(--shadow); overflow:visible; min-width:min-content;}
   table{border-collapse:separate; border-spacing:0; width:100%;}
   thead th{
     position:sticky; z-index:5; background:var(--bg);
@@ -273,6 +273,9 @@
   td.off label.szk-cell .szk-disp{cursor:default;}
   td.off label.szk-cell:hover .szk-disp{background:transparent; border-color:transparent;}
 
+  /* ---------- Group sort button ---------- */
+  .grp-sort.active{background:var(--kiero-bg); color:var(--kiero); border-color:var(--kiero);}
+
   /* ---------- Priority checkbox ---------- */
   .priority-cb{
     width:16px; height:16px; cursor:pointer; display:block; margin:2px auto;
@@ -294,8 +297,11 @@
     <button data-g="biuro">Biuro</button>
     <button data-g="komorka">Komórka</button>
     <button data-g="pracownik">Pracownik</button>
-    <button data-g="szkolenie">Szkolenie</button>
+    <button data-g="szkolenie">Temat</button>
   </div>
+  <button class="btn icon grp-sort" id="groupSortBtn" title="Sortuj grupy wg liczby wpisów (malejąco)" hidden>
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="4" x2="9" y2="4"/><line x1="1" y1="8" x2="7" y2="8"/><line x1="1" y1="12" x2="5" y2="12"/><line x1="12" y1="2" x2="12" y2="14"/><polyline points="9,11 12,14 15,11"/></svg>
+  </button>
   <button class="btn icon" id="refreshBtn" title="Odśwież">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.3"/><path d="M21 3v6h-6"/></svg>
   </button>
@@ -348,6 +354,7 @@ const state = {
   search: '',
   loaded: false,
   colWidths: {},        // col -> px (persists across renders)
+  groupSortDesc: false,  // sort groups by count descending
   // cache wydajnościowy — budowane raz przy załadowaniu danych
   pracOpts: [], szkOpts: [],
   termOptsBySzk: new Map(),   // szkolenieId -> [[id, termin], ...]
@@ -780,7 +787,10 @@ function render(fx){
       if (!groups.has(k)) groups.set(k, []);
       groups.get(k).push(r);
     }
-    for (const k of [...groups.keys()].sort((a,b) => a.localeCompare(b,'pl'))){
+    const grpCmp = state.groupSortDesc
+      ? (a,b) => groups.get(b).length - groups.get(a).length
+      : (a,b) => a.localeCompare(b,'pl');
+    for (const k of [...groups.keys()].sort(grpCmp)){
       const rows = groups.get(k).sort(cmpRecs);
       html += groupRowHtml(k, k, rows.length);
       if (!state.collapsed.has(k)) rows.forEach(emit);
@@ -793,7 +803,10 @@ function render(fx){
       if (!groups.has(k)) groups.set(k, []);
       groups.get(k).push(r);
     }
-    for (const k of [...groups.keys()].sort((a,b) => a.localeCompare(b,'pl'))){
+    const grpCmpS = state.groupSortDesc
+      ? (a,b) => groups.get(b).length - groups.get(a).length
+      : (a,b) => a.localeCompare(b,'pl');
+    for (const k of [...groups.keys()].sort(grpCmpS)){
       const rows = groups.get(k);
       html += groupRowHtml(k, k, rows.length);
       if (state.collapsed.has(k)) continue;
@@ -985,7 +998,17 @@ document.getElementById('groupSeg').addEventListener('click', e => {
   state.collapsed.clear();
   document.querySelectorAll('#groupSeg button')
     .forEach(x => x.classList.toggle('on', x === b));
+  const sortBtn = document.getElementById('groupSortBtn');
+  const isGrouped = state.groupBy !== 'none';
+  sortBtn.hidden = !isGrouped;
+  if (!isGrouped){ state.groupSortDesc = false; sortBtn.classList.remove('active'); }
   render(true);
+});
+
+document.getElementById('groupSortBtn').addEventListener('click', () => {
+  state.groupSortDesc = !state.groupSortDesc;
+  document.getElementById('groupSortBtn').classList.toggle('active', state.groupSortDesc);
+  render();
 });
 
 document.getElementById('search').addEventListener('input', e => {
