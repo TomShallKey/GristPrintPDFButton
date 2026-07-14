@@ -93,7 +93,7 @@
     padding:6px 8px; border-bottom:1px solid var(--line); white-space:nowrap;
   }
   thead tr.sections th{top:0; border-bottom:1px solid var(--line2); padding:7px 8px 3px;}
-  thead tr.cols th{top:26px;}
+  thead tr.cols th{top:26px;} /* adjusted dynamically by renderHead() */
   th.sec-kiero{color:var(--kiero);} th.sec-dyr{color:var(--dyr);} th.sec-prezes{color:var(--prezes);}
   th .live{
     display:inline-block; margin-left:7px; padding:1px 7px; border-radius:999px;
@@ -601,8 +601,8 @@ function renderHead(){
   };
   document.getElementById('colRow').innerHTML =
     `<th class="selcol"><input type="checkbox" id="selAll" title="Zaznacz wszystkie"></th>
-     ${sortTh('Pracownik', 'Pracownik', 170)}
-     ${sortTh('Szkolenie', 'Szkolenie', 240)}
+     ${sortTh('Pracownik', 'Pracownik', 210)}
+     ${sortTh('Szkolenie', 'Szkolenie', 300)}
      ${sortTh('Termin', 'Termin', 190)}
      ${plainTh('Priorytet', 'width:54px; text-align:center', 'Priorytet')}
      ${plainTh('Uzasadnienie', 'min-width:110px; max-width:200px', 'Uzasadnienie')}
@@ -610,6 +610,12 @@ function renderHead(){
      ${plainTh('Dyr_Komentarz', 'min-width:130px', 'Komentarz')}
      ${plainTh('Prezes_Akceptacja', 'width:60px; text-align:center', 'Zatw.')}
      ${plainTh('Prezes_Komentarz', 'min-width:130px', 'Komentarz')}`;
+
+  // Fix cols row sticky top to match actual secRow height
+  requestAnimationFrame(() => {
+    const secH = document.getElementById('secRow')?.getBoundingClientRect().height || 26;
+    document.querySelectorAll('#colRow th').forEach(th => { th.style.top = secH + 'px'; });
+  });
 }
 
 function cellPracownik(r, on){
@@ -620,8 +626,6 @@ function cellPracownik(r, on){
 
 function cellSzkolenie(r, on){
   const label = szkLabel(r.Szkolenie);
-  const t = validTermin(r);
-  const skrot = t && t.course_id ? t.course_id : '';
   const disp = label
     ? `<span class="szk-disp">${esc(label)}</span>`
     : `<span class="szk-disp empty-val">— wybierz —</span>`;
@@ -631,7 +635,7 @@ function cellSzkolenie(r, on){
       <input type="text" data-id="${r.id}" data-col="Szkolenie" list="dl-szk"
         value="${esc(label)}" placeholder="— wybierz —" title="${esc(label)}" ${on ? '' : 'disabled'}>
     </label>
-    ${skrot ? `<div class="sub">${esc(skrot)}</div>` : ''}</div>`;
+    </div>`;
 }
 
 function cellTermin(r, on){
@@ -948,6 +952,7 @@ document.getElementById('tbody').addEventListener('click', e => {
 
 // sortowanie po kliknięciu nagłówka: rosnąco → malejąco → wyłączone
 document.getElementById('colRow').addEventListener('click', e => {
+  if (e.target.closest('.resizer')) return; // ignoruj kliknięcie na uchwyt resize
   const th = e.target.closest('th.sortable');
   if (!th) return;
   const col = th.dataset.sortcol;
