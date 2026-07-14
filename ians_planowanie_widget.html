@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Planowanie szkoleń</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Red+Hat+Text:ital,wght@0,300..700;1,300..700&display=swap" rel="stylesheet">
 <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 <style>
   :root{
@@ -17,7 +20,7 @@
   *{box-sizing:border-box; margin:0; padding:0;}
   html,body{height:100%;}
   body{
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    font-family:'Red Hat Text',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
     font-size:12.5px; color:var(--txt); background:var(--bg2);
     display:flex; flex-direction:column; overflow:hidden;
   }
@@ -240,6 +243,42 @@
   ::-webkit-scrollbar{width:10px; height:10px;}
   ::-webkit-scrollbar-thumb{background:#D7D9DE; border-radius:99px; border:2px solid var(--bg2);}
   ::-webkit-scrollbar-track{background:transparent;}
+
+  /* ---------- Column resizer ---------- */
+  thead th{position:relative;}
+  .resizer{
+    position:absolute; right:0; top:0; bottom:0; width:5px;
+    cursor:col-resize; user-select:none; z-index:10;
+  }
+  .resizer:hover,.resizer.rz-active{background:rgba(59,130,246,.4);}
+
+  /* ---------- Szkolenie wrapping cell ---------- */
+  label.szk-cell{display:block; position:relative;}
+  label.szk-cell input{
+    position:absolute; top:0; left:0; width:100%; height:0;
+    padding:0; border:none; opacity:0; pointer-events:none;
+  }
+  label.szk-cell:focus-within input{
+    position:static; height:auto; opacity:1; pointer-events:auto;
+    padding:4px 6px; border:1px solid var(--kiero); box-shadow:0 0 0 3px var(--kiero-bg);
+    border-radius:6px; background:#fff;
+  }
+  label.szk-cell:focus-within .szk-disp{display:none;}
+  .szk-disp{
+    display:block; padding:4px 6px; white-space:normal; word-break:break-word;
+    min-height:26px; font:inherit; cursor:text; border-radius:6px; line-height:1.35;
+    border:1px solid transparent; transition:border-color .12s, background .12s;
+  }
+  label.szk-cell:not(:focus-within):hover .szk-disp{background:rgba(255,255,255,.9); border-color:var(--line);}
+  td.off label.szk-cell .szk-disp{cursor:default;}
+  td.off label.szk-cell:hover .szk-disp{background:transparent; border-color:transparent;}
+
+  /* ---------- Priority checkbox ---------- */
+  .priority-cb{
+    width:16px; height:16px; cursor:pointer; display:block; margin:2px auto;
+    accent-color:var(--kiero);
+  }
+  .priority-cb:disabled{opacity:.55; cursor:not-allowed;}
 </style>
 </head>
 <body>
@@ -308,6 +347,7 @@ const state = {
   sort: null,           // {col, dir} | null (null = kolejność naturalna, nowe na dole)
   search: '',
   loaded: false,
+  colWidths: {},        // col -> px (persists across renders)
   // cache wydajnościowy — budowane raz przy załadowaniu danych
   pracOpts: [], szkOpts: [],
   termOptsBySzk: new Map(),   // szkolenieId -> [[id, termin], ...]
@@ -540,23 +580,29 @@ function renderHead(){
     `<th colspan="2" class="sec-dyr${f.dyr ? ' sec-act' : ''}">Akceptacja Dyrektorów${f.dyr ? live : ''}</th>` +
     `<th colspan="2" class="sec-prezes${f.prezes ? ' sec-act' : ''}">Zatwierdzenie Prezesów${f.prezes ? live : ''}</th>`;
 
-  const sortTh = (col, label, w) => {
+  const sortTh = (col, label, def) => {
     const sorted = state.sort && state.sort.col === col;
     const arr = sorted ? (state.sort.dir > 0 ? '↑' : '↓') : '↑';
-    return `<th class="sortable${sorted ? ' sorted' : ''}" data-sortcol="${col}"
-      style="min-width:${w}px" title="Sortuj">${label}<span class="arr">${arr}</span></th>`;
+    const px = state.colWidths[col] || def;
+    return `<th class="sortable${sorted ? ' sorted' : ''}" data-sortcol="${col}" data-rescol="${col}"
+      style="min-width:${px}px; width:${px}px" title="Sortuj">${label}<span class="arr">${arr}</span><div class="resizer"></div></th>`;
+  };
+  const plainTh = (col, style, label) => {
+    const stored = col && state.colWidths[col];
+    const st = stored ? `width:${stored}px; min-width:${stored}px` : style;
+    return `<th${col ? ` data-rescol="${col}"` : ''} style="${st}">${label}<div class="resizer"></div></th>`;
   };
   document.getElementById('colRow').innerHTML =
     `<th class="selcol"><input type="checkbox" id="selAll" title="Zaznacz wszystkie"></th>
      ${sortTh('Pracownik', 'Pracownik', 170)}
-     ${sortTh('Szkolenie', 'Szkolenie', 260)}
+     ${sortTh('Szkolenie', 'Szkolenie', 240)}
      ${sortTh('Termin', 'Termin', 190)}
-     <th style="width:64px">Priorytet</th>
-     <th style="min-width:180px">Uzasadnienie</th>
-     <th style="width:60px">Akcept.</th>
-     <th style="min-width:150px">Komentarz</th>
-     <th style="width:60px">Zatw.</th>
-     <th style="min-width:150px">Komentarz</th>`;
+     ${plainTh('Priorytet', 'width:54px; text-align:center', 'Priorytet')}
+     ${plainTh('Uzasadnienie', 'min-width:110px; max-width:200px', 'Uzasadnienie')}
+     ${plainTh('Dyr_Akceptacja', 'width:60px; text-align:center', 'Akcept.')}
+     ${plainTh('Dyr_Komentarz', 'min-width:130px', 'Komentarz')}
+     ${plainTh('Prezes_Akceptacja', 'width:60px; text-align:center', 'Zatw.')}
+     ${plainTh('Prezes_Komentarz', 'min-width:130px', 'Komentarz')}`;
 }
 
 function cellPracownik(r, on){
@@ -569,9 +615,15 @@ function cellSzkolenie(r, on){
   const label = szkLabel(r.Szkolenie);
   const t = validTermin(r);
   const skrot = t && t.course_id ? t.course_id : '';
+  const disp = label
+    ? `<span class="szk-disp">${esc(label)}</span>`
+    : `<span class="szk-disp empty-val">— wybierz —</span>`;
   return `<div class="cellcol">
-    <input type="text" data-id="${r.id}" data-col="Szkolenie" list="dl-szk"
-      value="${esc(label)}" placeholder="— wybierz —" title="${esc(label)}" ${on ? '' : 'disabled'}>
+    <label class="szk-cell">
+      ${disp}
+      <input type="text" data-id="${r.id}" data-col="Szkolenie" list="dl-szk"
+        value="${esc(label)}" placeholder="— wybierz —" title="${esc(label)}" ${on ? '' : 'disabled'}>
+    </label>
     ${skrot ? `<div class="sub">${esc(skrot)}</div>` : ''}</div>`;
 }
 
@@ -611,6 +663,11 @@ function cellSwitch(r, col, on, cls){
     <span class="track"></span></label>`;
 }
 
+function cellPriority(r, on){
+  return `<input type="checkbox" class="priority-cb" data-id="${r.id}" data-col="Priorytet"
+    ${r.Priorytet ? 'checked' : ''} ${on ? '' : 'disabled'}>`;
+}
+
 function rowHtml(r){
   const f = state.flags;
   const k = f.kiero, d = f.dyr, p = f.prezes;
@@ -621,7 +678,7 @@ function rowHtml(r){
     <td ${cls('kiero',k,'sec-l')}>${cellPracownik(r,k)}</td>
     <td ${cls('kiero',k)}>${cellSzkolenie(r,k)}</td>
     <td ${cls('kiero',k)}>${cellTermin(r,k)}</td>
-    <td ${cls('kiero',k)} style="text-align:center">${cellSwitch(r,'Priorytet',k,'kiero')}</td>
+    <td ${cls('kiero',k)} style="text-align:center">${cellPriority(r,k)}</td>
     <td ${cls('kiero',k,'sec-r')}>${cellText(r,'Uzasadnienie_Kierownika',k,'Uzasadnienie…')}</td>
     <td ${cls('dyr',d,'sec-l')} style="text-align:center">${cellSwitch(r,'Dyr_Akceptacja',d,'dyr')}</td>
     <td ${cls('dyr',d,'sec-r')}>${cellText(r,'Dyr_Komentarz',d,'Komentarz…')}</td>
@@ -885,6 +942,31 @@ document.getElementById('colRow').addEventListener('click', e => {
   else if (state.sort.dir === 1) state.sort.dir = -1;
   else state.sort = null;
   render();
+});
+
+// resize kolumn
+document.getElementById('colRow').addEventListener('mousedown', e => {
+  const rz = e.target.closest('.resizer');
+  if (!rz) return;
+  e.preventDefault(); e.stopPropagation();
+  const th = rz.closest('th');
+  const col = th.dataset.rescol || th.dataset.sortcol;
+  const startX = e.clientX;
+  const startW = th.getBoundingClientRect().width;
+  rz.classList.add('rz-active');
+  function onMove(ev){
+    const newW = Math.max(40, startW + ev.clientX - startX);
+    th.style.width = newW + 'px';
+    th.style.minWidth = newW + 'px';
+    if (col) state.colWidths[col] = newW;
+  }
+  function onUp(){
+    rz.classList.remove('rz-active');
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  }
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
 });
 
 // zaznacz / odznacz wszystkie widoczne
