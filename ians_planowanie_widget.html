@@ -641,8 +641,9 @@ function cellPracownik(r, on){
 
 function cellSzkolenie(r, on){
   const label = szkLabel(r.Szkolenie);
-  const disp = label
-    ? `<span class="szk-disp">${esc(label)}</span>`
+  const fmt = label ? esc(label).replace(/^(\[[^\]]+\])/, '<strong>$1</strong>') : '';
+  const disp = fmt
+    ? `<span class="szk-disp">${fmt}</span>`
     : `<span class="szk-disp empty-val">— wybierz —</span>`;
   return `<div class="cellcol">
     <label class="szk-cell">
