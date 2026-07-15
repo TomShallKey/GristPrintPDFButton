@@ -273,12 +273,23 @@
   /* ---------- Group sort button ---------- */
   .grp-sort.active{background:var(--kiero-bg); color:var(--kiero); border-color:var(--kiero);}
 
-  /* ---------- Priority checkbox ---------- */
-  .priority-cb{
-    width:16px; height:16px; cursor:pointer; display:block; margin:2px auto;
-    accent-color:var(--kiero);
-  }
-  .priority-cb:disabled{opacity:.55; cursor:not-allowed;}
+  /* ---------- Priority star ---------- */
+  .priority-star{display:inline-flex; align-items:center; justify-content:center; cursor:pointer; padding:2px;}
+  .priority-star input{position:absolute; opacity:0; width:0; height:0; pointer-events:none;}
+  .priority-star .star{font-size:17px; line-height:1; color:var(--mut2); transition:color .15s, transform .15s; user-select:none;}
+  .priority-star:hover .star{color:#F59E0B;}
+  .priority-star input:checked + .star{color:#F59E0B; transform:scale(1.08);}
+  td.off .priority-star{opacity:.55;}
+  td.off .priority-star:hover .star{color:var(--mut2); transform:none;}
+
+  /* ---------- Accept toggle (Dyr / Prezes) ---------- */
+  .accept-toggle{display:inline-flex; align-items:stretch; border-radius:6px; border:1px solid var(--line); overflow:hidden; cursor:pointer; user-select:none; vertical-align:middle;}
+  .accept-toggle input{position:absolute; opacity:0; width:0; height:0; pointer-events:none;}
+  .accept-toggle .at-no{padding:2px 9px; font-size:13px; font-weight:700; color:var(--red); background:rgba(220,38,38,.07); border-right:1px solid var(--line); transition:background .15s, color .15s;}
+  .accept-toggle .at-yes{padding:2px 9px; font-size:13px; font-weight:700; color:var(--mut2); background:transparent; transition:background .15s, color .15s;}
+  .accept-toggle input:checked + .at-no{color:var(--mut2); background:transparent;}
+  .accept-toggle input:checked + .at-no + .at-yes{color:var(--prezes); background:rgba(16,185,129,.07);}
+  td.off .accept-toggle{opacity:.6;}
 </style>
 </head>
 <body>
@@ -338,6 +349,8 @@
 
 const REF_COLS = ['Pracownik', 'Szkolenie', 'Termin'];
 
+const LS_WIDTHS = 'ians-planner-col-widths';
+
 const state = {
   main: [],
   prac: new Map(),      // id -> rec Pracownicy
@@ -360,6 +373,11 @@ const state = {
   lastMainJson: '',
   suppressUntil: 0,           // okno ignorowania echa onRecords po własnym zapisie
 };
+
+// load persisted column widths
+(function(){
+  try{ const s = localStorage.getItem(LS_WIDTHS); if(s) Object.assign(state.colWidths, JSON.parse(s)); }catch(e){}
+})();
 
 let reloadPending = false;
 let reloadTimer = null;
@@ -672,8 +690,20 @@ function cellSwitch(r, col, on, cls){
 }
 
 function cellPriority(r, on){
-  return `<input type="checkbox" class="priority-cb" data-id="${r.id}" data-col="Priorytet"
-    ${r.Priorytet ? 'checked' : ''} ${on ? '' : 'disabled'}>`;
+  return `<label class="priority-star">
+    <input type="checkbox" data-id="${r.id}" data-col="Priorytet"
+      ${r.Priorytet ? 'checked' : ''} ${on ? '' : 'disabled'}>
+    <span class="star">★</span>
+  </label>`;
+}
+
+function cellAccept(r, col, on){
+  return `<label class="accept-toggle">
+    <input type="checkbox" data-id="${r.id}" data-col="${col}"
+      ${r[col] ? 'checked' : ''} ${on ? '' : 'disabled'}>
+    <span class="at-no">✗</span>
+    <span class="at-yes">✓</span>
+  </label>`;
 }
 
 function rowHtml(r){
@@ -688,9 +718,9 @@ function rowHtml(r){
     <td ${cls('kiero',k)}>${cellTermin(r,k)}</td>
     <td ${cls('kiero',k)} style="text-align:center">${cellPriority(r,k)}</td>
     <td ${cls('kiero',k,'sec-r')}>${cellText(r,'Uzasadnienie_Kierownika',k,'Uzasadnienie…')}</td>
-    <td ${cls('dyr',d,'sec-l')} style="text-align:center">${cellSwitch(r,'Dyr_Akceptacja',d,'dyr')}</td>
+    <td ${cls('dyr',d,'sec-l')} style="text-align:center">${cellAccept(r,'Dyr_Akceptacja',d)}</td>
     <td ${cls('dyr',d,'sec-r')}>${cellText(r,'Dyr_Komentarz',d,'Komentarz…')}</td>
-    <td ${cls('prezes',p,'sec-l')} style="text-align:center">${cellSwitch(r,'Prezes_Akceptacja',p,'')}</td>
+    <td ${cls('prezes',p,'sec-l')} style="text-align:center">${cellAccept(r,'Prezes_Akceptacja',p)}</td>
     <td ${cls('prezes',p,'sec-r')}>${cellText(r,'Prezes_Komentarz',p,'Komentarz…')}</td>
   </tr>`;
 }
@@ -973,7 +1003,10 @@ document.getElementById('colRow').addEventListener('mousedown', e => {
     const newW = Math.max(40, startW + ev.clientX - startX);
     th.style.width = newW + 'px';
     th.style.minWidth = newW + 'px';
-    if (col) state.colWidths[col] = newW;
+    if (col){
+      state.colWidths[col] = newW;
+      try{ localStorage.setItem(LS_WIDTHS, JSON.stringify(state.colWidths)); }catch(e){}
+    }
   }
   function onUp(){
     rz.classList.remove('rz-active');
