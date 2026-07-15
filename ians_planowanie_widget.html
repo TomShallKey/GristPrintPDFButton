@@ -82,7 +82,7 @@
   /* ---------- Table ---------- */
   .wrap{flex:1 1 auto; overflow:auto; padding:0 14px 40px;}
   .card{background:var(--bg); border:1px solid var(--line); border-top:0; border-radius:0 0 var(--radius) var(--radius); box-shadow:var(--shadow); overflow:visible; min-width:min-content;}
-  table{border-collapse:separate; border-spacing:0; width:100%; table-layout:fixed;}
+  table{border-collapse:separate; border-spacing:0; width:100%;}
   thead th{
     position:sticky; z-index:5; background:var(--bg);
     font-size:10.5px; font-weight:600; color:var(--mut); text-align:left;
@@ -169,7 +169,7 @@
     border:1px solid transparent; background:transparent; border-radius:6px;
     padding:4px 6px; outline:none; transition:border-color .12s, background .12s, box-shadow .12s;
   }
-  textarea{resize:none; overflow:hidden; line-height:1.4; display:block; field-sizing:content; min-height:26px;}
+  textarea{resize:none; overflow:hidden; line-height:1.4; display:block; min-height:26px; max-width:100%;}
   select{cursor:pointer; appearance:none; -webkit-appearance:none;
     background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23B4B8BF' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
     background-repeat:no-repeat; background-position:right 6px center; padding-right:20px;
@@ -799,11 +799,8 @@ function cmpRecs(a, b){
   return sortKey(a, col).localeCompare(sortKey(b, col), 'pl') * dir || (a.id - b.id);
 }
 
-// przeglądarki z field-sizing:content (Chrome/Edge 123+) rosną same, bez JS;
-// fallback robi zapisy i odczyty wsadowo (1 reflow zamiast jednego na textarea)
-const FIELD_SIZING = typeof CSS !== 'undefined' && CSS.supports && CSS.supports('field-sizing', 'content');
+// auto-height textareas: zapisuje i odczytuje wsadowo (1 reflow zamiast jednego na textarea)
 function fitTextareas(scope){
-  if (FIELD_SIZING) return;
   const tas = [...scope.querySelectorAll('textarea')];
   if (!tas.length) return;
   for (const ta of tas) ta.style.height = 'auto';
@@ -968,7 +965,7 @@ document.getElementById('tbody').addEventListener('keydown', e => {
 });
 
 document.getElementById('tbody').addEventListener('input', e => {
-  if (e.target.tagName === 'TEXTAREA' && !FIELD_SIZING){
+  if (e.target.tagName === 'TEXTAREA'){
     e.target.style.height = 'auto';
     e.target.style.height = (e.target.scrollHeight + 2) + 'px';
   }
