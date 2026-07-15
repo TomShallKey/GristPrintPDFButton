@@ -479,7 +479,13 @@ function buildOpts(){
   for (const [szkId, list] of state.termOptsBySzk){
     dl += `<datalist id="dl-term-${szkId}">${list.map(([tid, label]) => {
       const t = state.term.get(tid);
-      return `<option value="${esc(label)}" label="${esc(t.lokalizacja || '')}">`;
+      const inf = [];
+      if (t.lokalizacja) inf.push(t.lokalizacja);
+      const dniTyg = ((t.Termin_Detail || '').match(/\(([^)]+)\)\s*$/) || [])[1];
+      if (dniTyg) inf.push(dniTyg);
+      if (t.dni_robocze) inf.push(t.dni_robocze + ' dn.');
+      if (t.koszt) inf.push(t.koszt);
+      return `<option value="${esc(label)}" label="${esc(inf.join(' · '))}">`;
     }).join('')}</datalist>`;
   }
   document.getElementById('datalists').innerHTML = dl;
