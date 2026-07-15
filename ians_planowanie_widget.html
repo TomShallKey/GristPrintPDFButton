@@ -129,10 +129,7 @@
   td.on.sec-l{box-shadow:inset 2.5px 0 0 rgba(16,185,129,.45);}
   td.on.sec-r{box-shadow:inset -2.5px 0 0 rgba(16,185,129,.45);}
   tr.sections th.sec-act{box-shadow:none;}
-  tr.sections th.sec-act::after{
-    content:''; position:absolute; left:0; right:0; bottom:-1px; height:2px;
-    background:rgba(16,185,129,.75); z-index:1;
-  }
+  thead tr.cols th.sec-act{border-top:2px solid rgba(16,185,129,.8);}
 
   /* zablokowane sekcje: kontrolki nieaktywne, ale treść w pełni czytelna */
   td.off{position:relative;}
@@ -586,14 +583,14 @@ function updateBulkBtn(){
 function renderSteps(){
   const f = state.flags;
   const items = [
-    { k:'kiero',  full:'Kierownicy planują szkolenia pracowników',     short:'Kierownicy',  on:f.kiero },
-    { k:'dyr',    full:'Dyrektorzy akceptują zaproponowane szkolenia', short:'Dyrektorzy',  on:f.dyr },
-    { k:'prezes', full:'Prezesi zatwierdzają uczestnictwo',            short:'Prezesi',     on:f.prezes },
+    { k:'kiero',  label:'Kierownicy zgłaszają (20.08–02.09)',  on:f.kiero },
+    { k:'dyr',    label:'Dyrektorzy akceptują (17.09–30.09)',  on:f.dyr },
+    { k:'prezes', label:'Prezesi zatwierdzają (01–07.10)',     on:f.prezes },
   ];
   document.getElementById('steps').innerHTML = items.map((s,i) =>
     (i ? '<span class="step-arrow">›</span>' : '') +
-    `<span class="step s-${s.k}${s.on ? ' on' : ''}" title="${esc(s.full)}">
-      <span class="dot"></span>${esc(s.on ? s.full : s.short)}</span>`
+    `<span class="step s-${s.k}${s.on ? ' on' : ''}">
+      <span class="dot"></span>${esc(s.label)}</span>`
   ).join('');
 }
 
@@ -606,29 +603,29 @@ function renderHead(){
     `<th colspan="2" class="sec-dyr${f.dyr ? ' sec-act' : ''}">Akceptacja Dyrektorów${f.dyr ? live : ''}</th>` +
     `<th colspan="2" class="sec-prezes${f.prezes ? ' sec-act' : ''}">Zatwierdzenie Prezesów${f.prezes ? live : ''}</th>`;
 
-  const sortTh = (col, label, def) => {
+  const sortTh = (col, label, def, act) => {
     const sorted = state.sort && state.sort.col === col;
     const arr = sorted ? (state.sort.dir > 0 ? '↑' : '↓') : '↑';
     const px = state.colWidths[col] || def;
-    return `<th class="sortable${sorted ? ' sorted' : ''}" data-sortcol="${col}" data-rescol="${col}"
+    return `<th class="sortable${sorted ? ' sorted' : ''}${act ? ' sec-act' : ''}" data-sortcol="${col}" data-rescol="${col}"
       style="min-width:${px}px; width:${px}px" title="Sortuj">${label}<span class="arr">${arr}</span><div class="resizer"></div></th>`;
   };
-  const plainTh = (col, style, label) => {
+  const plainTh = (col, style, label, act) => {
     const stored = col && state.colWidths[col];
     const st = stored ? `width:${stored}px; min-width:${stored}px` : style;
-    return `<th${col ? ` data-rescol="${col}"` : ''} style="${st}">${label}<div class="resizer"></div></th>`;
+    return `<th${col ? ` data-rescol="${col}"` : ''}${act ? ' class="sec-act"' : ''} style="${st}">${label}<div class="resizer"></div></th>`;
   };
   document.getElementById('colRow').innerHTML =
     `<th class="selcol"><input type="checkbox" id="selAll" title="Zaznacz wszystkie"></th>
-     ${sortTh('Pracownik', 'Pracownik', 210)}
-     ${sortTh('Szkolenie', 'Szkolenie', 300)}
-     ${sortTh('Termin', 'Termin', 190)}
-     ${plainTh('Priorytet', 'width:54px; text-align:center', 'Priorytet')}
-     ${plainTh('Uzasadnienie', 'min-width:110px; max-width:200px', 'Uzasadnienie')}
-     ${plainTh('Dyr_Akceptacja', 'width:60px; text-align:center', 'Akcept.')}
-     ${plainTh('Dyr_Komentarz', 'min-width:130px', 'Komentarz')}
-     ${plainTh('Prezes_Akceptacja', 'width:60px; text-align:center', 'Zatw.')}
-     ${plainTh('Prezes_Komentarz', 'min-width:130px', 'Komentarz')}`;
+     ${sortTh('Pracownik', 'Pracownik', 210, f.kiero)}
+     ${sortTh('Szkolenie', 'Szkolenie', 300, f.kiero)}
+     ${sortTh('Termin', 'Termin', 190, f.kiero)}
+     ${plainTh('Priorytet', 'width:54px; text-align:center', 'Priorytet', f.kiero)}
+     ${plainTh('Uzasadnienie', 'min-width:110px; max-width:200px', 'Uzasadnienie', f.kiero)}
+     ${plainTh('Dyr_Akceptacja', 'width:60px; text-align:center', 'Akcept.', f.dyr)}
+     ${plainTh('Dyr_Komentarz', 'min-width:130px', 'Komentarz', f.dyr)}
+     ${plainTh('Prezes_Akceptacja', 'width:60px; text-align:center', 'Zatw.', f.prezes)}
+     ${plainTh('Prezes_Komentarz', 'min-width:130px', 'Komentarz', f.prezes)}`;
 
   // Fix cols row sticky top to match actual secRow height
   requestAnimationFrame(() => {
