@@ -82,7 +82,7 @@
   /* ---------- Table ---------- */
   .wrap{flex:1 1 auto; overflow:auto; padding:0 14px 40px;}
   .card{background:var(--bg); border:1px solid var(--line); border-top:0; border-radius:0 0 var(--radius) var(--radius); box-shadow:var(--shadow); overflow:visible; min-width:min-content;}
-  table{border-collapse:separate; border-spacing:0; width:100%;}
+  table{border-collapse:separate; border-spacing:0; width:100%; table-layout:fixed;}
   thead th{
     position:sticky; z-index:5; background:var(--bg);
     font-size:10.5px; font-weight:600; color:var(--mut); text-align:left;
@@ -108,6 +108,7 @@
   tbody td{
     padding:4px 8px; border-bottom:1px solid var(--line2);
     vertical-align:middle; background:var(--bg);
+    overflow:hidden;
     transition:background .14s ease;
   }
   tbody tr:hover td{background:#FBFBFC;}
@@ -627,11 +628,11 @@ function renderHead(){
      ${sortTh('Szkolenie', 'Szkolenie', 300, f.kiero)}
      ${sortTh('Termin', 'Termin', 190, f.kiero)}
      ${plainTh('Priorytet', 'width:54px; text-align:center', 'Priorytet', f.kiero)}
-     ${plainTh('Uzasadnienie', 'min-width:110px; max-width:200px', 'Uzasadnienie', f.kiero)}
+     ${plainTh('Uzasadnienie', 'width:160px', 'Uzasadnienie', f.kiero)}
      ${plainTh('Dyr_Akceptacja', 'width:60px; text-align:center', 'Akcept.', f.dyr)}
-     ${plainTh('Dyr_Komentarz', 'min-width:130px', 'Komentarz', f.dyr)}
+     ${plainTh('Dyr_Komentarz', 'width:150px', 'Komentarz', f.dyr)}
      ${plainTh('Prezes_Akceptacja', 'width:60px; text-align:center', 'Zatw.', f.prezes)}
-     ${plainTh('Prezes_Komentarz', 'min-width:130px', 'Komentarz', f.prezes)}`;
+     ${plainTh('Prezes_Komentarz', 'width:150px', 'Komentarz', f.prezes)}`;
 
   // Fix cols row sticky top + draw active-section indicators
   requestAnimationFrame(() => {
