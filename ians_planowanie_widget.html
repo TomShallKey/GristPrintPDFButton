@@ -129,7 +129,7 @@
   td.on.sec-l{box-shadow:inset 2.5px 0 0 rgba(16,185,129,.45);}
   td.on.sec-r{box-shadow:inset -2.5px 0 0 rgba(16,185,129,.45);}
   tr.sections th.sec-act{box-shadow:none;}
-  thead tr.cols th.sec-act{border-top:2px solid rgba(16,185,129,.8);}
+  /* green line drawn via JS fixed overlay — see drawSecIndicators() */
 
   /* zablokowane sekcje: kontrolki nieaktywne, ale treść w pełni czytelna */
   td.off{position:relative;}
@@ -627,10 +627,29 @@ function renderHead(){
      ${plainTh('Prezes_Akceptacja', 'width:60px; text-align:center', 'Zatw.', f.prezes)}
      ${plainTh('Prezes_Komentarz', 'min-width:130px', 'Komentarz', f.prezes)}`;
 
-  // Fix cols row sticky top to match actual secRow height
+  // Fix cols row sticky top + draw active-section indicators
   requestAnimationFrame(() => {
     const secH = document.getElementById('secRow')?.getBoundingClientRect().height || 26;
     document.querySelectorAll('#colRow th').forEach(th => { th.style.top = secH + 'px'; });
+    drawSecIndicators();
+  });
+}
+
+function drawSecIndicators(){
+  let el = document.getElementById('sec-ind');
+  if (!el){
+    el = document.createElement('div');
+    el.id = 'sec-ind';
+    el.style.cssText = 'position:fixed;top:0;left:0;pointer-events:none;z-index:9999;';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = '';
+  document.querySelectorAll('#secRow th.sec-act').forEach(th => {
+    const r = th.getBoundingClientRect();
+    if (!r.width) return;
+    const d = document.createElement('div');
+    d.style.cssText = `position:fixed;left:${r.left}px;top:${r.bottom - 2}px;width:${r.width}px;height:2px;background:rgba(16,185,129,.85);`;
+    el.appendChild(d);
   });
 }
 
@@ -1057,6 +1076,7 @@ document.getElementById('bulkDel').addEventListener('click', delSelected);
 document.getElementById('refreshBtn').addEventListener('click', () => {
   loadAll().then(() => toast('Odświeżono')).catch(() => toast('Błąd odświeżania', true));
 });
+window.addEventListener('resize', () => requestAnimationFrame(drawSecIndicators));
 
 /* ---------- init ---------- */
 
