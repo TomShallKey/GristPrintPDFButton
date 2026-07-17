@@ -1,1 +1,681 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wypodronka</title>
+<style>
+  :root{
+    --bg:#f3f5f8; --card:#fff; --line:#e3e8ee; --txt:#1c2733; --muted:#6b7a8c;
+    --accent:#2563eb; --accent-soft:#e8effd;
+    --green:#15803d; --green-soft:#e5f6ec;
+    --amber:#b45309; --amber-soft:#fdf1df;
+    --red:#b91c1c;  --red-soft:#fdeaea;
+    --grey-soft:#eef1f4;
+    --radius:10px; --shadow:0 1px 3px rgba(16,24,40,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font:14px/1.45 -apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--txt)}
+  button{font:inherit;cursor:pointer;border:0;background:none}
+  input,select,textarea{font:inherit;color:inherit}
 
+  header{position:sticky;top:0;z-index:20;background:var(--card);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:14px;padding:10px 18px;flex-wrap:wrap}
+  .brand{font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;white-space:nowrap}
+  .tabs{display:flex;background:var(--grey-soft);border-radius:8px;padding:3px;gap:2px}
+  .tabs button{padding:6px 14px;border-radius:6px;color:var(--muted);font-weight:600}
+  .tabs button.active{background:var(--card);color:var(--txt);box-shadow:var(--shadow)}
+  .tabs .cnt{font-weight:400;font-size:12px;opacity:.7;margin-left:4px}
+  .spacer{flex:1}
+  #search{border:1px solid var(--line);border-radius:8px;padding:7px 12px;width:220px;background:var(--bg)}
+  #search:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
+  .icon-btn{padding:7px 10px;border:1px solid var(--line);border-radius:8px;color:var(--muted);background:var(--card)}
+  .icon-btn:hover{color:var(--txt);background:var(--grey-soft)}
+
+  main{max-width:1200px;margin:0 auto;padding:18px}
+  .toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+  .chip{padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--muted);font-weight:600;font-size:13px}
+  .chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  .chip .cnt{font-weight:400;opacity:.8;margin-left:3px}
+  .primary{background:var(--accent);color:#fff;padding:8px 16px;border-radius:8px;font-weight:600;box-shadow:var(--shadow)}
+  .primary:hover{filter:brightness(1.08)}
+
+  .stats{display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:10px 16px;min-width:120px}
+  .stat b{display:block;font-size:20px}
+  .stat span{color:var(--muted);font-size:12px}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:auto}
+  table{width:100%;border-collapse:collapse;min-width:760px}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);text-align:left;
+     padding:10px 12px;border-bottom:1px solid var(--line);background:#fafbfc;white-space:nowrap}
+  td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  tr:last-child td{border-bottom:0}
+  tr:hover td{background:#fafbfd}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+  .mono{font-family:ui-monospace,Consolas,monospace;font-size:12.5px}
+  .sub{color:var(--muted);font-size:12px}
+  .empty{padding:40px;text-align:center;color:var(--muted)}
+
+  .badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+  .b-blue{background:var(--accent-soft);color:var(--accent)}
+  .b-amber{background:var(--amber-soft);color:var(--amber)}
+  .b-green{background:var(--green-soft);color:var(--green)}
+  .b-grey{background:var(--grey-soft);color:var(--muted)}
+  .b-red{background:var(--red-soft);color:var(--red)}
+
+  .row-act{display:flex;gap:6px;flex-wrap:wrap}
+  .btn{padding:5px 11px;border-radius:7px;border:1px solid var(--line);background:var(--card);font-weight:600;font-size:12.5px;white-space:nowrap}
+  .btn:hover{background:var(--grey-soft)}
+  .btn.go{border-color:var(--accent);color:var(--accent)}
+  .btn.ok{border-color:var(--green);color:var(--green)}
+  .btn.warn{color:var(--red)}
+
+  /* modal */
+  #modal-root .overlay{position:fixed;inset:0;background:rgba(16,24,40,.45);z-index:50;
+    display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;overflow:auto}
+  .modal{background:var(--card);border-radius:14px;box-shadow:0 12px 40px rgba(16,24,40,.25);
+    width:100%;max-width:460px;padding:20px 22px}
+  .modal h2{font-size:16px;margin-bottom:14px}
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px}
+  .field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff}
+  .field textarea{min-height:70px;resize:vertical}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .checkline{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:500}
+  .checkline input{width:16px;height:16px}
+  .hint{font-size:12px;color:var(--muted);margin-top:-6px;margin-bottom:10px}
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+  .ghost{padding:8px 14px;border-radius:8px;border:1px solid var(--line);font-weight:600}
+  fieldset{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:12px}
+  legend{font-size:12px;font-weight:600;color:var(--muted);padding:0 4px}
+
+  #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:100;
+    background:#1c2733;color:#fff;padding:10px 18px;border-radius:10px;box-shadow:var(--shadow);
+    opacity:0;pointer-events:none;transition:opacity .25s;max-width:90vw}
+  #toast.show{opacity:1}
+  #toast.err{background:var(--red)}
+
+  #standalone{max-width:560px;margin:8vh auto;background:var(--card);border:1px solid var(--line);
+    border-radius:14px;padding:28px;box-shadow:var(--shadow)}
+  #standalone h1{font-size:18px;margin-bottom:12px}
+  #standalone ol{margin:10px 0 10px 20px}
+  #standalone li{margin-bottom:8px}
+  #standalone code{background:var(--grey-soft);padding:2px 6px;border-radius:5px;font-size:12.5px}
+
+  #loading{padding:60px;text-align:center;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header id="topbar" hidden>
+  <div class="brand">🛸 Wypodronka</div>
+  <nav class="tabs" id="tabs">
+    <button data-view="rejestr" class="active">Rejestr<span class="cnt" id="cnt-rejestr"></span></button>
+    <button data-view="spis">Sprzęt<span class="cnt" id="cnt-spis"></span></button>
+    <button data-view="uprawnienia">Uprawnienia<span class="cnt" id="cnt-uprawnienia"></span></button>
+  </nav>
+  <div class="spacer"></div>
+  <input id="search" type="search" placeholder="Szukaj…">
+  <button class="icon-btn" id="btn-refresh" title="Odśwież dane">⟳ Odśwież</button>
+</header>
+
+<main>
+  <div id="loading">Łączenie z dokumentem Grist…</div>
+  <div id="standalone" hidden>
+    <h1>🛸 Wypodronka — widget dla Grista</h1>
+    <p>Ten plik działa jako <b>custom widget wewnątrz dokumentu Grist</b> — otwarty bezpośrednio nie ma skąd pobrać danych.</p>
+    <ol>
+      <li>Wgraj plik na GitHub Pages (lub inny hosting HTTPS).</li>
+      <li>W dokumencie Grist dodaj widok <b>Custom → Custom URL</b> i wklej adres pliku.</li>
+      <li>W ustawieniach widgetu ustaw dostęp: <b>Full document access</b> (wymagane — widget czyta i zapisuje 3 tabele).</li>
+      <li>Umieść widget sam na stronie, rozciągnij na pełny ekran i udostępnij link do tej strony użytkownikom.</li>
+    </ol>
+    <p class="sub">Wymagane tabele: <code>Rejestr</code>, <code>Spis</code>, <code>Uprawnienia</code>.</p>
+  </div>
+  <div id="view"></div>
+</main>
+
+<div id="modal-root"></div>
+<div id="toast"></div>
+
+<script>
+'use strict';
+/* ============================================================
+   Wypodronka — jednoplikowy widget SPA dla Grista.
+   Cała walidacja uprawnień i pola audytowe (autorzy, daty,
+   Uzytkownik z user.Email) pozostają po stronie Grista —
+   widget wysyła tylko minimalny zestaw pól.
+   ============================================================ */
+
+const S = {
+  view: 'rejestr',
+  q: '',
+  filter: 'wszystkie',
+  data: { Rejestr: [], Spis: [], Uprawnienia: [] },
+  maps: { spis: new Map(), upr: new Map() },
+  modal: false,
+};
+
+/* ---------- helpers ---------- */
+const $ = sel => document.querySelector(sel);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function d2str(sec){ if(!sec) return '—';
+  const d = new Date(sec*1000);
+  return String(d.getUTCDate()).padStart(2,'0') + '.' +
+         String(d.getUTCMonth()+1).padStart(2,'0') + '.' + d.getUTCFullYear(); }
+function d2input(sec){ return sec ? new Date(sec*1000).toISOString().slice(0,10) : ''; }
+function input2d(v){ if(!v) return null;
+  const [y,m,d] = v.split('-').map(Number);
+  return Date.UTC(y, m-1, d) / 1000; }
+function dt2str(sec){ if(!sec) return '';
+  return new Date(sec*1000).toLocaleString('pl-PL', {dateStyle:'short', timeStyle:'short'}); }
+function pln(v){ return (v==null || v==='') ? '—'
+  : Number(v).toLocaleString('pl-PL', {maximumFractionDigits:2}); }
+function dniCalc(od, doo){ return (od && doo && doo >= od) ? Math.round((doo-od)/86400)+1 : null; }
+
+function dronId(d){
+  if(!d) return '—';
+  if(typeof d.Dron_ID === 'string') return d.Dron_ID;                 // formuła z Grista
+  return [d.Producent, d.Model, d.Dron_Lp].filter(Boolean).join('-') || ('#'+d.id);
+}
+function uprName(u){
+  if(!u) return '—';
+  if(typeof u.NazwImie === 'string' && u.NazwImie.trim()) return u.NazwImie;
+  return u.Email || ('#'+u.id);
+}
+function statusRej(r){ return r.Zwrot ? 'zwrot' : (r.Wydany ? 'wydany' : 'rezerwacja'); }
+
+function distinct(rowsArr, col){
+  return [...new Set(rowsArr.map(r => r[col]).filter(v => v !== null && v !== '' && v !== undefined))].sort();
+}
+function datalist(id, values){
+  return `<datalist id="${id}">` + values.map(v=>`<option value="${esc(v)}">`).join('') + `</datalist>`;
+}
+
+/* Dostępność dronów w zadanym oknie dat (pomija zwrócone i edytowany rekord). */
+function availableDrones(from, to, excludeId){
+  return S.data.Spis.filter(d => !d.Wylaczony).filter(d => {
+    if(!from || !to) return true;
+    return !S.data.Rejestr.some(r =>
+      r.id !== excludeId && r.Dron === d.id && !r.Zwrot &&
+      r.Data_od && r.Data_do && r.Data_od <= to && r.Data_do >= from);
+  });
+}
+
+/* ---------- dane ---------- */
+function toRows(t){
+  const cols = Object.keys(t), n = t.id.length, out = [];
+  for(let i=0;i<n;i++){ const r={}; for(const c of cols) r[c]=t[c][i]; out.push(r); }
+  return out;
+}
+
+async function refreshAll(){
+  const [rej, spis, upr] = await Promise.all(
+    ['Rejestr','Spis','Uprawnienia'].map(t => grist.docApi.fetchTable(t)));
+  S.data.Rejestr     = toRows(rej);
+  S.data.Spis        = toRows(spis);
+  S.data.Uprawnienia = toRows(upr);
+  S.maps.spis = new Map(S.data.Spis.map(r => [r.id, r]));
+  S.maps.upr  = new Map(S.data.Uprawnienia.map(r => [r.id, r]));
+  render();
+}
+
+async function apply(actions, msg){
+  try {
+    await grist.docApi.applyUserActions(actions);
+    closeModal();
+    toast(msg || 'Zapisano');
+    await refreshAll();
+  } catch(e){
+    toast('Odmowa / błąd: ' + (e && e.message || e), true);
+  }
+}
+
+/* ---------- toast ---------- */
+let toastT = null;
+function toast(msg, isErr){
+  const el = $('#toast');
+  el.textContent = msg;
+  el.className = 'show' + (isErr ? ' err' : '');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => el.className = '', isErr ? 6000 : 3000);
+}
+
+/* ---------- render ---------- */
+function render(){
+  $('#cnt-rejestr').textContent     = S.data.Rejestr.length;
+  $('#cnt-spis').textContent        = S.data.Spis.length;
+  $('#cnt-uprawnienia').textContent = S.data.Uprawnienia.length;
+  document.querySelectorAll('#tabs button').forEach(b =>
+    b.classList.toggle('active', b.dataset.view === S.view));
+  const v = $('#view');
+  if(S.view === 'rejestr')     v.innerHTML = renderRejestr();
+  if(S.view === 'spis')        v.innerHTML = renderSpis();
+  if(S.view === 'uprawnienia') v.innerHTML = renderUprawnienia();
+}
+
+function matchQ(parts){
+  if(!S.q) return true;
+  return parts.join(' ').toLowerCase().includes(S.q.toLowerCase());
+}
+
+/* ===== widok: REJESTR ===== */
+function renderRejestr(){
+  let list = S.data.Rejestr.slice()
+    .sort((a,b) => (b.Data_od||0)-(a.Data_od||0) || b.id-a.id);
+
+  const counts = {wszystkie:list.length, rezerwacja:0, wydany:0, zwrot:0};
+  list.forEach(r => counts[statusRej(r)]++);
+
+  if(S.filter !== 'wszystkie') list = list.filter(r => statusRej(r) === S.filter);
+  list = list.filter(r => {
+    const d = S.maps.spis.get(r.Dron), u = S.maps.upr.get(r.Uzytkownik);
+    return matchQ([dronId(d), d?d.Numer_Seryjny:'', uprName(u), u?u.Email:'', r.Uzasadnienie, r.Zwrot_Uwagi]);
+  });
+
+  const chips = [
+    ['wszystkie','Wszystkie'], ['rezerwacja','Rezerwacje'],
+    ['wydany','Wydane'], ['zwrot','Zwrócone'],
+  ].map(([k,label]) =>
+    `<button class="chip ${S.filter===k?'active':''}" data-act="filter" data-filter="${k}">
+       ${label}<span class="cnt">${counts[k]}</span></button>`).join('');
+
+  const rows = list.map(r => {
+    const d = S.maps.spis.get(r.Dron), u = S.maps.upr.get(r.Uzytkownik);
+    const st = statusRej(r);
+    const badge = st==='zwrot'  ? `<span class="badge b-green">Zwrócony</span>`
+                : st==='wydany' ? `<span class="badge b-amber">Wydany</span>`
+                :                 `<span class="badge b-blue">Rezerwacja</span>`;
+    const dni = r.Dni || dniCalc(r.Data_od, r.Data_do) || '—';
+    const act = [];
+    if(st==='rezerwacja') act.push(`<button class="btn go" data-act="wydaj" data-id="${r.id}">Wydaj</button>`);
+    if(st==='wydany')     act.push(`<button class="btn ok" data-act="zwrot" data-id="${r.id}">Przyjmij zwrot</button>`);
+    act.push(`<button class="btn" data-act="edytujWyp" data-id="${r.id}">Edytuj</button>`);
+    act.push(`<button class="btn warn" data-act="usunWyp" data-id="${r.id}">Usuń</button>`);
+    return `<tr>
+      <td><b>${esc(dronId(d))}</b>${d && d.Numer_Seryjny ? `<div class="sub mono">${esc(d.Numer_Seryjny)}</div>`:''}</td>
+      <td>${esc(uprName(u))}${u && u.Email ? `<div class="sub">${esc(u.Email)}</div>`:''}</td>
+      <td class="num">${d2str(r.Data_od)}<div class="sub">→ ${d2str(r.Data_do)}</div></td>
+      <td class="num">${esc(dni)}</td>
+      <td>${badge}
+        ${st==='wydany' && r.Data_Wydany ? `<div class="sub">wyd. ${dt2str(r.Data_Wydany)}</div>`:''}
+        ${st==='zwrot'  && r.Data_Zwrot  ? `<div class="sub">zwr. ${dt2str(r.Data_Zwrot)}</div>`:''}</td>
+      <td>${esc(r.Uzasadnienie)}
+        ${r.Zwrot_Uwagi ? `<div class="sub">Uwagi przy zwrocie: ${esc(r.Zwrot_Uwagi)}</div>`:''}</td>
+      <td><div class="row-act">${act.join('')}</div></td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <div class="toolbar">${chips}<div class="spacer"></div>
+      <button class="primary" data-act="nowyWyp">+ Nowe wypożyczenie</button></div>
+    <div class="card"><table>
+      <thead><tr><th>Dron</th><th>Użytkownik</th><th>Termin</th><th class="num">Dni</th>
+        <th>Status</th><th>Uzasadnienie</th><th></th></tr></thead>
+      <tbody>${rows || `<tr><td colspan="7"><div class="empty">Brak pozycji</div></td></tr>`}</tbody>
+    </table></div>`;
+}
+
+/* ===== widok: SPRZĘT ===== */
+function dronStatus(d){
+  if(d.Wylaczony) return ['Wyłączony','b-grey'];
+  const wTerenie = S.data.Rejestr.some(r => r.Dron===d.id && r.Wydany && !r.Zwrot);
+  if(wTerenie) return ['W terenie','b-amber'];
+  const today = Math.floor(Date.now()/1000);
+  const zarez = S.data.Rejestr.some(r => r.Dron===d.id && !r.Wydany && !r.Zwrot &&
+    r.Data_od && r.Data_do && r.Data_od <= today && r.Data_do + 86400 > today);
+  if(zarez) return ['Zarezerwowany','b-blue'];
+  return ['Dostępny','b-green'];
+}
+
+function renderSpis(){
+  let list = S.data.Spis.slice().sort((a,b) => (a.Dron_Lp||9e9)-(b.Dron_Lp||9e9) || a.id-b.id);
+  list = list.filter(d => matchQ([dronId(d), d.Producent, d.Model, d.Numer_Seryjny, d.Uwagi]));
+
+  const stat = {dostepne:0, teren:0, wyl:0};
+  S.data.Spis.forEach(d => {
+    const [s] = dronStatus(d);
+    if(s==='Wyłączony') stat.wyl++;
+    else if(s==='W terenie') stat.teren++;
+    else stat.dostepne++;
+  });
+
+  const rows = list.map(d => {
+    const [label, cls] = dronStatus(d);
+    const nWyp = S.data.Rejestr.filter(r => r.Dron===d.id).length;
+    return `<tr>
+      <td><b>${esc(dronId(d))}</b></td>
+      <td>${esc(d.Producent)} ${esc(d.Model)}</td>
+      <td class="mono">${esc(d.Numer_Seryjny)}</td>
+      <td class="num">${esc(d.Rok_Produkcji ?? '—')}</td>
+      <td class="num">${pln(d.Wartosc)}</td>
+      <td>${esc(d.PAZP_UE)}</td>
+      <td><span class="badge ${cls}">${label}</span></td>
+      <td class="num">${nWyp}</td>
+      <td>${esc(d.Uwagi)}</td>
+      <td><div class="row-act">
+        <button class="btn" data-act="edytujDron" data-id="${d.id}">Edytuj</button>
+        <button class="btn ${d.Wylaczony?'ok':'warn'}" data-act="toggleWyl" data-id="${d.id}">
+          ${d.Wylaczony?'Przywróć':'Wyłącz'}</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <div class="stats">
+      <div class="stat"><b>${stat.dostepne}</b><span>dostępne</span></div>
+      <div class="stat"><b>${stat.teren}</b><span>w terenie</span></div>
+      <div class="stat"><b>${stat.wyl}</b><span>wyłączone</span></div>
+    </div>
+    <div class="toolbar"><div class="spacer"></div>
+      <button class="primary" data-act="nowyDron">+ Dodaj drona</button></div>
+    <div class="card"><table>
+      <thead><tr><th>ID</th><th>Model</th><th>Nr seryjny</th><th class="num">Rok</th>
+        <th class="num">Wartość</th><th>PAŻP/UE</th><th>Status</th>
+        <th class="num">Wypożyczeń</th><th>Uwagi</th><th></th></tr></thead>
+      <tbody>${rows || `<tr><td colspan="10"><div class="empty">Brak pozycji</div></td></tr>`}</tbody>
+    </table></div>`;
+}
+
+/* ===== widok: UPRAWNIENIA ===== */
+function renderUprawnienia(){
+  let list = S.data.Uprawnienia.slice()
+    .sort((a,b) => String(a.Nazwisko||'').localeCompare(String(b.Nazwisko||''), 'pl'));
+  list = list.filter(u => matchQ([u.Imie, u.Nazwisko, u.Email, u.Kom, u.Komentarz]));
+
+  const boolBtn = (u, col) =>
+    `<button class="btn ${u[col]?'ok':''}" data-act="toggleBool" data-id="${u.id}" data-col="${col}"
+       title="Kliknij, aby przełączyć">${u[col] ? '✓ tak' : '— nie'}</button>`;
+
+  const rows = list.map(u => `<tr>
+      <td><b>${esc(uprName(u))}</b></td>
+      <td>${esc(u.Email)}</td>
+      <td>${esc(u.Kom)}</td>
+      <td>${boolBtn(u,'Kierownik')}</td>
+      <td>${boolBtn(u,'Administrator')}</td>
+      <td class="sub">${esc(typeof u.KieroMail==='string' ? u.KieroMail : '')}</td>
+      <td>${esc(u.Komentarz)}</td>
+      <td><div class="row-act">
+        <button class="btn" data-act="edytujUser" data-id="${u.id}">Edytuj</button>
+        <button class="btn warn" data-act="usunUser" data-id="${u.id}">Usuń</button>
+      </div></td>
+    </tr>`).join('');
+
+  return `
+    <div class="toolbar"><div class="spacer"></div>
+      <button class="primary" data-act="nowyUser">+ Dodaj osobę</button></div>
+    <div class="card"><table>
+      <thead><tr><th>Osoba</th><th>Email</th><th>Kom.</th><th>Kierownik</th>
+        <th>Administrator</th><th>Email kierownika</th><th>Komentarz</th><th></th></tr></thead>
+      <tbody>${rows || `<tr><td colspan="8"><div class="empty">Brak pozycji</div></td></tr>`}</tbody>
+    </table></div>`;
+}
+
+/* ---------- modale ---------- */
+function openModal(html, onSubmit){
+  S.modal = true;
+  $('#modal-root').innerHTML =
+    `<div class="overlay"><div class="modal"><form id="mform">${html}
+      <div class="modal-actions">
+        <button type="button" class="ghost" data-close>Anuluj</button>
+        <button type="submit" class="primary">Zapisz</button>
+      </div></form></div></div>`;
+  $('#modal-root .overlay').addEventListener('mousedown', e => {
+    if(e.target === e.currentTarget) closeModal();
+  });
+  $('#mform [data-close]').addEventListener('click', closeModal);
+  $('#mform').addEventListener('submit', e => {
+    e.preventDefault();
+    onSubmit(new FormData(e.target), e.target);
+  });
+}
+function closeModal(){ S.modal = false; $('#modal-root').innerHTML = ''; }
+
+function dronOptions(from, to, excludeId, selectedId){
+  const av = availableDrones(from, to, excludeId);
+  if(selectedId && !av.some(d => d.id === selectedId)){
+    const cur = S.maps.spis.get(selectedId);
+    if(cur) av.unshift(cur);
+  }
+  return `<option value="">— wybierz drona —</option>` + av.map(d =>
+    `<option value="${d.id}" ${d.id===selectedId?'selected':''}>${esc(dronId(d))} (${esc(d.Producent)} ${esc(d.Model)})</option>`
+  ).join('');
+}
+
+function hookDatePicker(excludeId){
+  const od = $('#f-od'), doo = $('#f-do'), sel = $('#f-dron'), hint = $('#f-dni');
+  const upd = () => {
+    const from = input2d(od.value), to = input2d(doo.value);
+    sel.innerHTML = dronOptions(from, to, excludeId, Number(sel.value)||null);
+    const dni = dniCalc(from, to);
+    hint.textContent = dni ? `Liczba dni: ${dni}` : (from && to ? 'Data „do" jest przed datą „od"!' : '');
+  };
+  od.addEventListener('change', upd);
+  doo.addEventListener('change', upd);
+  upd();
+}
+
+/* --- rejestr: nowe / edycja --- */
+function modalWyp(rec){
+  const isEdit = !!rec;
+  openModal(`
+    <h2>${isEdit ? 'Edycja wypożyczenia' : 'Nowe wypożyczenie'}</h2>
+    <div class="grid2">
+      <div class="field"><label>Data od</label>
+        <input id="f-od" name="od" type="date" required value="${isEdit?d2input(rec.Data_od):''}"></div>
+      <div class="field"><label>Data do</label>
+        <input id="f-do" name="do" type="date" required value="${isEdit?d2input(rec.Data_do):''}"></div>
+    </div>
+    <div class="hint" id="f-dni"></div>
+    <div class="field"><label>Dron (tylko dostępne w terminie)</label>
+      <select id="f-dron" name="dron" required></select></div>
+    <div class="field"><label>Uzasadnienie</label>
+      <textarea name="uzas">${isEdit?esc(rec.Uzasadnienie):''}</textarea></div>
+    ${isEdit ? `
+    <fieldset><legend>Korekta statusów</legend>
+      <label class="checkline"><input type="checkbox" name="wydany" ${rec.Wydany?'checked':''}> Wydany</label>
+      <label class="checkline"><input type="checkbox" name="zwrot" ${rec.Zwrot?'checked':''}> Zwrócony</label>
+      <div class="field"><label>Uwagi przy zwrocie</label>
+        <input name="zwrotUwagi" value="${esc(rec.Zwrot_Uwagi)}"></div>
+    </fieldset>` : ''}
+  `, fd => {
+    const od = input2d(fd.get('od')), doo = input2d(fd.get('do'));
+    if(od && doo && doo < od) return toast('Data „do" nie może być przed datą „od".', true);
+    if(isEdit){
+      apply([['UpdateRecord','Rejestr',rec.id,{
+        Dron: Number(fd.get('dron'))||0, Data_od: od, Data_do: doo,
+        Uzasadnienie: fd.get('uzas'), Dni: dniCalc(od,doo),
+        Wydany: !!fd.get('wydany'), Zwrot: !!fd.get('zwrot'),
+        Zwrot_Uwagi: fd.get('zwrotUwagi'),
+      }]], 'Zaktualizowano wypożyczenie');
+    } else {
+      // Uzytkownik, Data_Utworzenia, Dni itd. uzupełnią trigger formuły w Griście.
+      apply([['AddRecord','Rejestr',null,{
+        Dron: Number(fd.get('dron'))||0, Data_od: od, Data_do: doo,
+        Uzasadnienie: fd.get('uzas'),
+      }]], 'Utworzono wypożyczenie');
+    }
+  });
+  hookDatePicker(isEdit ? rec.id : null);
+}
+
+function modalZwrot(rec){
+  const d = S.maps.spis.get(rec.Dron), u = S.maps.upr.get(rec.Uzytkownik);
+  openModal(`
+    <h2>Przyjęcie zwrotu</h2>
+    <p style="margin-bottom:12px"><b>${esc(dronId(d))}</b> — ${esc(uprName(u))}<br>
+      <span class="sub">${d2str(rec.Data_od)} → ${d2str(rec.Data_do)}</span></p>
+    <div class="field"><label>Uwagi przy zwrocie (stan sprzętu, braki…)</label>
+      <textarea name="uwagi">${esc(rec.Zwrot_Uwagi)}</textarea></div>
+  `, fd => apply([['UpdateRecord','Rejestr',rec.id,{
+      Zwrot: true, Zwrot_Uwagi: fd.get('uwagi'),
+    }]], 'Zwrot przyjęty'));
+}
+
+/* --- sprzęt --- */
+function modalDron(rec){
+  const isEdit = !!rec;
+  const dl = datalist('dl-prod', distinct(S.data.Spis,'Producent'))
+           + datalist('dl-model', distinct(S.data.Spis,'Model'))
+           + datalist('dl-pazp', distinct(S.data.Spis,'PAZP_UE'));
+  openModal(`
+    <h2>${isEdit ? 'Edycja drona' : 'Nowy dron'}</h2>${dl}
+    <div class="grid2">
+      <div class="field"><label>Producent</label>
+        <input name="prod" list="dl-prod" required value="${isEdit?esc(rec.Producent):''}"></div>
+      <div class="field"><label>Model</label>
+        <input name="model" list="dl-model" required value="${isEdit?esc(rec.Model):''}"></div>
+      <div class="field"><label>Lp (numer kolejny)</label>
+        <input name="lp" type="number" min="1" value="${isEdit?esc(rec.Dron_Lp??''):''}"></div>
+      <div class="field"><label>Numer seryjny</label>
+        <input name="sn" value="${isEdit?esc(rec.Numer_Seryjny):''}"></div>
+      <div class="field"><label>Rok produkcji</label>
+        <input name="rok" type="number" min="2000" max="2100" value="${isEdit?esc(rec.Rok_Produkcji??''):''}"></div>
+      <div class="field"><label>Wartość (zł)</label>
+        <input name="wartosc" type="number" step="0.01" min="0" value="${isEdit?esc(rec.Wartosc??''):''}"></div>
+    </div>
+    <div class="field"><label>PAŻP / UE</label>
+      <input name="pazp" list="dl-pazp" value="${isEdit?esc(rec.PAZP_UE):''}"></div>
+    <div class="field"><label>Uwagi</label>
+      <textarea name="uwagi">${isEdit?esc(rec.Uwagi):''}</textarea></div>
+  `, fd => {
+    const vals = {
+      Producent: fd.get('prod'), Model: fd.get('model'),
+      Dron_Lp: fd.get('lp') ? Number(fd.get('lp')) : null,
+      Numer_Seryjny: fd.get('sn'),
+      Rok_Produkcji: fd.get('rok') ? Number(fd.get('rok')) : null,
+      Wartosc: fd.get('wartosc') ? Number(fd.get('wartosc')) : null,
+      PAZP_UE: fd.get('pazp'), Uwagi: fd.get('uwagi'),
+    };
+    apply([[isEdit?'UpdateRecord':'AddRecord','Spis',isEdit?rec.id:null,vals]],
+      isEdit ? 'Zaktualizowano drona' : 'Dodano drona');
+  });
+}
+
+/* --- uprawnienia --- */
+function modalUser(rec){
+  const isEdit = !!rec;
+  const dl = datalist('dl-kom', distinct(S.data.Uprawnienia,'Kom'));
+  openModal(`
+    <h2>${isEdit ? 'Edycja osoby' : 'Nowa osoba'}</h2>${dl}
+    <div class="grid2">
+      <div class="field"><label>Imię</label>
+        <input name="imie" required value="${isEdit?esc(rec.Imie):''}"></div>
+      <div class="field"><label>Nazwisko</label>
+        <input name="nazwisko" required value="${isEdit?esc(rec.Nazwisko):''}"></div>
+    </div>
+    <div class="field"><label>Email</label>
+      <input name="email" type="email" required value="${isEdit?esc(rec.Email):''}"></div>
+    <div class="field"><label>Komórka organizacyjna</label>
+      <input name="kom" list="dl-kom" value="${isEdit?esc(rec.Kom):''}"></div>
+    <label class="checkline"><input type="checkbox" name="kier" ${isEdit&&rec.Kierownik?'checked':''}> Kierownik</label>
+    <label class="checkline"><input type="checkbox" name="admin" ${isEdit&&rec.Administrator?'checked':''}> Administrator</label>
+    <div class="field"><label>Komentarz</label>
+      <textarea name="koment">${isEdit?esc(rec.Komentarz):''}</textarea></div>
+  `, fd => {
+    const vals = {
+      Imie: fd.get('imie'), Nazwisko: fd.get('nazwisko'),
+      Email: String(fd.get('email')||'').trim().toLowerCase(),
+      Kom: fd.get('kom'),
+      Kierownik: !!fd.get('kier'), Administrator: !!fd.get('admin'),
+      Komentarz: fd.get('koment'),
+    };
+    apply([[isEdit?'UpdateRecord':'AddRecord','Uprawnienia',isEdit?rec.id:null,vals]],
+      isEdit ? 'Zaktualizowano osobę' : 'Dodano osobę');
+  });
+}
+
+/* ---------- akcje ---------- */
+const ACTIONS = {
+  filter(id, btn){ S.filter = btn.dataset.filter; render(); },
+  nowyWyp(){ modalWyp(null); },
+  edytujWyp(id){ const r = S.data.Rejestr.find(x=>x.id===id); if(r) modalWyp(r); },
+  wydaj(id){
+    const r = S.data.Rejestr.find(x=>x.id===id); if(!r) return;
+    if(!r.Dron) return toast('Ten wpis nie ma wybranego drona — uzupełnij w edycji.', true);
+    const d = S.maps.spis.get(r.Dron);
+    if(confirm(`Wydać drona ${dronId(d)}?`))
+      apply([['UpdateRecord','Rejestr',id,{Wydany:true}]], 'Dron wydany');
+  },
+  zwrot(id){ const r = S.data.Rejestr.find(x=>x.id===id); if(r) modalZwrot(r); },
+  usunWyp(id){
+    if(confirm('Usunąć ten wpis z rejestru? (zwykle lepiej oznaczyć zwrot)'))
+      apply([['RemoveRecord','Rejestr',id]], 'Usunięto wpis');
+  },
+  nowyDron(){ modalDron(null); },
+  edytujDron(id){ const d = S.maps.spis.get(id); if(d) modalDron(d); },
+  toggleWyl(id){
+    const d = S.maps.spis.get(id); if(!d) return;
+    apply([['UpdateRecord','Spis',id,{Wylaczony: !d.Wylaczony}]],
+      d.Wylaczony ? 'Dron przywrócony' : 'Dron wyłączony z użytku');
+  },
+  nowyUser(){ modalUser(null); },
+  edytujUser(id){ const u = S.maps.upr.get(id); if(u) modalUser(u); },
+  usunUser(id){
+    const u = S.maps.upr.get(id); if(!u) return;
+    if(confirm(`Usunąć „${uprName(u)}" z uprawnień?`))
+      apply([['RemoveRecord','Uprawnienia',id]], 'Usunięto osobę');
+  },
+  toggleBool(id, btn){
+    const u = S.maps.upr.get(id); if(!u) return;
+    const col = btn.dataset.col;
+    apply([['UpdateRecord','Uprawnienia',id,{[col]: !u[col]}]], 'Zmieniono uprawnienie');
+  },
+};
+
+/* ---------- start ---------- */
+function loadGristApi(){
+  return new Promise((resolve, reject) => {
+    let origin = 'https://docs.getgrist.com';
+    try { if(document.referrer) origin = new URL(document.referrer).origin; } catch(e){}
+    const tryLoad = (src, onFail) => {
+      const s = document.createElement('script');
+      s.src = src; s.onload = resolve; s.onerror = onFail;
+      document.head.appendChild(s);
+    };
+    // najpierw z instancji Grista, w której siedzi widget (działa też offline/self-host)
+    tryLoad(origin + '/grist-plugin-api.js',
+      () => tryLoad('https://docs.getgrist.com/grist-plugin-api.js', reject));
+  });
+}
+
+async function main(){
+  if(window.self === window.top){           // otwarto plik bezpośrednio, poza Gristem
+    $('#loading').hidden = true;
+    $('#standalone').hidden = false;
+    return;
+  }
+  try {
+    await loadGristApi();
+    grist.ready({ requiredAccess: 'full' });
+    await refreshAll();
+  } catch(e){
+    $('#loading').textContent = 'Nie udało się połączyć z Gristem: ' + (e && e.message || e);
+    return;
+  }
+  $('#loading').hidden = true;
+  $('#topbar').hidden = false;
+
+  document.getElementById('tabs').addEventListener('click', e => {
+    const b = e.target.closest('button[data-view]');
+    if(b){ S.view = b.dataset.view; render(); }
+  });
+  $('#search').addEventListener('input', e => { S.q = e.target.value; render(); });
+  $('#btn-refresh').addEventListener('click', () => refreshAll().then(()=>toast('Odświeżono')));
+  $('#view').addEventListener('click', e => {
+    const b = e.target.closest('[data-act]');
+    if(!b) return;
+    const fn = ACTIONS[b.dataset.act];
+    if(fn) fn(Number(b.dataset.id)||0, b);
+  });
+  // ciche auto-odświeżanie (poza otwartym modalem, żeby nie kasować formularza)
+  setInterval(() => { if(!S.modal) refreshAll().catch(()=>{}); }, 60000);
+}
+main();
+</script>
+</body>
+</html>
