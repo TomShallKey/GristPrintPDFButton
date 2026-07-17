@@ -51,6 +51,8 @@
   table{width:100%;border-collapse:collapse;min-width:860px}
   th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);text-align:left;
      padding:10px 14px;border-bottom:1px solid var(--line);background:#fafbfc;white-space:nowrap}
+  th.sortable{cursor:pointer;user-select:none}
+  th.sortable:hover{color:var(--txt);background:var(--grey-soft)}
   td{padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
   tr:last-child td{border-bottom:0}
   tr:hover td{background:#fafbfd}
@@ -189,6 +191,7 @@ const S = {
   view: 'rejestr',
   q: '',
   filter: 'wszystkie',
+  sort: { key: 'od', dir: -1 },   // sortowanie tabeli Rejestru
   fDron: 0,          // filtr: konkretny egzemplarz (Rejestr + Kalendarz)
   fUser: 0,          // filtr: konkretny użytkownik
   cal: null,         // {y, m} — wyświetlany miesiąc kalendarza
@@ -228,8 +231,12 @@ function dronId(d){
   return [d.Producent, d.Model, d.Dron_Lp].filter(Boolean).join('-') || ('#'+d.id);
 }
 function dronLabel(d){
-  return dronId(d) + ' · ' + [d.Producent, d.Model].filter(Boolean).join(' ')
-    + (d.Numer_Seryjny ? ' · ' + d.Numer_Seryjny : '');
+  // ID zawiera już producenta/model — dokładamy tylko numer seryjny
+  return dronId(d) + (d.Numer_Seryjny ? ' · ' + d.Numer_Seryjny : '');
+}
+function dronSearchHay(d){
+  return (dronId(d) + ' ' + (d.Producent||'') + ' ' + (d.Model||'') + ' '
+    + (d.Numer_Seryjny||'')).toLowerCase();
 }
 function uprName(u){
   if(!u) return '—';
@@ -347,12 +354,30 @@ function filteredRejestr(){
 
 /* ===== widok: REJESTR ===== */
 function renderRejestr(){
-  let list = filteredRejestr()
-    .sort((a,b) => (b.Data_od||0)-(a.Data_od||0) || b.id-a.id);
+  let list = filteredRejestr();
 
   const counts = {wszystkie:list.length, rezerwacja:0, wydany:0, zwrot:0};
   list.forEach(r => counts[statusRej(r)]++);
   if(S.filter !== 'wszystkie') list = list.filter(r => statusRej(r) === S.filter);
+
+  const sortKeys = {
+    dron:   r => dronId(S.maps.spis.get(r.Dron)).toLowerCase(),
+    user:   r => uprName(S.maps.upr.get(r.Uzytkownik)).toLowerCase(),
+    od:     r => r.Data_od || 0,
+    do:     r => r.Data_do || 0,
+    dni:    r => r.Dni || dniCalc(r.Data_od, r.Data_do) || 0,
+    status: r => ({rezerwacja:0, wydany:1, zwrot:2})[statusRej(r)],
+    uzas:   r => String(r.Uzasadnienie||'').toLowerCase(),
+  };
+  const keyFn = sortKeys[S.sort.key] || sortKeys.od;
+  list.sort((a,b) => {
+    const x = keyFn(a), y = keyFn(b);
+    return ((x<y ? -1 : x>y ? 1 : 0) * S.sort.dir) || b.id - a.id;
+  });
+
+  const th = (k, label, cls='') =>
+    `<th class="sortable ${cls}" data-sort="${k}" title="Sortuj">${label}${
+      S.sort.key===k ? (S.sort.dir>0 ? ' ▲' : ' ▼') : ''}</th>`;
 
   const chips = [
     ['wszystkie','Wszystkie'], ['rezerwacja','Rezerwacje'],
@@ -368,11 +393,11 @@ function renderRejestr(){
                 : st==='wydany' ? `<span class="badge b-amber">Wydany</span>`
                 :                 `<span class="badge b-blue">Rezerwacja</span>`;
     const dni = r.Dni || dniCalc(r.Data_od, r.Data_do) || '—';
-    const act = [];
-    if(st==='rezerwacja') act.push(`<button class="btn go" data-act="wydaj" data-id="${r.id}">Wydaj</button>`);
-    if(st==='wydany')     act.push(`<button class="btn ok" data-act="zwrot" data-id="${r.id}">Przyjmij zwrot</button>`);
-    act.push(`<button class="btn ico" data-act="edytujWyp" data-id="${r.id}" title="Edytuj">✏️</button>`);
-    act.push(`<button class="btn ico" data-act="usunWyp" data-id="${r.id}" title="Usuń">🗑️</button>`);
+    const flow = st==='rezerwacja'
+        ? `<button class="btn go" data-act="wydaj" data-id="${r.id}">Wydaj</button>`
+      : st==='wydany'
+        ? `<button class="btn ok" data-act="zwrot" data-id="${r.id}">Przyjmij zwrot</button>`
+      : '';
     const dronCell = d
       ? `<button class="lnk" data-act="fltrDron" data-id="${d.id}" title="Pokaż historię tego egzemplarza"><b>${esc(dronId(d))}</b></button>`
         + (d.Numer_Seryjny ? `<div class="sub mono">${esc(d.Numer_Seryjny)}</div>` : '')
@@ -384,14 +409,19 @@ function renderRejestr(){
     return `<tr>
       <td>${dronCell}</td>
       <td>${userCell}</td>
-      <td>${d2strD(r.Data_od)}<div class="sub">→ ${d2strD(r.Data_do)}</div></td>
+      <td>${d2strD(r.Data_od)}</td>
+      <td>${d2strD(r.Data_do)}</td>
       <td class="num">${esc(dni)}</td>
       <td>${badge}
         ${st==='wydany' && r.Data_Wydany ? `<div class="sub">wyd. ${dt2str(r.Data_Wydany)}</div>`:''}
         ${st==='zwrot'  && r.Data_Zwrot  ? `<div class="sub">zwr. ${dt2str(r.Data_Zwrot)}</div>`:''}</td>
       <td>${esc(r.Uzasadnienie)}
         ${r.Zwrot_Uwagi ? `<div class="sub">Uwagi przy zwrocie: ${esc(r.Zwrot_Uwagi)}</div>`:''}</td>
-      <td><div class="row-act">${act.join('')}</div></td>
+      <td>${flow}</td>
+      <td><div class="row-act">
+        <button class="btn ico" data-act="edytujWyp" data-id="${r.id}" title="Edytuj">✏️</button>
+        <button class="btn ico" data-act="usunWyp" data-id="${r.id}" title="Usuń">🗑️</button>
+      </div></td>
     </tr>`;
   }).join('');
 
@@ -399,9 +429,9 @@ function renderRejestr(){
     <div class="toolbar">${chips}${filterBar()}<div class="spacer"></div>
       <button class="primary" data-act="nowyWyp">+ Nowe wypożyczenie</button></div>
     <div class="card"><table>
-      <thead><tr><th>Dron</th><th>Użytkownik</th><th>Termin</th><th class="num">Dni</th>
-        <th>Status</th><th>Uzasadnienie</th><th></th></tr></thead>
-      <tbody>${rows || `<tr><td colspan="7"><div class="empty">Brak pozycji</div></td></tr>`}</tbody>
+      <thead><tr>${th('dron','Dron')}${th('user','Użytkownik')}${th('od','Data od')}${th('do','Data do')}${
+        th('dni','Dni','num')}${th('status','Status')}${th('uzas','Uzasadnienie')}<th></th><th></th></tr></thead>
+      <tbody>${rows || `<tr><td colspan="9"><div class="empty">Brak pozycji</div></td></tr>`}</tbody>
     </table></div>`;
 }
 
@@ -589,13 +619,13 @@ function hookDronCombo(excludeId, initialId){
     const q = txt.value.trim().toLowerCase();
     const toks = q.split(/\s+/).filter(Boolean);
     const items = options().filter(d => {
-      const hay = dronLabel(d).toLowerCase();
+      const hay = dronSearchHay(d);
       return toks.every(t => hay.includes(t));
     }).slice(0, 60);
     list.innerHTML = items.length
       ? items.map(d => `<div class="combo-item" data-cid="${d.id}">
-          <b>${esc(dronId(d))}</b> <span class="sub">${esc(d.Producent)} ${esc(d.Model)}
-          ${d.Numer_Seryjny ? '· '+esc(d.Numer_Seryjny) : ''}</span></div>`).join('')
+          <b>${esc(dronId(d))}</b>
+          ${d.Numer_Seryjny ? `<span class="sub mono">${esc(d.Numer_Seryjny)}</span>` : ''}</div>`).join('')
       : `<div class="combo-empty">Brak dostępnych dronów dla tego terminu / frazy</div>`;
     list.hidden = false;
   };
@@ -850,6 +880,14 @@ async function main(){
   $('#search').addEventListener('input', e => { S.q = e.target.value; render(); });
   $('#btn-refresh').addEventListener('click', () => refreshAll().then(()=>toast('Odświeżono')));
   $('#view').addEventListener('click', e => {
+    const s = e.target.closest('[data-sort]');
+    if(s){
+      const k = s.dataset.sort;
+      if(S.sort.key === k) S.sort.dir *= -1;
+      else S.sort = { key: k, dir: 1 };
+      render();
+      return;
+    }
     const b = e.target.closest('[data-act]');
     if(!b) return;
     const fn = ACTIONS[b.dataset.act];
