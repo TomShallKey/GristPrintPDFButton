@@ -20,23 +20,25 @@
   input,select,textarea{font:inherit;color:inherit}
 
   header{position:sticky;top:0;z-index:20;background:var(--card);border-bottom:1px solid var(--line);
-    display:flex;align-items:center;gap:14px;padding:10px 18px;flex-wrap:wrap}
+    display:flex;align-items:center;gap:14px;padding:10px 22px;flex-wrap:wrap}
   .brand{font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;white-space:nowrap}
   .tabs{display:flex;background:var(--grey-soft);border-radius:8px;padding:3px;gap:2px}
   .tabs button{padding:6px 14px;border-radius:6px;color:var(--muted);font-weight:600}
   .tabs button.active{background:var(--card);color:var(--txt);box-shadow:var(--shadow)}
   .tabs .cnt{font-weight:400;font-size:12px;opacity:.7;margin-left:4px}
   .spacer{flex:1}
-  #search{border:1px solid var(--line);border-radius:8px;padding:7px 12px;width:220px;background:var(--bg)}
+  #search{border:1px solid var(--line);border-radius:8px;padding:7px 12px;width:230px;background:var(--bg)}
   #search:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
   .icon-btn{padding:7px 10px;border:1px solid var(--line);border-radius:8px;color:var(--muted);background:var(--card)}
   .icon-btn:hover{color:var(--txt);background:var(--grey-soft)}
 
-  main{max-width:1200px;margin:0 auto;padding:18px}
+  main{padding:18px 24px}
   .toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
   .chip{padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--muted);font-weight:600;font-size:13px}
   .chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
   .chip .cnt{font-weight:400;opacity:.8;margin-left:3px}
+  .fsel{border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--card);max-width:260px;color:var(--muted)}
+  .fsel.on{border-color:var(--accent);color:var(--accent);font-weight:600}
   .primary{background:var(--accent);color:#fff;padding:8px 16px;border-radius:8px;font-weight:600;box-shadow:var(--shadow)}
   .primary:hover{filter:brightness(1.08)}
 
@@ -46,16 +48,19 @@
   .stat span{color:var(--muted);font-size:12px}
 
   .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:auto}
-  table{width:100%;border-collapse:collapse;min-width:760px}
+  table{width:100%;border-collapse:collapse;min-width:860px}
   th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);text-align:left;
-     padding:10px 12px;border-bottom:1px solid var(--line);background:#fafbfc;white-space:nowrap}
-  td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+     padding:10px 14px;border-bottom:1px solid var(--line);background:#fafbfc;white-space:nowrap}
+  td{padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
   tr:last-child td{border-bottom:0}
   tr:hover td{background:#fafbfd}
   .num{text-align:right;font-variant-numeric:tabular-nums}
   .mono{font-family:ui-monospace,Consolas,monospace;font-size:12.5px}
   .sub{color:var(--muted);font-size:12px}
   .empty{padding:40px;text-align:center;color:var(--muted)}
+  .lnk{color:inherit;font-weight:inherit;text-align:left;padding:0}
+  .lnk:hover{color:var(--accent);text-decoration:underline;cursor:pointer}
+  .dow{display:inline-block;min-width:30px;color:var(--muted);font-size:12px;text-transform:lowercase}
 
   .badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
   .b-blue{background:var(--accent-soft);color:var(--accent)}
@@ -64,18 +69,38 @@
   .b-grey{background:var(--grey-soft);color:var(--muted)}
   .b-red{background:var(--red-soft);color:var(--red)}
 
-  .row-act{display:flex;gap:6px;flex-wrap:wrap}
+  .row-act{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
   .btn{padding:5px 11px;border-radius:7px;border:1px solid var(--line);background:var(--card);font-weight:600;font-size:12.5px;white-space:nowrap}
   .btn:hover{background:var(--grey-soft)}
   .btn.go{border-color:var(--accent);color:var(--accent)}
   .btn.ok{border-color:var(--green);color:var(--green)}
   .btn.warn{color:var(--red)}
+  .btn.ico{padding:4px 7px;font-size:14px;line-height:1;border-color:transparent;background:transparent}
+  .btn.ico:hover{background:var(--grey-soft);border-color:var(--line)}
+
+  /* kalendarz */
+  .cal-head{display:grid;grid-template-columns:repeat(7,1fr);background:#fafbfc;border-bottom:1px solid var(--line)}
+  .cal-head div{padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--line)}
+  .cal-cell{background:var(--card);min-height:104px;padding:6px 6px 8px}
+  .cal-cell.out{background:#f7f9fb}
+  .cal-cell.out .cal-day{color:var(--muted);opacity:.6}
+  .cal-day{font-size:12px;font-weight:600;margin-bottom:4px;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:50%}
+  .cal-cell.today .cal-day{background:var(--accent);color:#fff}
+  .cal-chip{font-size:11px;font-weight:600;padding:2px 7px;border-radius:5px;margin-top:3px;cursor:pointer;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-left:3px solid transparent}
+  .cal-chip:hover{filter:brightness(.93)}
+  .c-rezerwacja{background:var(--accent-soft);color:var(--accent);border-left-color:var(--accent)}
+  .c-wydany{background:var(--amber-soft);color:var(--amber);border-left-color:var(--amber)}
+  .c-zwrot{background:var(--green-soft);color:var(--green);border-left-color:var(--green)}
+  .cal-more{font-size:11px;color:var(--muted);margin-top:3px;padding-left:4px}
+  .cal-title{min-width:170px;text-align:center;font-size:15px}
 
   /* modal */
   #modal-root .overlay{position:fixed;inset:0;background:rgba(16,24,40,.45);z-index:50;
     display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;overflow:auto}
   .modal{background:var(--card);border-radius:14px;box-shadow:0 12px 40px rgba(16,24,40,.25);
-    width:100%;max-width:460px;padding:20px 22px}
+    width:100%;max-width:480px;padding:20px 22px}
   .modal h2{font-size:16px;margin-bottom:14px}
   .field{margin-bottom:12px}
   .field label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px}
@@ -90,6 +115,16 @@
   .ghost{padding:8px 14px;border-radius:8px;border:1px solid var(--line);font-weight:600}
   fieldset{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:12px}
   legend{font-size:12px;font-weight:600;color:var(--muted);padding:0 4px}
+
+  /* combobox drona */
+  .combo{position:relative}
+  .combo-list{position:absolute;top:calc(100% + 3px);left:0;right:0;z-index:60;background:var(--card);
+    border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(16,24,40,.16);
+    max-height:230px;overflow:auto}
+  .combo-item{padding:7px 11px;cursor:pointer}
+  .combo-item:hover,.combo-item.hl{background:var(--accent-soft)}
+  .combo-item .sub{pointer-events:none}
+  .combo-empty{padding:10px;color:var(--muted);font-size:12.5px}
 
   #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:100;
     background:#1c2733;color:#fff;padding:10px 18px;border-radius:10px;box-shadow:var(--shadow);
@@ -113,11 +148,12 @@
   <div class="brand">🛸 Wypodronka</div>
   <nav class="tabs" id="tabs">
     <button data-view="rejestr" class="active">Rejestr<span class="cnt" id="cnt-rejestr"></span></button>
+    <button data-view="kalendarz">Kalendarz</button>
     <button data-view="spis">Sprzęt<span class="cnt" id="cnt-spis"></span></button>
     <button data-view="uprawnienia">Uprawnienia<span class="cnt" id="cnt-uprawnienia"></span></button>
   </nav>
   <div class="spacer"></div>
-  <input id="search" type="search" placeholder="Szukaj…">
+  <input id="search" type="search" placeholder="Szukaj (dron, nr seryjny, osoba…)">
   <button class="icon-btn" id="btn-refresh" title="Odśwież dane">⟳ Odśwież</button>
 </header>
 
@@ -153,6 +189,9 @@ const S = {
   view: 'rejestr',
   q: '',
   filter: 'wszystkie',
+  fDron: 0,          // filtr: konkretny egzemplarz (Rejestr + Kalendarz)
+  fUser: 0,          // filtr: konkretny użytkownik
+  cal: null,         // {y, m} — wyświetlany miesiąc kalendarza
   data: { Rejestr: [], Spis: [], Uprawnienia: [] },
   maps: { spis: new Map(), upr: new Map() },
   modal: false,
@@ -163,10 +202,16 @@ const $ = sel => document.querySelector(sel);
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c =>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+const DOW = ['ndz','pon','wt','śr','czw','pt','sob'];
+const MIESIACE = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec',
+                  'Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
+
 function d2str(sec){ if(!sec) return '—';
   const d = new Date(sec*1000);
   return String(d.getUTCDate()).padStart(2,'0') + '.' +
          String(d.getUTCMonth()+1).padStart(2,'0') + '.' + d.getUTCFullYear(); }
+function dow(sec){ return sec ? DOW[new Date(sec*1000).getUTCDay()] : ''; }
+function d2strD(sec){ return sec ? `<span class="dow">${dow(sec)}</span> ${d2str(sec)}` : '—'; }
 function d2input(sec){ return sec ? new Date(sec*1000).toISOString().slice(0,10) : ''; }
 function input2d(v){ if(!v) return null;
   const [y,m,d] = v.split('-').map(Number);
@@ -182,6 +227,10 @@ function dronId(d){
   if(typeof d.Dron_ID === 'string') return d.Dron_ID;                 // formuła z Grista
   return [d.Producent, d.Model, d.Dron_Lp].filter(Boolean).join('-') || ('#'+d.id);
 }
+function dronLabel(d){
+  return dronId(d) + ' · ' + [d.Producent, d.Model].filter(Boolean).join(' ')
+    + (d.Numer_Seryjny ? ' · ' + d.Numer_Seryjny : '');
+}
 function uprName(u){
   if(!u) return '—';
   if(typeof u.NazwImie === 'string' && u.NazwImie.trim()) return u.NazwImie;
@@ -195,10 +244,17 @@ function distinct(rowsArr, col){
 function datalist(id, values){
   return `<datalist id="${id}">` + values.map(v=>`<option value="${esc(v)}">`).join('') + `</datalist>`;
 }
+function sortedSpis(){
+  return S.data.Spis.slice().sort((a,b) => (a.Dron_Lp||9e9)-(b.Dron_Lp||9e9) || a.id-b.id);
+}
+function sortedUpr(){
+  return S.data.Uprawnienia.slice()
+    .sort((a,b) => String(a.Nazwisko||'').localeCompare(String(b.Nazwisko||''), 'pl'));
+}
 
 /* Dostępność dronów w zadanym oknie dat (pomija zwrócone i edytowany rekord). */
 function availableDrones(from, to, excludeId){
-  return S.data.Spis.filter(d => !d.Wylaczony).filter(d => {
+  return sortedSpis().filter(d => !d.Wylaczony).filter(d => {
     if(!from || !to) return true;
     return !S.data.Rejestr.some(r =>
       r.id !== excludeId && r.Dron === d.id && !r.Zwrot &&
@@ -254,6 +310,7 @@ function render(){
     b.classList.toggle('active', b.dataset.view === S.view));
   const v = $('#view');
   if(S.view === 'rejestr')     v.innerHTML = renderRejestr();
+  if(S.view === 'kalendarz')   v.innerHTML = renderKalendarz();
   if(S.view === 'spis')        v.innerHTML = renderSpis();
   if(S.view === 'uprawnienia') v.innerHTML = renderUprawnienia();
 }
@@ -263,19 +320,39 @@ function matchQ(parts){
   return parts.join(' ').toLowerCase().includes(S.q.toLowerCase());
 }
 
+/* wspólny pasek filtrów: egzemplarz drona + użytkownik */
+function filterBar(){
+  const drony = sortedSpis().map(d =>
+    `<option value="${d.id}" ${S.fDron===d.id?'selected':''}>${esc(dronLabel(d))}</option>`).join('');
+  const users = sortedUpr().map(u =>
+    `<option value="${u.id}" ${S.fUser===u.id?'selected':''}>${esc(uprName(u))}</option>`).join('');
+  return `
+    <select class="fsel ${S.fDron?'on':''}" data-fltr="dron" title="Filtruj po egzemplarzu">
+      <option value="0">🛸 wszystkie drony</option>${drony}</select>
+    <select class="fsel ${S.fUser?'on':''}" data-fltr="user" title="Filtruj po użytkowniku">
+      <option value="0">👤 wszyscy użytkownicy</option>${users}</select>`;
+}
+
+/* filtry wspólne dla Rejestru i Kalendarza */
+function filteredRejestr(){
+  let list = S.data.Rejestr.slice();
+  if(S.fDron) list = list.filter(r => r.Dron === S.fDron);
+  if(S.fUser) list = list.filter(r => r.Uzytkownik === S.fUser);
+  return list.filter(r => {
+    const d = S.maps.spis.get(r.Dron), u = S.maps.upr.get(r.Uzytkownik);
+    return matchQ([dronId(d), d?d.Numer_Seryjny:'', d?d.Producent+' '+d.Model:'',
+                   uprName(u), u?u.Email:'', r.Uzasadnienie, r.Zwrot_Uwagi]);
+  });
+}
+
 /* ===== widok: REJESTR ===== */
 function renderRejestr(){
-  let list = S.data.Rejestr.slice()
+  let list = filteredRejestr()
     .sort((a,b) => (b.Data_od||0)-(a.Data_od||0) || b.id-a.id);
 
   const counts = {wszystkie:list.length, rezerwacja:0, wydany:0, zwrot:0};
   list.forEach(r => counts[statusRej(r)]++);
-
   if(S.filter !== 'wszystkie') list = list.filter(r => statusRej(r) === S.filter);
-  list = list.filter(r => {
-    const d = S.maps.spis.get(r.Dron), u = S.maps.upr.get(r.Uzytkownik);
-    return matchQ([dronId(d), d?d.Numer_Seryjny:'', uprName(u), u?u.Email:'', r.Uzasadnienie, r.Zwrot_Uwagi]);
-  });
 
   const chips = [
     ['wszystkie','Wszystkie'], ['rezerwacja','Rezerwacje'],
@@ -294,12 +371,20 @@ function renderRejestr(){
     const act = [];
     if(st==='rezerwacja') act.push(`<button class="btn go" data-act="wydaj" data-id="${r.id}">Wydaj</button>`);
     if(st==='wydany')     act.push(`<button class="btn ok" data-act="zwrot" data-id="${r.id}">Przyjmij zwrot</button>`);
-    act.push(`<button class="btn" data-act="edytujWyp" data-id="${r.id}">Edytuj</button>`);
-    act.push(`<button class="btn warn" data-act="usunWyp" data-id="${r.id}">Usuń</button>`);
+    act.push(`<button class="btn ico" data-act="edytujWyp" data-id="${r.id}" title="Edytuj">✏️</button>`);
+    act.push(`<button class="btn ico" data-act="usunWyp" data-id="${r.id}" title="Usuń">🗑️</button>`);
+    const dronCell = d
+      ? `<button class="lnk" data-act="fltrDron" data-id="${d.id}" title="Pokaż historię tego egzemplarza"><b>${esc(dronId(d))}</b></button>`
+        + (d.Numer_Seryjny ? `<div class="sub mono">${esc(d.Numer_Seryjny)}</div>` : '')
+      : '—';
+    const userCell = u
+      ? `<button class="lnk" data-act="fltrUser" data-id="${u.id}" title="Pokaż wypożyczenia tej osoby">${esc(uprName(u))}</button>`
+        + (u.Email ? `<div class="sub">${esc(u.Email)}</div>` : '')
+      : '—';
     return `<tr>
-      <td><b>${esc(dronId(d))}</b>${d && d.Numer_Seryjny ? `<div class="sub mono">${esc(d.Numer_Seryjny)}</div>`:''}</td>
-      <td>${esc(uprName(u))}${u && u.Email ? `<div class="sub">${esc(u.Email)}</div>`:''}</td>
-      <td class="num">${d2str(r.Data_od)}<div class="sub">→ ${d2str(r.Data_do)}</div></td>
+      <td>${dronCell}</td>
+      <td>${userCell}</td>
+      <td>${d2strD(r.Data_od)}<div class="sub">→ ${d2strD(r.Data_do)}</div></td>
       <td class="num">${esc(dni)}</td>
       <td>${badge}
         ${st==='wydany' && r.Data_Wydany ? `<div class="sub">wyd. ${dt2str(r.Data_Wydany)}</div>`:''}
@@ -311,13 +396,62 @@ function renderRejestr(){
   }).join('');
 
   return `
-    <div class="toolbar">${chips}<div class="spacer"></div>
+    <div class="toolbar">${chips}${filterBar()}<div class="spacer"></div>
       <button class="primary" data-act="nowyWyp">+ Nowe wypożyczenie</button></div>
     <div class="card"><table>
       <thead><tr><th>Dron</th><th>Użytkownik</th><th>Termin</th><th class="num">Dni</th>
         <th>Status</th><th>Uzasadnienie</th><th></th></tr></thead>
       <tbody>${rows || `<tr><td colspan="7"><div class="empty">Brak pozycji</div></td></tr>`}</tbody>
     </table></div>`;
+}
+
+/* ===== widok: KALENDARZ ===== */
+function renderKalendarz(){
+  if(!S.cal){ const n = new Date(); S.cal = {y:n.getFullYear(), m:n.getMonth()}; }
+  const {y, m} = S.cal;
+  const first  = Date.UTC(y, m, 1) / 1000;
+  const offset = (new Date(first*1000).getUTCDay() + 6) % 7;   // tydzień od poniedziałku
+  const start  = first - offset*86400;
+  const now = new Date();
+  const todaySec = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 1000;
+
+  const list = filteredRejestr().filter(r => r.Data_od && r.Data_do);
+
+  let cells = '';
+  for(let i=0; i<42; i++){
+    const sec = start + i*86400;
+    const d = new Date(sec*1000);
+    const inMonth = d.getUTCMonth() === m;
+    const items = list.filter(r => r.Data_od <= sec && sec <= r.Data_do)
+      .sort((a,b) => (a.Dron||0)-(b.Dron||0));
+    const MAX = 4;
+    const chipsHtml = items.slice(0, MAX).map(r => {
+      const st = statusRej(r);
+      const dr = S.maps.spis.get(r.Dron), u = S.maps.upr.get(r.Uzytkownik);
+      return `<div class="cal-chip c-${st}" data-act="edytujWyp" data-id="${r.id}"
+        title="${esc(dronId(dr))} — ${esc(uprName(u))} (${d2str(r.Data_od)} → ${d2str(r.Data_do)})">${esc(dronId(dr))}</div>`;
+    }).join('') + (items.length > MAX ? `<div class="cal-more">+${items.length-MAX} więcej</div>` : '');
+    cells += `<div class="cal-cell ${inMonth?'':'out'} ${sec===todaySec?'today':''}">
+      <div class="cal-day">${d.getUTCDate()}</div>${chipsHtml}</div>`;
+  }
+
+  return `
+    <div class="toolbar">
+      <button class="btn" data-act="calPrev" title="Poprzedni miesiąc">←</button>
+      <b class="cal-title">${MIESIACE[m]} ${y}</b>
+      <button class="btn" data-act="calNext" title="Następny miesiąc">→</button>
+      <button class="btn" data-act="calToday">Dziś</button>
+      ${filterBar()}
+      <div class="spacer"></div>
+      <span class="badge b-blue">Rezerwacja</span>
+      <span class="badge b-amber">Wydany</span>
+      <span class="badge b-green">Zwrócony</span>
+    </div>
+    <div class="card" style="min-width:0">
+      <div class="cal-head">${['pon','wt','śr','czw','pt','sob','ndz'].map(x=>`<div>${x}</div>`).join('')}</div>
+      <div class="cal-grid">${cells}</div>
+    </div>
+    <p class="sub" style="margin-top:8px">Kliknij wpis w kalendarzu, aby otworzyć edycję. Filtry drona / użytkownika działają też tutaj.</p>`;
 }
 
 /* ===== widok: SPRZĘT ===== */
@@ -333,7 +467,7 @@ function dronStatus(d){
 }
 
 function renderSpis(){
-  let list = S.data.Spis.slice().sort((a,b) => (a.Dron_Lp||9e9)-(b.Dron_Lp||9e9) || a.id-b.id);
+  let list = sortedSpis();
   list = list.filter(d => matchQ([dronId(d), d.Producent, d.Model, d.Numer_Seryjny, d.Uwagi]));
 
   const stat = {dostepne:0, teren:0, wyl:0};
@@ -348,7 +482,7 @@ function renderSpis(){
     const [label, cls] = dronStatus(d);
     const nWyp = S.data.Rejestr.filter(r => r.Dron===d.id).length;
     return `<tr>
-      <td><b>${esc(dronId(d))}</b></td>
+      <td><button class="lnk" data-act="histDron" data-id="${d.id}" title="Pokaż historię w Rejestrze"><b>${esc(dronId(d))}</b></button></td>
       <td>${esc(d.Producent)} ${esc(d.Model)}</td>
       <td class="mono">${esc(d.Numer_Seryjny)}</td>
       <td class="num">${esc(d.Rok_Produkcji ?? '—')}</td>
@@ -358,7 +492,7 @@ function renderSpis(){
       <td class="num">${nWyp}</td>
       <td>${esc(d.Uwagi)}</td>
       <td><div class="row-act">
-        <button class="btn" data-act="edytujDron" data-id="${d.id}">Edytuj</button>
+        <button class="btn ico" data-act="edytujDron" data-id="${d.id}" title="Edytuj">✏️</button>
         <button class="btn ${d.Wylaczony?'ok':'warn'}" data-act="toggleWyl" data-id="${d.id}">
           ${d.Wylaczony?'Przywróć':'Wyłącz'}</button>
       </div></td>
@@ -383,8 +517,7 @@ function renderSpis(){
 
 /* ===== widok: UPRAWNIENIA ===== */
 function renderUprawnienia(){
-  let list = S.data.Uprawnienia.slice()
-    .sort((a,b) => String(a.Nazwisko||'').localeCompare(String(b.Nazwisko||''), 'pl'));
+  let list = sortedUpr();
   list = list.filter(u => matchQ([u.Imie, u.Nazwisko, u.Email, u.Kom, u.Komentarz]));
 
   const boolBtn = (u, col) =>
@@ -392,7 +525,7 @@ function renderUprawnienia(){
        title="Kliknij, aby przełączyć">${u[col] ? '✓ tak' : '— nie'}</button>`;
 
   const rows = list.map(u => `<tr>
-      <td><b>${esc(uprName(u))}</b></td>
+      <td><button class="lnk" data-act="histUser" data-id="${u.id}" title="Pokaż wypożyczenia tej osoby"><b>${esc(uprName(u))}</b></button></td>
       <td>${esc(u.Email)}</td>
       <td>${esc(u.Kom)}</td>
       <td>${boolBtn(u,'Kierownik')}</td>
@@ -400,8 +533,8 @@ function renderUprawnienia(){
       <td class="sub">${esc(typeof u.KieroMail==='string' ? u.KieroMail : '')}</td>
       <td>${esc(u.Komentarz)}</td>
       <td><div class="row-act">
-        <button class="btn" data-act="edytujUser" data-id="${u.id}">Edytuj</button>
-        <button class="btn warn" data-act="usunUser" data-id="${u.id}">Usuń</button>
+        <button class="btn ico" data-act="edytujUser" data-id="${u.id}" title="Edytuj">✏️</button>
+        <button class="btn ico" data-act="usunUser" data-id="${u.id}" title="Usuń">🗑️</button>
       </div></td>
     </tr>`).join('');
 
@@ -435,28 +568,65 @@ function openModal(html, onSubmit){
 }
 function closeModal(){ S.modal = false; $('#modal-root').innerHTML = ''; }
 
-function dronOptions(from, to, excludeId, selectedId){
-  const av = availableDrones(from, to, excludeId);
-  if(selectedId && !av.some(d => d.id === selectedId)){
-    const cur = S.maps.spis.get(selectedId);
-    if(cur) av.unshift(cur);
-  }
-  return `<option value="">— wybierz drona —</option>` + av.map(d =>
-    `<option value="${d.id}" ${d.id===selectedId?'selected':''}>${esc(dronId(d))} (${esc(d.Producent)} ${esc(d.Model)})</option>`
-  ).join('');
-}
+/* combobox drona: wyszukiwanie przez wpisywanie */
+function hookDronCombo(excludeId, initialId){
+  const txt  = $('#f-dron-txt');
+  const hid  = $('#f-dron');
+  const list = $('#f-dron-list');
+  const od = $('#f-od'), doo = $('#f-do'), hint = $('#f-dni');
 
-function hookDatePicker(excludeId){
-  const od = $('#f-od'), doo = $('#f-do'), sel = $('#f-dron'), hint = $('#f-dni');
-  const upd = () => {
+  const options = () => {
     const from = input2d(od.value), to = input2d(doo.value);
-    sel.innerHTML = dronOptions(from, to, excludeId, Number(sel.value)||null);
-    const dni = dniCalc(from, to);
-    hint.textContent = dni ? `Liczba dni: ${dni}` : (from && to ? 'Data „do" jest przed datą „od"!' : '');
+    const av = availableDrones(from, to, excludeId);
+    const selId = Number(hid.value)||0;
+    if(selId && !av.some(d => d.id === selId)){
+      const cur = S.maps.spis.get(selId);
+      if(cur) av.unshift(cur);            // edytowany rekord: nie gub aktualnego drona
+    }
+    return av;
   };
-  od.addEventListener('change', upd);
-  doo.addEventListener('change', upd);
-  upd();
+  const show = () => {
+    const q = txt.value.trim().toLowerCase();
+    const toks = q.split(/\s+/).filter(Boolean);
+    const items = options().filter(d => {
+      const hay = dronLabel(d).toLowerCase();
+      return toks.every(t => hay.includes(t));
+    }).slice(0, 60);
+    list.innerHTML = items.length
+      ? items.map(d => `<div class="combo-item" data-cid="${d.id}">
+          <b>${esc(dronId(d))}</b> <span class="sub">${esc(d.Producent)} ${esc(d.Model)}
+          ${d.Numer_Seryjny ? '· '+esc(d.Numer_Seryjny) : ''}</span></div>`).join('')
+      : `<div class="combo-empty">Brak dostępnych dronów dla tego terminu / frazy</div>`;
+    list.hidden = false;
+  };
+  const pick = d => {
+    hid.value = d.id;
+    txt.value = dronLabel(d);
+    list.hidden = true;
+  };
+  txt.addEventListener('focus', show);
+  txt.addEventListener('input', () => { hid.value = ''; show(); });
+  txt.addEventListener('blur', () => setTimeout(() => list.hidden = true, 150));
+  list.addEventListener('mousedown', e => {
+    const it = e.target.closest('[data-cid]');
+    if(it){ e.preventDefault(); pick(S.maps.spis.get(Number(it.dataset.cid))); }
+  });
+
+  const updDni = () => {
+    const from = input2d(od.value), to = input2d(doo.value);
+    const dni = dniCalc(from, to);
+    hint.textContent = dni ? `Liczba dni: ${dni}`
+      : (from && to ? 'Data „do" jest przed datą „od"!' : '');
+    if(!list.hidden) show();              // zmiana dat → przelicz dostępność
+  };
+  od.addEventListener('change', updDni);
+  doo.addEventListener('change', updDni);
+  updDni();
+
+  if(initialId){
+    const d = S.maps.spis.get(initialId);
+    if(d) pick(d);
+  }
 }
 
 /* --- rejestr: nowe / edycja --- */
@@ -471,8 +641,12 @@ function modalWyp(rec){
         <input id="f-do" name="do" type="date" required value="${isEdit?d2input(rec.Data_do):''}"></div>
     </div>
     <div class="hint" id="f-dni"></div>
-    <div class="field"><label>Dron (tylko dostępne w terminie)</label>
-      <select id="f-dron" name="dron" required></select></div>
+    <div class="field"><label>Dron (dostępne w terminie — wpisz, aby wyszukać)</label>
+      <div class="combo">
+        <input id="f-dron-txt" placeholder="np. DJI, Mavic, numer seryjny…" autocomplete="off">
+        <input type="hidden" name="dron" id="f-dron">
+        <div class="combo-list" id="f-dron-list" hidden></div>
+      </div></div>
     <div class="field"><label>Uzasadnienie</label>
       <textarea name="uzas">${isEdit?esc(rec.Uzasadnienie):''}</textarea></div>
     ${isEdit ? `
@@ -484,10 +658,12 @@ function modalWyp(rec){
     </fieldset>` : ''}
   `, fd => {
     const od = input2d(fd.get('od')), doo = input2d(fd.get('do'));
+    const dron = Number(fd.get('dron'))||0;
     if(od && doo && doo < od) return toast('Data „do" nie może być przed datą „od".', true);
+    if(!dron) return toast('Wybierz drona z listy.', true);
     if(isEdit){
       apply([['UpdateRecord','Rejestr',rec.id,{
-        Dron: Number(fd.get('dron'))||0, Data_od: od, Data_do: doo,
+        Dron: dron, Data_od: od, Data_do: doo,
         Uzasadnienie: fd.get('uzas'), Dni: dniCalc(od,doo),
         Wydany: !!fd.get('wydany'), Zwrot: !!fd.get('zwrot'),
         Zwrot_Uwagi: fd.get('zwrotUwagi'),
@@ -495,12 +671,12 @@ function modalWyp(rec){
     } else {
       // Uzytkownik, Data_Utworzenia, Dni itd. uzupełnią trigger formuły w Griście.
       apply([['AddRecord','Rejestr',null,{
-        Dron: Number(fd.get('dron'))||0, Data_od: od, Data_do: doo,
+        Dron: dron, Data_od: od, Data_do: doo,
         Uzasadnienie: fd.get('uzas'),
       }]], 'Utworzono wypożyczenie');
     }
   });
-  hookDatePicker(isEdit ? rec.id : null);
+  hookDronCombo(isEdit ? rec.id : null, isEdit ? rec.Dron : null);
 }
 
 function modalZwrot(rec){
@@ -592,6 +768,13 @@ function modalUser(rec){
 /* ---------- akcje ---------- */
 const ACTIONS = {
   filter(id, btn){ S.filter = btn.dataset.filter; render(); },
+  fltrDron(id){ S.fDron = (S.fDron === id) ? 0 : id; render(); },   // drugi klik = wyczyść
+  fltrUser(id){ S.fUser = (S.fUser === id) ? 0 : id; render(); },
+  histDron(id){ S.fDron = id; S.fUser = 0; S.view = 'rejestr'; S.filter = 'wszystkie'; render(); },
+  histUser(id){ S.fUser = id; S.fDron = 0; S.view = 'rejestr'; S.filter = 'wszystkie'; render(); },
+  calPrev(){ S.cal.m--; if(S.cal.m < 0){ S.cal.m = 11; S.cal.y--; } render(); },
+  calNext(){ S.cal.m++; if(S.cal.m > 11){ S.cal.m = 0; S.cal.y++; } render(); },
+  calToday(){ const n = new Date(); S.cal = {y:n.getFullYear(), m:n.getMonth()}; render(); },
   nowyWyp(){ modalWyp(null); },
   edytujWyp(id){ const r = S.data.Rejestr.find(x=>x.id===id); if(r) modalWyp(r); },
   wydaj(id){
@@ -671,6 +854,13 @@ async function main(){
     if(!b) return;
     const fn = ACTIONS[b.dataset.act];
     if(fn) fn(Number(b.dataset.id)||0, b);
+  });
+  $('#view').addEventListener('change', e => {
+    const s = e.target.closest('[data-fltr]');
+    if(!s) return;
+    if(s.dataset.fltr === 'dron') S.fDron = Number(s.value)||0;
+    if(s.dataset.fltr === 'user') S.fUser = Number(s.value)||0;
+    render();
   });
   // ciche auto-odświeżanie (poza otwartym modalem, żeby nie kasować formularza)
   setInterval(() => { if(!S.modal) refreshAll().catch(()=>{}); }, 60000);
