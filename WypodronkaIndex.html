@@ -36,6 +36,9 @@
   .toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
   .chip{padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--muted);font-weight:600;font-size:13px}
   .chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  .chip.on-rezerwacja{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+  .chip.on-wydany{background:var(--amber-soft);border-color:var(--amber);color:var(--amber)}
+  .chip.on-zwrot{background:var(--green-soft);border-color:var(--green);color:var(--green)}
   .chip .cnt{font-weight:400;opacity:.8;margin-left:3px}
   .fsel{border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--card);max-width:260px;color:var(--muted)}
   .fsel.on{border-color:var(--accent);color:var(--accent);font-weight:600}
@@ -376,6 +379,8 @@ function renderRejestr(){
     do:     r => r.Data_do || 0,
     dni:    r => r.Dni || dniCalc(r.Data_od, r.Data_do) || 0,
     status: r => ({rezerwacja:0, wydany:1, zwrot:2})[statusRej(r)],
+    wyd:    r => r.Wydany ? (r.Data_Wydany || 1) : 0,
+    zwr:    r => r.Zwrot  ? (r.Data_Zwrot  || 1) : 0,
     uzas:   r => String(r.Uzasadnienie||'').toLowerCase(),
   };
   const keyFn = sortKeys[S.sort.key] || sortKeys.od;
@@ -391,16 +396,28 @@ function renderRejestr(){
   const chips = [
     ['rezerwacja','Rezerwacje'], ['wydany','Wydane'], ['zwrot','Zwrócone'],
   ].map(([k,label]) =>
-    `<button class="chip ${S.stany[k]?'active':''}" data-act="filter" data-filter="${k}"
+    `<button class="chip ${S.stany[k]?'on-'+k:''}" data-act="filter" data-filter="${k}"
        title="Kliknij, aby ${S.stany[k]?'ukryć':'pokazać'}">
        ${label}<span class="cnt">${counts[k]}</span></button>`).join('');
 
   const rows = list.map(r => {
     const d = S.maps.spis.get(r.Dron), u = S.maps.upr.get(r.Uzytkownik);
     const st = statusRej(r);
-    const badge = st==='zwrot'  ? `<span class="badge b-green">Zwrócony</span>`
-                : st==='wydany' ? `<span class="badge b-amber">Wydany</span>`
-                :                 `<span class="badge b-blue">Rezerwacja</span>`;
+    // trzy etapy obok siebie: aktywny kolorowy, zaliczony szary ✓, przyszły „—"
+    const cellRez = `<span class="badge ${st==='rezerwacja'?'b-blue':'b-grey'}">${
+        st==='rezerwacja' ? 'Aktywna' : '✓'}</span>`
+      + (r.Data_Utworzenia ? `<div class="sub">utw. ${dt2str(r.Data_Utworzenia)}</div>` : '');
+    const cellWyd = r.Wydany
+      ? `<span class="badge ${st==='wydany'?'b-amber':'b-grey'}">${st==='wydany'?'Wydany':'✓'}</span>`
+        + (r.Data_Wydany  ? `<div class="sub">${dt2str(r.Data_Wydany)}</div>` : '')
+        + (r.Wydany_Autor ? `<div class="sub">${esc(r.Wydany_Autor)}</div>` : '')
+      : `<span class="sub">—</span>`;
+    const cellZwr = r.Zwrot
+      ? `<span class="badge b-green">Zwrócony</span>`
+        + (r.Data_Zwrot  ? `<div class="sub">${dt2str(r.Data_Zwrot)}</div>` : '')
+        + (r.Zwrot_Autor ? `<div class="sub">${esc(r.Zwrot_Autor)}</div>` : '')
+        + (r.Zwrot_Uwagi ? `<div class="sub">„${esc(r.Zwrot_Uwagi)}"</div>` : '')
+      : `<span class="sub">—</span>`;
     const dni = r.Dni || dniCalc(r.Data_od, r.Data_do) || '—';
     const flow = st==='rezerwacja'
         ? `<button class="btn go" data-act="wydaj" data-id="${r.id}">Wydaj</button>`
@@ -421,11 +438,10 @@ function renderRejestr(){
       <td>${d2strD(r.Data_od)}</td>
       <td>${d2strD(r.Data_do)}</td>
       <td class="num">${esc(dni)}</td>
-      <td>${badge}
-        ${st==='wydany' && r.Data_Wydany ? `<div class="sub">wyd. ${dt2str(r.Data_Wydany)}</div>`:''}
-        ${st==='zwrot'  && r.Data_Zwrot  ? `<div class="sub">zwr. ${dt2str(r.Data_Zwrot)}</div>`:''}</td>
-      <td>${esc(r.Uzasadnienie)}
-        ${r.Zwrot_Uwagi ? `<div class="sub">Uwagi przy zwrocie: ${esc(r.Zwrot_Uwagi)}</div>`:''}</td>
+      <td>${cellRez}</td>
+      <td>${cellWyd}</td>
+      <td>${cellZwr}</td>
+      <td>${esc(r.Uzasadnienie)}</td>
       <td>${flow}</td>
       <td><div class="row-act">
         <button class="btn ico" data-act="edytujWyp" data-id="${r.id}" title="Edytuj">✏️</button>
@@ -437,10 +453,11 @@ function renderRejestr(){
   return `
     <div class="toolbar">${chips}${filterBar()}<div class="spacer"></div>
       <button class="primary" data-act="nowyWyp">+ Nowe wypożyczenie</button></div>
-    <div class="card"><table>
+    <div class="card"><table style="min-width:1150px">
       <thead><tr>${th('dron','Dron')}${th('user','Użytkownik')}${th('od','Data od')}${th('do','Data do')}${
-        th('dni','Dni','num')}${th('status','Status')}${th('uzas','Uzasadnienie')}<th></th><th></th></tr></thead>
-      <tbody>${rows || `<tr><td colspan="9"><div class="empty">Brak pozycji</div></td></tr>`}</tbody>
+        th('dni','Dni','num')}${th('status','Rezerwacja')}${th('wyd','Wydany')}${th('zwr','Zwrócony')}${
+        th('uzas','Uzasadnienie')}<th></th><th></th></tr></thead>
+      <tbody>${rows || `<tr><td colspan="11"><div class="empty">Brak pozycji</div></td></tr>`}</tbody>
     </table></div>`;
 }
 
