@@ -57,6 +57,10 @@
   tr:last-child td{border-bottom:0}
   tr:hover td{background:#fafbfd}
   .num{text-align:right;font-variant-numeric:tabular-nums}
+  .w-id{min-width:210px}
+  .w-model{min-width:180px}
+  .w-uwagi{max-width:240px;width:240px}
+  td.w-uwagi{white-space:pre-wrap;overflow-wrap:break-word}
   .mono{font-family:ui-monospace,Consolas,monospace;font-size:12.5px}
   .sub{color:var(--muted);font-size:12px}
   .empty{padding:40px;text-align:center;color:var(--muted)}
@@ -150,9 +154,9 @@
   <div class="brand">🛸 Wypodronka</div>
   <nav class="tabs" id="tabs">
     <button data-view="rejestr" class="active">Rejestr<span class="cnt" id="cnt-rejestr"></span></button>
-    <button data-view="kalendarz">Kalendarz</button>
     <button data-view="spis">Sprzęt<span class="cnt" id="cnt-spis"></span></button>
     <button data-view="uprawnienia">Uprawnienia<span class="cnt" id="cnt-uprawnienia"></span></button>
+    <button data-view="kalendarz">Kalendarz</button>
   </nav>
   <div class="spacer"></div>
   <input id="search" type="search" placeholder="Szukaj (dron, nr seryjny, osoba…)">
@@ -190,7 +194,7 @@
 const S = {
   view: 'rejestr',
   q: '',
-  filter: 'wszystkie',
+  stany: { rezerwacja: true, wydany: true, zwrot: true },  // przełączniki statusów (domyślnie wszystkie ON)
   sort: { key: 'od', dir: -1 },   // sortowanie tabeli Rejestru
   fDron: 0,          // filtr: konkretny egzemplarz (Rejestr + Kalendarz)
   fUser: 0,          // filtr: konkretny użytkownik
@@ -221,8 +225,13 @@ function input2d(v){ if(!v) return null;
   return Date.UTC(y, m-1, d) / 1000; }
 function dt2str(sec){ if(!sec) return '';
   return new Date(sec*1000).toLocaleString('pl-PL', {dateStyle:'short', timeStyle:'short'}); }
-function pln(v){ return (v==null || v==='') ? '—'
-  : Number(v).toLocaleString('pl-PL', {maximumFractionDigits:2}); }
+function pln(v){
+  if(v==null || v==='') return '—';
+  const n = Number(v);
+  // zawsze grupuj tysiące (locale pl pomija grupowanie przy 4 cyfrach): 1333.33 → 1 333,33
+  const [c, u] = Math.abs(n).toFixed(2).split('.');
+  return (n<0?'-':'') + c.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ',' + u;
+}
 function dniCalc(od, doo){ return (od && doo && doo >= od) ? Math.round((doo-od)/86400)+1 : null; }
 
 function dronId(d){
@@ -356,9 +365,9 @@ function filteredRejestr(){
 function renderRejestr(){
   let list = filteredRejestr();
 
-  const counts = {wszystkie:list.length, rezerwacja:0, wydany:0, zwrot:0};
+  const counts = {rezerwacja:0, wydany:0, zwrot:0};
   list.forEach(r => counts[statusRej(r)]++);
-  if(S.filter !== 'wszystkie') list = list.filter(r => statusRej(r) === S.filter);
+  list = list.filter(r => S.stany[statusRej(r)]);
 
   const sortKeys = {
     dron:   r => dronId(S.maps.spis.get(r.Dron)).toLowerCase(),
@@ -380,10 +389,10 @@ function renderRejestr(){
       S.sort.key===k ? (S.sort.dir>0 ? ' ▲' : ' ▼') : ''}</th>`;
 
   const chips = [
-    ['wszystkie','Wszystkie'], ['rezerwacja','Rezerwacje'],
-    ['wydany','Wydane'], ['zwrot','Zwrócone'],
+    ['rezerwacja','Rezerwacje'], ['wydany','Wydane'], ['zwrot','Zwrócone'],
   ].map(([k,label]) =>
-    `<button class="chip ${S.filter===k?'active':''}" data-act="filter" data-filter="${k}">
+    `<button class="chip ${S.stany[k]?'active':''}" data-act="filter" data-filter="${k}"
+       title="Kliknij, aby ${S.stany[k]?'ukryć':'pokazać'}">
        ${label}<span class="cnt">${counts[k]}</span></button>`).join('');
 
   const rows = list.map(r => {
@@ -520,11 +529,11 @@ function renderSpis(){
       <td>${esc(d.PAZP_UE)}</td>
       <td><span class="badge ${cls}">${label}</span></td>
       <td class="num">${nWyp}</td>
-      <td>${esc(d.Uwagi)}</td>
+      <td class="w-uwagi">${esc(d.Uwagi)}</td>
       <td><div class="row-act">
         <button class="btn ico" data-act="edytujDron" data-id="${d.id}" title="Edytuj">✏️</button>
-        <button class="btn ${d.Wylaczony?'ok':'warn'}" data-act="toggleWyl" data-id="${d.id}">
-          ${d.Wylaczony?'Przywróć':'Wyłącz'}</button>
+        <button class="btn ico" data-act="toggleWyl" data-id="${d.id}"
+          title="${d.Wylaczony?'Przywróć do użytku':'Wyłącz z użytku'}">${d.Wylaczony?'♻️':'🚫'}</button>
       </div></td>
     </tr>`;
   }).join('');
@@ -538,9 +547,9 @@ function renderSpis(){
     <div class="toolbar"><div class="spacer"></div>
       <button class="primary" data-act="nowyDron">+ Dodaj drona</button></div>
     <div class="card"><table>
-      <thead><tr><th>ID</th><th>Model</th><th>Nr seryjny</th><th class="num">Rok</th>
+      <thead><tr><th class="w-id">ID</th><th class="w-model">Model</th><th>Nr seryjny</th><th class="num">Rok</th>
         <th class="num">Wartość</th><th>PAŻP/UE</th><th>Status</th>
-        <th class="num">Wypożyczeń</th><th>Uwagi</th><th></th></tr></thead>
+        <th class="num">Wypożyczeń</th><th class="w-uwagi">Uwagi</th><th></th></tr></thead>
       <tbody>${rows || `<tr><td colspan="10"><div class="empty">Brak pozycji</div></td></tr>`}</tbody>
     </table></div>`;
 }
@@ -797,11 +806,17 @@ function modalUser(rec){
 
 /* ---------- akcje ---------- */
 const ACTIONS = {
-  filter(id, btn){ S.filter = btn.dataset.filter; render(); },
+  filter(id, btn){
+    const k = btn.dataset.filter;
+    S.stany[k] = !S.stany[k];         // przełącznik: klik wyłącza/włącza dany status
+    render();
+  },
   fltrDron(id){ S.fDron = (S.fDron === id) ? 0 : id; render(); },   // drugi klik = wyczyść
   fltrUser(id){ S.fUser = (S.fUser === id) ? 0 : id; render(); },
-  histDron(id){ S.fDron = id; S.fUser = 0; S.view = 'rejestr'; S.filter = 'wszystkie'; render(); },
-  histUser(id){ S.fUser = id; S.fDron = 0; S.view = 'rejestr'; S.filter = 'wszystkie'; render(); },
+  histDron(id){ S.fDron = id; S.fUser = 0; S.view = 'rejestr';
+    S.stany = { rezerwacja: true, wydany: true, zwrot: true }; render(); },
+  histUser(id){ S.fUser = id; S.fDron = 0; S.view = 'rejestr';
+    S.stany = { rezerwacja: true, wydany: true, zwrot: true }; render(); },
   calPrev(){ S.cal.m--; if(S.cal.m < 0){ S.cal.m = 11; S.cal.y--; } render(); },
   calNext(){ S.cal.m++; if(S.cal.m > 11){ S.cal.m = 0; S.cal.y++; } render(); },
   calToday(){ const n = new Date(); S.cal = {y:n.getFullYear(), m:n.getMonth()}; render(); },
