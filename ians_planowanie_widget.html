@@ -153,8 +153,6 @@ function renderBooklet(){const q=(bookletSearch.value||'').toLowerCase().trim();
 /* samodzielna strona biuletynu — układ stron 1:1 jak booklet PDF (extract_learningzone.py) */
 function bookletHtml(){
  const items=Object.values(LZ_OPISY).sort((a,b)=>(a.course_id||'').localeCompare(b.course_id||'','pl'));
- const byCode=new Map();
- for(const t of state.term.values()){if(!t.course_id)continue;if(!byCode.has(t.course_id))byCode.set(t.course_id,[]);byCode.get(t.course_id).push(t)}
  // wydziel wbudowaną sekcję "Pre-requisites" z tekstu (jak split_embedded_section w PDF)
  const splitEmb=(text,header)=>{text=text||'';const i=text.search(new RegExp('\\b'+header+'\\b','i'));if(i<0)return[text.trim(),''];return[text.slice(0,i).trim(),text.slice(i+header.length).replace(/^[:\s-]+/,'').trim()]};
  // wiersz tabeli terminów (terminy wbudowane z LearningZone): Start | Koniec | Dni | Dni tyg. | Lokalizacja — jak w PDF
