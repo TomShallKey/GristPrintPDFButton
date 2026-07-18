@@ -42,11 +42,17 @@
   .chip.on-dostepny{background:var(--green-soft);border-color:var(--green);color:var(--green)}
   .chip.on-zarez{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
   .chip.on-teren{background:var(--amber-soft);border-color:var(--amber);color:var(--amber)}
-  .chip.on-wyl{background:var(--grey-soft);border-color:var(--muted);color:var(--muted)}
-  .chip.on-wycofany{background:var(--red-soft);border-color:var(--red);color:var(--red)}
+  .chip.on-wyl{background:var(--red-soft);border-color:var(--red);color:var(--red)}
+  tr.row-wyl td{background:#fdf4f4}
+  tr.row-wyl:hover td{background:#faecec}
   .chip .cnt{font-weight:400;opacity:.8;margin-left:3px}
-  .fsel{border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--card);max-width:260px;color:var(--muted)}
+  .fsel{border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--card);max-width:280px;color:var(--muted)}
   .fsel.on{border-color:var(--accent);color:var(--accent);font-weight:600}
+  .fsel-dron{max-width:400px}
+  .fwrap{display:inline-flex;align-items:center;gap:4px}
+  .fclear{width:22px;height:22px;border:1px solid var(--line);border-radius:50%;color:var(--muted);
+    display:inline-flex;align-items:center;justify-content:center;font-size:14px;line-height:1;background:var(--card)}
+  .fclear:hover{color:var(--red);border-color:var(--red);background:var(--red-soft)}
   .primary{background:var(--accent);color:#fff;padding:8px 16px;border-radius:8px;font-weight:600;box-shadow:var(--shadow)}
   .primary:hover{filter:brightness(1.08)}
 
@@ -106,10 +112,18 @@
   .cal-day{font-size:12px;font-weight:600;margin-bottom:4px;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:50%}
   .cal-cell.today .cal-day{background:var(--accent);color:#fff}
   .cal-chip{font-size:11px;font-weight:600;padding:2px 7px;border-radius:5px;margin-top:3px;cursor:pointer;
-    border-left:3px solid transparent}
+    border-left:3px solid transparent;height:32px;overflow:hidden;line-height:1.25}
   .cal-chip>div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .cal-chip .cal-l2{font-weight:400;opacity:.8;font-size:10.5px}
   .cal-chip:hover{filter:brightness(.93)}
+  /* pasek ciągnie się przez kolejne dni: kontynuacja sięga w lewo przez padding i przerwę siatki
+     (13px = 6px padding poprzedniej komórki + 1px gap + 6px padding bieżącej) */
+  .cal-chip.cont-l{margin-left:-13px;border-top-left-radius:0;border-bottom-left-radius:0;border-left-width:0;padding-left:7px}
+  .cal-chip.cont-r{border-top-right-radius:0;border-bottom-right-radius:0}
+  .cal-slot{height:32px;margin-top:3px}
+  .cal-cell.wknd{background:#f2f5f9}
+  .cal-cell.out.wknd{background:#f6f8fa}
+  .cal-head div:nth-child(6),.cal-head div:nth-child(7){background:#eef2f7}
   .c-rezerwacja{background:var(--accent-soft);color:var(--accent);border-left-color:var(--accent)}
   .c-wydany{background:var(--amber-soft);color:var(--amber);border-left-color:var(--amber)}
   .c-zwrot{background:var(--green-soft);color:var(--green);border-left-color:var(--green)}
@@ -210,7 +224,7 @@ const S = {
   view: 'rejestr',
   q: '',
   stany: { rezerwacja: true, wydany: true, zwrot: true },  // przełączniki statusów (domyślnie wszystkie ON)
-  stanySpis: { dostepny: true, zarez: true, teren: true, wyl: true, wycofany: true },  // przełączniki statusów sprzętu
+  stanySpis: { dostepny: true, zarez: true, teren: true, wyl: true },  // przełączniki statusów sprzętu
   sort: { key: 'od', dir: -1 },       // sortowanie tabeli Rejestru
   sortSpis: { key: 'id', dir: 1 },    // sortowanie tabeli Sprzętu
   fDron: 0,          // filtr: konkretny egzemplarz (Rejestr + Kalendarz)
@@ -307,14 +321,9 @@ function sortedUpr(){
     .sort((a,b) => String(a.Nazwisko||'').localeCompare(String(b.Nazwisko||''), 'pl'));
 }
 
-/* czy tabela ma daną kolumnę (np. opcjonalną Wycofany) */
-function hasCol(table, col){
-  return S.data[table].length > 0 && (col in S.data[table][0]);
-}
-
-/* Dostępność dronów w zadanym oknie dat (pomija wyłączone, wycofane, zwrócone i edytowany rekord). */
+/* Dostępność dronów w zadanym oknie dat (pomija wyłączone, zwrócone i edytowany rekord). */
 function availableDrones(from, to, excludeId){
-  return sortedSpis().filter(d => !d.Wylaczony && !d.Wycofany).filter(d => {
+  return sortedSpis().filter(d => !d.Wylaczony).filter(d => {
     if(!from || !to) return true;
     return !S.data.Rejestr.some(r =>
       r.id !== excludeId && r.Dron === d.id && !r.Zwrot &&
@@ -387,10 +396,16 @@ function filterBar(){
   const users = sortedUpr().map(u =>
     `<option value="${u.id}" ${S.fUser===u.id?'selected':''}>${esc(uprName(u))}</option>`).join('');
   return `
-    <select class="fsel ${S.fDron?'on':''}" data-fltr="dron" title="Filtruj po egzemplarzu">
-      <option value="0">🛸 wszystkie drony</option>${drony}</select>
-    <select class="fsel ${S.fUser?'on':''}" data-fltr="user" title="Filtruj po użytkowniku">
-      <option value="0">👤 wszyscy użytkownicy</option>${users}</select>`;
+    <span class="fwrap">
+      <select class="fsel fsel-dron ${S.fDron?'on':''}" data-fltr="dron" title="Filtruj po egzemplarzu">
+        <option value="0">🛸 wszystkie drony</option>${drony}</select>
+      ${S.fDron ? `<button class="fclear" data-act="clearFDron" title="Wyczyść filtr drona">×</button>` : ''}
+    </span>
+    <span class="fwrap">
+      <select class="fsel ${S.fUser?'on':''}" data-fltr="user" title="Filtruj po użytkowniku">
+        <option value="0">👤 wszyscy użytkownicy</option>${users}</select>
+      ${S.fUser ? `<button class="fclear" data-act="clearFUser" title="Wyczyść filtr użytkownika">×</button>` : ''}
+    </span>`;
 }
 
 /* filtry wspólne dla Rejestru i Kalendarza */
@@ -509,28 +524,47 @@ function renderKalendarz(){
   const now = new Date();
   const todaySec = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 1000;
 
-  const list = filteredRejestr().filter(r => r.Data_od && r.Data_do);
+  const list = filteredRejestr().filter(r => r.Data_od && r.Data_do && r.Data_do >= r.Data_od);
 
+  const DAY = 86400, MAXL = 4;
   let cells = '';
-  for(let i=0; i<42; i++){
-    const sec = start + i*86400;
-    const d = new Date(sec*1000);
-    const inMonth = d.getUTCMonth() === m;
-    const items = list.filter(r => r.Data_od <= sec && sec <= r.Data_do)
-      .sort((a,b) => (a.Dron||0)-(b.Dron||0));
-    const MAX = 4;
-    const chipsHtml = items.slice(0, MAX).map(r => {
-      const st = statusRej(r);
-      const dr = S.maps.spis.get(r.Dron), u = S.maps.upr.get(r.Uzytkownik);
-      const osoba = u ? uprName(u) : '';
-      const email = u ? (u.Email || '') : '';
-      return `<div class="cal-chip c-${st}" data-act="edytujWyp" data-id="${r.id}"
-        title="${esc(dronId(dr))} — ${esc(osoba)}${email ? ' <'+esc(email)+'>' : ''} (${d2str(r.Data_od)} → ${d2str(r.Data_do)})">
-        <div>${esc(dronId(dr))}</div>
-        ${osoba ? `<div class="cal-l2">${esc(osoba)}</div>` : ''}</div>`;
-    }).join('') + (items.length > MAX ? `<div class="cal-more">+${items.length-MAX} więcej</div>` : '');
-    cells += `<div class="cal-cell ${inMonth?'':'out'} ${sec===todaySec?'today':''}">
-      <div class="cal-day">${d.getUTCDate()}</div>${chipsHtml}</div>`;
+  for(let w=0; w<6; w++){
+    const wStart = start + w*7*DAY, wEnd = wStart + 6*DAY;
+    // wypożyczenia nachodzące na ten tydzień → przydział torów (jeden pasek = jeden tor, ciągły)
+    const wk = list.filter(r => r.Data_od <= wEnd && r.Data_do >= wStart)
+      .sort((a,b) => a.Data_od - b.Data_od || a.id - b.id);
+    const lanes = [];
+    for(const r of wk){
+      let li = lanes.findIndex(L => L.every(o => o.Data_do < r.Data_od || o.Data_od > r.Data_do));
+      if(li === -1){ lanes.push([]); li = lanes.length - 1; }
+      lanes[li].push(r);
+    }
+    for(let i=0; i<7; i++){
+      const sec = wStart + i*DAY;
+      const d = new Date(sec*1000);
+      const inMonth = d.getUTCMonth() === m;
+      const dow = d.getUTCDay();
+      const wknd = (dow === 0 || dow === 6);
+      let inner = '', extra = 0;
+      for(let li=0; li<lanes.length; li++){
+        const r = lanes[li].find(x => x.Data_od <= sec && sec <= x.Data_do);
+        if(li >= MAXL){ if(r) extra++; continue; }
+        if(!r){ inner += `<div class="cal-slot"></div>`; continue; }
+        const st = statusRej(r);
+        const contL = r.Data_od < sec && i > 0;   // pasek ciągnie się z poprzedniego dnia (w tym tygodniu)
+        const contR = r.Data_do > sec && i < 6;   // i biegnie dalej w prawo
+        const showLabel = (sec === r.Data_od) || (i === 0);  // podpis na starcie paska i na początku tygodnia
+        const dr = S.maps.spis.get(r.Dron), u = S.maps.upr.get(r.Uzytkownik);
+        const osoba = u ? uprName(u) : '';
+        const email = u ? (u.Email || '') : '';
+        inner += `<div class="cal-chip c-${st} ${contL?'cont-l':''} ${contR?'cont-r':''}" data-act="edytujWyp" data-id="${r.id}"
+          title="${esc(dronId(dr))} — ${esc(osoba)}${email ? ' <'+esc(email)+'>' : ''} (${d2str(r.Data_od)} → ${d2str(r.Data_do)})">${
+          showLabel ? `<div>${esc(dronId(dr))}</div>${osoba ? `<div class="cal-l2">${esc(osoba)}</div>` : ''}` : ''}</div>`;
+      }
+      if(extra) inner += `<div class="cal-more">+${extra} więcej</div>`;
+      cells += `<div class="cal-cell ${inMonth?'':'out'} ${wknd?'wknd':''} ${sec===todaySec?'today':''}">
+        <div class="cal-day">${d.getUTCDate()}</div>${inner}</div>`;
+    }
   }
 
   return `
@@ -554,8 +588,7 @@ function renderKalendarz(){
 
 /* ===== widok: SPRZĘT ===== */
 function dronStatus(d){
-  if(d.Wycofany) return {key:'wycofany', label:'Wycofany', cls:'b-red'};
-  if(d.Wylaczony) return {key:'wyl', label:'Wyłączony', cls:'b-grey'};
+  if(d.Wylaczony) return {key:'wyl', label:'Wyłączony', cls:'b-red'};
   const wTerenie = S.data.Rejestr.some(r => r.Dron===d.id && r.Wydany && !r.Zwrot);
   if(wTerenie) return {key:'teren', label:'W terenie', cls:'b-amber'};
   const today = Math.floor(Date.now()/1000);
@@ -571,7 +604,7 @@ function renderSpis(){
 
   let list = sortedSpis().filter(d => matchQ([dronId(d), d.Producent, d.Model, d.Numer_Seryjny, d.Uwagi]));
 
-  const counts = {dostepny:0, zarez:0, teren:0, wyl:0, wycofany:0};
+  const counts = {dostepny:0, zarez:0, teren:0, wyl:0};
   list.forEach(d => counts[dronStatus(d).key]++);
   list = list.filter(d => S.stanySpis[dronStatus(d).key]);
 
@@ -586,8 +619,7 @@ function renderSpis(){
   list.sort((a,b) => (cmpVals(keyFn(a), keyFn(b)) * S.sortSpis.dir) || a.id - b.id);
 
   const chips = [
-    ['dostepny','Dostępne'], ['zarez','Zarezerwowane'], ['teren','W terenie'],
-    ['wyl','Wyłączone'], ['wycofany','Wycofane'],
+    ['dostepny','Dostępne'], ['zarez','Zarezerwowane'], ['teren','W terenie'], ['wyl','Wyłączone'],
   ].map(([k,label]) =>
     `<button class="chip ${S.stanySpis[k]?'on-'+k:''}" data-act="filterSpis" data-filter="${k}"
        title="Kliknij, aby ${S.stanySpis[k]?'ukryć':'pokazać'}">
@@ -600,7 +632,7 @@ function renderSpis(){
   const rows = list.map(d => {
     const stt = dronStatus(d);
     const nWyp = nWypMap.get(d.id) || 0;
-    return `<tr>
+    return `<tr class="${stt.key==='wyl' ? 'row-wyl' : ''}">
       <td><button class="lnk" data-act="histDron" data-id="${d.id}" title="Pokaż historię w Rejestrze"><b>${esc(dronId(d))}</b></button></td>
       <td>${esc(d.Producent)} ${esc(d.Model)}</td>
       <td class="mono">${esc(d.Numer_Seryjny)}</td>
@@ -831,9 +863,6 @@ function modalDron(rec){
       <input name="pazp" list="dl-pazp" value="${isEdit?esc(rec.PAZP_UE):''}"></div>
     <div class="field"><label>Uwagi</label>
       <textarea name="uwagi">${isEdit?esc(rec.Uwagi):''}</textarea></div>
-    ${hasCol('Spis','Wycofany') ? `
-    <label class="checkline"><input type="checkbox" name="wycofany" ${isEdit&&rec.Wycofany?'checked':''}>
-      Wycofany z eksploatacji</label>` : ''}
   `, fd => {
     const vals = {
       Producent: fd.get('prod'), Model: fd.get('model'),
@@ -843,7 +872,6 @@ function modalDron(rec){
       Wartosc: fd.get('wartosc') ? Number(fd.get('wartosc')) : null,
       PAZP_UE: fd.get('pazp'), Uwagi: fd.get('uwagi'),
     };
-    if(hasCol('Spis','Wycofany')) vals.Wycofany = !!fd.get('wycofany');
     apply([[isEdit?'UpdateRecord':'AddRecord','Spis',isEdit?rec.id:null,vals]],
       isEdit ? 'Zaktualizowano drona' : 'Dodano drona');
   });
@@ -896,6 +924,8 @@ const ACTIONS = {
   },
   fltrDron(id){ S.fDron = (S.fDron === id) ? 0 : id; render(); },   // drugi klik = wyczyść
   fltrUser(id){ S.fUser = (S.fUser === id) ? 0 : id; render(); },
+  clearFDron(){ S.fDron = 0; render(); },
+  clearFUser(){ S.fUser = 0; render(); },
   histDron(id){ S.fDron = id; S.fUser = 0; S.view = 'rejestr';
     S.stany = { rezerwacja: true, wydany: true, zwrot: true }; render(); },
   histUser(id){ S.fUser = id; S.fDron = 0; S.view = 'rejestr';
