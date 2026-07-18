@@ -43,6 +43,7 @@
   .chip.on-zarez{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
   .chip.on-teren{background:var(--amber-soft);border-color:var(--amber);color:var(--amber)}
   .chip.on-wyl{background:var(--grey-soft);border-color:var(--muted);color:var(--muted)}
+  .chip.on-wycofany{background:var(--red-soft);border-color:var(--red);color:var(--red)}
   .chip .cnt{font-weight:400;opacity:.8;margin-left:3px}
   .fsel{border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--card);max-width:260px;color:var(--muted)}
   .fsel.on{border-color:var(--accent);color:var(--accent);font-weight:600}
@@ -209,7 +210,7 @@ const S = {
   view: 'rejestr',
   q: '',
   stany: { rezerwacja: true, wydany: true, zwrot: true },  // przełączniki statusów (domyślnie wszystkie ON)
-  stanySpis: { dostepny: true, zarez: true, teren: true, wyl: true },  // przełączniki statusów sprzętu
+  stanySpis: { dostepny: true, zarez: true, teren: true, wyl: true, wycofany: true },  // przełączniki statusów sprzętu
   sort: { key: 'od', dir: -1 },       // sortowanie tabeli Rejestru
   sortSpis: { key: 'id', dir: 1 },    // sortowanie tabeli Sprzętu
   fDron: 0,          // filtr: konkretny egzemplarz (Rejestr + Kalendarz)
@@ -306,9 +307,14 @@ function sortedUpr(){
     .sort((a,b) => String(a.Nazwisko||'').localeCompare(String(b.Nazwisko||''), 'pl'));
 }
 
-/* Dostępność dronów w zadanym oknie dat (pomija zwrócone i edytowany rekord). */
+/* czy tabela ma daną kolumnę (np. opcjonalną Wycofany) */
+function hasCol(table, col){
+  return S.data[table].length > 0 && (col in S.data[table][0]);
+}
+
+/* Dostępność dronów w zadanym oknie dat (pomija wyłączone, wycofane, zwrócone i edytowany rekord). */
 function availableDrones(from, to, excludeId){
-  return sortedSpis().filter(d => !d.Wylaczony).filter(d => {
+  return sortedSpis().filter(d => !d.Wylaczony && !d.Wycofany).filter(d => {
     if(!from || !to) return true;
     return !S.data.Rejestr.some(r =>
       r.id !== excludeId && r.Dron === d.id && !r.Zwrot &&
@@ -548,6 +554,7 @@ function renderKalendarz(){
 
 /* ===== widok: SPRZĘT ===== */
 function dronStatus(d){
+  if(d.Wycofany) return {key:'wycofany', label:'Wycofany', cls:'b-red'};
   if(d.Wylaczony) return {key:'wyl', label:'Wyłączony', cls:'b-grey'};
   const wTerenie = S.data.Rejestr.some(r => r.Dron===d.id && r.Wydany && !r.Zwrot);
   if(wTerenie) return {key:'teren', label:'W terenie', cls:'b-amber'};
@@ -564,7 +571,7 @@ function renderSpis(){
 
   let list = sortedSpis().filter(d => matchQ([dronId(d), d.Producent, d.Model, d.Numer_Seryjny, d.Uwagi]));
 
-  const counts = {dostepny:0, zarez:0, teren:0, wyl:0};
+  const counts = {dostepny:0, zarez:0, teren:0, wyl:0, wycofany:0};
   list.forEach(d => counts[dronStatus(d).key]++);
   list = list.filter(d => S.stanySpis[dronStatus(d).key]);
 
@@ -579,7 +586,8 @@ function renderSpis(){
   list.sort((a,b) => (cmpVals(keyFn(a), keyFn(b)) * S.sortSpis.dir) || a.id - b.id);
 
   const chips = [
-    ['dostepny','Dostępne'], ['zarez','Zarezerwowane'], ['teren','W terenie'], ['wyl','Wyłączone'],
+    ['dostepny','Dostępne'], ['zarez','Zarezerwowane'], ['teren','W terenie'],
+    ['wyl','Wyłączone'], ['wycofany','Wycofane'],
   ].map(([k,label]) =>
     `<button class="chip ${S.stanySpis[k]?'on-'+k:''}" data-act="filterSpis" data-filter="${k}"
        title="Kliknij, aby ${S.stanySpis[k]?'ukryć':'pokazać'}">
@@ -823,6 +831,9 @@ function modalDron(rec){
       <input name="pazp" list="dl-pazp" value="${isEdit?esc(rec.PAZP_UE):''}"></div>
     <div class="field"><label>Uwagi</label>
       <textarea name="uwagi">${isEdit?esc(rec.Uwagi):''}</textarea></div>
+    ${hasCol('Spis','Wycofany') ? `
+    <label class="checkline"><input type="checkbox" name="wycofany" ${isEdit&&rec.Wycofany?'checked':''}>
+      Wycofany z eksploatacji</label>` : ''}
   `, fd => {
     const vals = {
       Producent: fd.get('prod'), Model: fd.get('model'),
@@ -832,6 +843,7 @@ function modalDron(rec){
       Wartosc: fd.get('wartosc') ? Number(fd.get('wartosc')) : null,
       PAZP_UE: fd.get('pazp'), Uwagi: fd.get('uwagi'),
     };
+    if(hasCol('Spis','Wycofany')) vals.Wycofany = !!fd.get('wycofany');
     apply([[isEdit?'UpdateRecord':'AddRecord','Spis',isEdit?rec.id:null,vals]],
       isEdit ? 'Zaktualizowano drona' : 'Dodano drona');
   });
