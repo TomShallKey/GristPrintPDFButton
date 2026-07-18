@@ -279,6 +279,12 @@ function datalist(id, values){
 function sortedSpis(){
   return S.data.Spis.slice().sort((a,b) => (a.Dron_Lp||9e9)-(b.Dron_Lp||9e9) || a.id-b.id);
 }
+/* porównanie naturalne: tekst alfabetycznie, liczby w tekście numerycznie (09 < 10, 2 < 11) */
+function cmpVals(x, y){
+  if(typeof x === 'string' || typeof y === 'string')
+    return String(x).localeCompare(String(y), 'pl', {numeric:true, sensitivity:'base'});
+  return x < y ? -1 : x > y ? 1 : 0;
+}
 function sortedUpr(){
   return S.data.Uprawnienia.slice()
     .sort((a,b) => String(a.Nazwisko||'').localeCompare(String(b.Nazwisko||''), 'pl'));
@@ -397,10 +403,7 @@ function renderRejestr(){
     uzas:   r => String(r.Uzasadnienie||'').toLowerCase(),
   };
   const keyFn = sortKeys[S.sort.key] || sortKeys.od;
-  list.sort((a,b) => {
-    const x = keyFn(a), y = keyFn(b);
-    return ((x<y ? -1 : x>y ? 1 : 0) * S.sort.dir) || b.id - a.id;
-  });
+  list.sort((a,b) => (cmpVals(keyFn(a), keyFn(b)) * S.sort.dir) || b.id - a.id);
 
   const th = (k, label, cls='') =>
     `<th class="sortable ${cls}" data-sort="${k}" title="Sortuj">${label}${
@@ -550,17 +553,14 @@ function renderSpis(){
   list = list.filter(d => S.stanySpis[dronStatus(d).key]);
 
   const sortKeys = {
-    id:      d => d.Dron_Lp ?? 9e9,
+    id:      d => dronId(d),                 // naturalnie: producent/model alfabetycznie, numer numerycznie
     model:   d => ((d.Producent||'')+' '+(d.Model||'')).toLowerCase(),
     wartosc: d => d.Wartosc ?? -1,
     rok:     d => d.Rok_Produkcji ?? 0,
     wyp:     d => nWypMap.get(d.id) || 0,
   };
   const keyFn = sortKeys[S.sortSpis.key] || sortKeys.id;
-  list.sort((a,b) => {
-    const x = keyFn(a), y = keyFn(b);
-    return ((x<y ? -1 : x>y ? 1 : 0) * S.sortSpis.dir) || a.id - b.id;
-  });
+  list.sort((a,b) => (cmpVals(keyFn(a), keyFn(b)) * S.sortSpis.dir) || a.id - b.id);
 
   const chips = [
     ['dostepny','Dostępne'], ['zarez','Zarezerwowane'], ['teren','W terenie'], ['wyl','Wyłączone'],
