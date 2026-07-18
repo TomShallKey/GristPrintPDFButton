@@ -279,11 +279,27 @@ function datalist(id, values){
 function sortedSpis(){
   return S.data.Spis.slice().sort((a,b) => (a.Dron_Lp||9e9)-(b.Dron_Lp||9e9) || a.id-b.id);
 }
-/* porównanie naturalne: tekst alfabetycznie, liczby w tekście numerycznie (09 < 10, 2 < 11) */
+/* porównanie naturalne: tekst alfabetycznie, liczby w tekście numerycznie (09 < 10, 2 < 11);
+   tablice porównywane człon po członie (klucze złożone, np. [numer, nazwa]) */
 function cmpVals(x, y){
+  if(Array.isArray(x) || Array.isArray(y)){
+    const a = [].concat(x), b = [].concat(y);
+    for(let i = 0; i < Math.max(a.length, b.length); i++){
+      const c = cmpVals(a[i], b[i]);
+      if(c) return c;
+    }
+    return 0;
+  }
+  if(x == null && y == null) return 0;
+  if(x == null) return -1;
+  if(y == null) return 1;
   if(typeof x === 'string' || typeof y === 'string')
     return String(x).localeCompare(String(y), 'pl', {numeric:true, sensitivity:'base'});
   return x < y ? -1 : x > y ? 1 : 0;
+}
+/* klucz sortowania po ID drona: najpierw numer inwentarzowy (Lp), potem pełne oznaczenie */
+function dronSortKey(d){
+  return d ? [d.Dron_Lp ?? 9e9, dronId(d)] : [9e9, ''];
 }
 function sortedUpr(){
   return S.data.Uprawnienia.slice()
@@ -392,7 +408,7 @@ function renderRejestr(){
   list = list.filter(r => S.stany[statusRej(r)]);
 
   const sortKeys = {
-    dron:   r => dronId(S.maps.spis.get(r.Dron)).toLowerCase(),
+    dron:   r => dronSortKey(S.maps.spis.get(r.Dron)),
     user:   r => uprName(S.maps.upr.get(r.Uzytkownik)).toLowerCase(),
     od:     r => r.Data_od || 0,
     do:     r => r.Data_do || 0,
@@ -553,7 +569,7 @@ function renderSpis(){
   list = list.filter(d => S.stanySpis[dronStatus(d).key]);
 
   const sortKeys = {
-    id:      d => dronId(d),                 // naturalnie: producent/model alfabetycznie, numer numerycznie
+    id:      d => dronSortKey(d),            // najpierw numer inwentarzowy, potem oznaczenie
     model:   d => ((d.Producent||'')+' '+(d.Model||'')).toLowerCase(),
     wartosc: d => d.Wartosc ?? -1,
     rok:     d => d.Rok_Produkcji ?? 0,
