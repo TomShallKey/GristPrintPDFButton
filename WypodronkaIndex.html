@@ -39,6 +39,10 @@
   .chip.on-rezerwacja{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
   .chip.on-wydany{background:var(--amber-soft);border-color:var(--amber);color:var(--amber)}
   .chip.on-zwrot{background:var(--green-soft);border-color:var(--green);color:var(--green)}
+  .chip.on-dostepny{background:var(--green-soft);border-color:var(--green);color:var(--green)}
+  .chip.on-zarez{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+  .chip.on-teren{background:var(--amber-soft);border-color:var(--amber);color:var(--amber)}
+  .chip.on-wyl{background:var(--grey-soft);border-color:var(--muted);color:var(--muted)}
   .chip .cnt{font-weight:400;opacity:.8;margin-left:3px}
   .fsel{border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--card);max-width:260px;color:var(--muted)}
   .fsel.on{border-color:var(--accent);color:var(--accent);font-weight:600}
@@ -86,6 +90,10 @@
   .btn.warn{color:var(--red)}
   .btn.ico{padding:4px 7px;font-size:14px;line-height:1;border-color:transparent;background:transparent}
   .btn.ico:hover{background:var(--grey-soft);border-color:var(--line)}
+  .btn.flow{width:96px;text-align:center}
+  .btn.flow:hover{filter:brightness(.95)}
+  .flow-wyd{background:var(--amber-soft);border-color:var(--amber);color:var(--amber)}
+  .flow-zwr{background:var(--green-soft);border-color:var(--green);color:var(--green)}
 
   /* kalendarz */
   .cal-head{display:grid;grid-template-columns:repeat(7,1fr);background:#fafbfc;border-bottom:1px solid var(--line)}
@@ -97,12 +105,15 @@
   .cal-day{font-size:12px;font-weight:600;margin-bottom:4px;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:50%}
   .cal-cell.today .cal-day{background:var(--accent);color:#fff}
   .cal-chip{font-size:11px;font-weight:600;padding:2px 7px;border-radius:5px;margin-top:3px;cursor:pointer;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-left:3px solid transparent}
+    border-left:3px solid transparent}
+  .cal-chip>div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cal-chip .cal-l2{font-weight:400;opacity:.8;font-size:10.5px}
   .cal-chip:hover{filter:brightness(.93)}
   .c-rezerwacja{background:var(--accent-soft);color:var(--accent);border-left-color:var(--accent)}
   .c-wydany{background:var(--amber-soft);color:var(--amber);border-left-color:var(--amber)}
   .c-zwrot{background:var(--green-soft);color:var(--green);border-left-color:var(--green)}
   .cal-more{font-size:11px;color:var(--muted);margin-top:3px;padding-left:4px}
+  .cal-mail{font-weight:400;opacity:.75}
   .cal-title{min-width:170px;text-align:center;font-size:15px}
 
   /* modal */
@@ -198,7 +209,9 @@ const S = {
   view: 'rejestr',
   q: '',
   stany: { rezerwacja: true, wydany: true, zwrot: true },  // przełączniki statusów (domyślnie wszystkie ON)
-  sort: { key: 'od', dir: -1 },   // sortowanie tabeli Rejestru
+  stanySpis: { dostepny: true, zarez: true, teren: true, wyl: true },  // przełączniki statusów sprzętu
+  sort: { key: 'od', dir: -1 },       // sortowanie tabeli Rejestru
+  sortSpis: { key: 'id', dir: 1 },    // sortowanie tabeli Sprzętu
   fDron: 0,          // filtr: konkretny egzemplarz (Rejestr + Kalendarz)
   fUser: 0,          // filtr: konkretny użytkownik
   cal: null,         // {y, m} — wyświetlany miesiąc kalendarza
@@ -420,9 +433,9 @@ function renderRejestr(){
       : `<span class="sub">—</span>`;
     const dni = r.Dni || dniCalc(r.Data_od, r.Data_do) || '—';
     const flow = st==='rezerwacja'
-        ? `<button class="btn go" data-act="wydaj" data-id="${r.id}">Wydaj</button>`
+        ? `<button class="btn flow flow-wyd" data-act="wydaj" data-id="${r.id}">Wydanie</button>`
       : st==='wydany'
-        ? `<button class="btn ok" data-act="zwrot" data-id="${r.id}">Przyjmij zwrot</button>`
+        ? `<button class="btn flow flow-zwr" data-act="zwrot" data-id="${r.id}">Zwrot</button>`
       : '';
     const dronCell = d
       ? `<button class="lnk" data-act="fltrDron" data-id="${d.id}" title="Pokaż historię tego egzemplarza"><b>${esc(dronId(d))}</b></button>`
@@ -438,10 +451,10 @@ function renderRejestr(){
       <td>${d2strD(r.Data_od)}</td>
       <td>${d2strD(r.Data_do)}</td>
       <td class="num">${esc(dni)}</td>
+      <td>${esc(r.Uzasadnienie)}</td>
       <td>${cellRez}</td>
       <td>${cellWyd}</td>
       <td>${cellZwr}</td>
-      <td>${esc(r.Uzasadnienie)}</td>
       <td>${flow}</td>
       <td><div class="row-act">
         <button class="btn ico" data-act="edytujWyp" data-id="${r.id}" title="Edytuj">✏️</button>
@@ -455,8 +468,8 @@ function renderRejestr(){
       <button class="primary" data-act="nowyWyp">+ Nowe wypożyczenie</button></div>
     <div class="card"><table style="min-width:1150px">
       <thead><tr>${th('dron','Dron')}${th('user','Użytkownik')}${th('od','Data od')}${th('do','Data do')}${
-        th('dni','Dni','num')}${th('status','Rezerwacja')}${th('wyd','Wydany')}${th('zwr','Zwrócony')}${
-        th('uzas','Uzasadnienie')}<th></th><th></th></tr></thead>
+        th('dni','Dni','num')}${th('uzas','Uzasadnienie')}${th('status','Rezerwacja')}${th('wyd','Wydany')}${
+        th('zwr','Zwrócony')}<th></th><th></th></tr></thead>
       <tbody>${rows || `<tr><td colspan="11"><div class="empty">Brak pozycji</div></td></tr>`}</tbody>
     </table></div>`;
 }
@@ -484,8 +497,12 @@ function renderKalendarz(){
     const chipsHtml = items.slice(0, MAX).map(r => {
       const st = statusRej(r);
       const dr = S.maps.spis.get(r.Dron), u = S.maps.upr.get(r.Uzytkownik);
+      const osoba = u ? uprName(u) : '';
+      const email = u ? (u.Email || '') : '';
       return `<div class="cal-chip c-${st}" data-act="edytujWyp" data-id="${r.id}"
-        title="${esc(dronId(dr))} — ${esc(uprName(u))} (${d2str(r.Data_od)} → ${d2str(r.Data_do)})">${esc(dronId(dr))}</div>`;
+        title="${esc(dronId(dr))} — ${esc(osoba)}${email ? ' <'+esc(email)+'>' : ''} (${d2str(r.Data_od)} → ${d2str(r.Data_do)})">
+        <div>${esc(dronId(dr))}</div>
+        ${osoba ? `<div class="cal-l2">${esc(osoba)}</div>` : ''}</div>`;
     }).join('') + (items.length > MAX ? `<div class="cal-more">+${items.length-MAX} więcej</div>` : '');
     cells += `<div class="cal-cell ${inMonth?'':'out'} ${sec===todaySec?'today':''}">
       <div class="cal-day">${d.getUTCDate()}</div>${chipsHtml}</div>`;
@@ -512,31 +529,53 @@ function renderKalendarz(){
 
 /* ===== widok: SPRZĘT ===== */
 function dronStatus(d){
-  if(d.Wylaczony) return ['Wyłączony','b-grey'];
+  if(d.Wylaczony) return {key:'wyl', label:'Wyłączony', cls:'b-grey'};
   const wTerenie = S.data.Rejestr.some(r => r.Dron===d.id && r.Wydany && !r.Zwrot);
-  if(wTerenie) return ['W terenie','b-amber'];
+  if(wTerenie) return {key:'teren', label:'W terenie', cls:'b-amber'};
   const today = Math.floor(Date.now()/1000);
   const zarez = S.data.Rejestr.some(r => r.Dron===d.id && !r.Wydany && !r.Zwrot &&
     r.Data_od && r.Data_do && r.Data_od <= today && r.Data_do + 86400 > today);
-  if(zarez) return ['Zarezerwowany','b-blue'];
-  return ['Dostępny','b-green'];
+  if(zarez) return {key:'zarez', label:'Zarezerwowany', cls:'b-blue'};
+  return {key:'dostepny', label:'Dostępny', cls:'b-green'};
 }
 
 function renderSpis(){
-  let list = sortedSpis();
-  list = list.filter(d => matchQ([dronId(d), d.Producent, d.Model, d.Numer_Seryjny, d.Uwagi]));
+  const nWypMap = new Map();
+  S.data.Rejestr.forEach(r => { if(r.Dron) nWypMap.set(r.Dron, (nWypMap.get(r.Dron)||0)+1); });
 
-  const stat = {dostepne:0, teren:0, wyl:0};
-  S.data.Spis.forEach(d => {
-    const [s] = dronStatus(d);
-    if(s==='Wyłączony') stat.wyl++;
-    else if(s==='W terenie') stat.teren++;
-    else stat.dostepne++;
+  let list = sortedSpis().filter(d => matchQ([dronId(d), d.Producent, d.Model, d.Numer_Seryjny, d.Uwagi]));
+
+  const counts = {dostepny:0, zarez:0, teren:0, wyl:0};
+  list.forEach(d => counts[dronStatus(d).key]++);
+  list = list.filter(d => S.stanySpis[dronStatus(d).key]);
+
+  const sortKeys = {
+    id:      d => d.Dron_Lp ?? 9e9,
+    model:   d => ((d.Producent||'')+' '+(d.Model||'')).toLowerCase(),
+    wartosc: d => d.Wartosc ?? -1,
+    rok:     d => d.Rok_Produkcji ?? 0,
+    wyp:     d => nWypMap.get(d.id) || 0,
+  };
+  const keyFn = sortKeys[S.sortSpis.key] || sortKeys.id;
+  list.sort((a,b) => {
+    const x = keyFn(a), y = keyFn(b);
+    return ((x<y ? -1 : x>y ? 1 : 0) * S.sortSpis.dir) || a.id - b.id;
   });
 
+  const chips = [
+    ['dostepny','Dostępne'], ['zarez','Zarezerwowane'], ['teren','W terenie'], ['wyl','Wyłączone'],
+  ].map(([k,label]) =>
+    `<button class="chip ${S.stanySpis[k]?'on-'+k:''}" data-act="filterSpis" data-filter="${k}"
+       title="Kliknij, aby ${S.stanySpis[k]?'ukryć':'pokazać'}">
+       ${label}<span class="cnt">${counts[k]}</span></button>`).join('');
+
+  const th = (k, label, cls='') =>
+    `<th class="sortable ${cls}" data-sort="${k}" title="Sortuj">${label}${
+      S.sortSpis.key===k ? (S.sortSpis.dir>0 ? ' ▲' : ' ▼') : ''}</th>`;
+
   const rows = list.map(d => {
-    const [label, cls] = dronStatus(d);
-    const nWyp = S.data.Rejestr.filter(r => r.Dron===d.id).length;
+    const stt = dronStatus(d);
+    const nWyp = nWypMap.get(d.id) || 0;
     return `<tr>
       <td><button class="lnk" data-act="histDron" data-id="${d.id}" title="Pokaż historię w Rejestrze"><b>${esc(dronId(d))}</b></button></td>
       <td>${esc(d.Producent)} ${esc(d.Model)}</td>
@@ -544,7 +583,7 @@ function renderSpis(){
       <td class="num">${esc(d.Rok_Produkcji ?? '—')}</td>
       <td class="num">${pln(d.Wartosc)}</td>
       <td>${esc(d.PAZP_UE)}</td>
-      <td><span class="badge ${cls}">${label}</span></td>
+      <td><span class="badge ${stt.cls}">${stt.label}</span></td>
       <td class="num">${nWyp}</td>
       <td class="w-uwagi">${esc(d.Uwagi)}</td>
       <td><div class="row-act">
@@ -556,17 +595,11 @@ function renderSpis(){
   }).join('');
 
   return `
-    <div class="stats">
-      <div class="stat"><b>${stat.dostepne}</b><span>dostępne</span></div>
-      <div class="stat"><b>${stat.teren}</b><span>w terenie</span></div>
-      <div class="stat"><b>${stat.wyl}</b><span>wyłączone</span></div>
-    </div>
-    <div class="toolbar"><div class="spacer"></div>
+    <div class="toolbar">${chips}<div class="spacer"></div>
       <button class="primary" data-act="nowyDron">+ Dodaj drona</button></div>
     <div class="card"><table>
-      <thead><tr><th class="w-id">ID</th><th class="w-model">Model</th><th>Nr seryjny</th><th class="num">Rok</th>
-        <th class="num">Wartość</th><th>PAŻP/UE</th><th>Status</th>
-        <th class="num">Wypożyczeń</th><th class="w-uwagi">Uwagi</th><th></th></tr></thead>
+      <thead><tr>${th('id','ID','w-id')}${th('model','Model','w-model')}<th>Nr seryjny</th>${th('rok','Rok','num')}${
+        th('wartosc','Wartość','num')}<th>PAŻP/UE</th><th>Status</th>${th('wyp','Wypożyczeń','num')}<th class="w-uwagi">Uwagi</th><th></th></tr></thead>
       <tbody>${rows || `<tr><td colspan="10"><div class="empty">Brak pozycji</div></td></tr>`}</tbody>
     </table></div>`;
 }
@@ -828,6 +861,11 @@ const ACTIONS = {
     S.stany[k] = !S.stany[k];         // przełącznik: klik wyłącza/włącza dany status
     render();
   },
+  filterSpis(id, btn){
+    const k = btn.dataset.filter;
+    S.stanySpis[k] = !S.stanySpis[k];
+    render();
+  },
   fltrDron(id){ S.fDron = (S.fDron === id) ? 0 : id; render(); },   // drugi klik = wyczyść
   fltrUser(id){ S.fUser = (S.fUser === id) ? 0 : id; render(); },
   histDron(id){ S.fDron = id; S.fUser = 0; S.view = 'rejestr';
@@ -915,8 +953,9 @@ async function main(){
     const s = e.target.closest('[data-sort]');
     if(s){
       const k = s.dataset.sort;
-      if(S.sort.key === k) S.sort.dir *= -1;
-      else S.sort = { key: k, dir: 1 };
+      const t = (S.view === 'spis') ? S.sortSpis : S.sort;   // sortowanie per widok
+      if(t.key === k) t.dir *= -1;
+      else { t.key = k; t.dir = 1; }
       render();
       return;
     }
