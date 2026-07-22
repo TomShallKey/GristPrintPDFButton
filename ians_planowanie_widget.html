@@ -142,10 +142,10 @@ function terminyList(code){
  let rows,n;
  if(ians.length){
   n=ians.length;
-  rows=ians.map(t=>{const d=dowOf(t),online=/online|zdaln/i.test(t.lokalizacja||''),f=feeClass(t.koszt),cost=(t.koszt||'').trim()?`<span class="term-cost ${f}">${esc(t.koszt)}</span>`:'';return `<div class="term-item"><span class="term-date">${esc(dateNoDow(t))}</span>${d?`<span class="term-dow">${esc(d)}</span>`:''}${t.termin_dt?`<span class="term-loc">${esc(t.termin_dt)}</span>`:''}${t.lokalizacja?`<span class="term-loc${online?' online':''}">${esc(t.lokalizacja)}</span>`:''}${cost}</div>`}).join('');
+  rows=ians.map(t=>{const online=/online|zdaln/i.test(t.lokalizacja||''),f=feeClass(t.koszt),cost=(t.koszt||'').trim()?`<span class="term-cost ${f}">${esc(t.koszt)}</span>`:'',date=t.termin_dt||dateNoDow(t),dni=t.dni_robocze?esc(t.dni_robocze+' dn.'):'';return `<div class="term-item"><span class="term-date">${esc(date)}</span>${dni?`<span class="term-dow">${dni}</span>`:''}${t.lokalizacja?`<span class="term-loc${online?' online':''}">${esc(t.lokalizacja)}</span>`:''}${cost}</div>`}).join('');
  }else{
   const emb=(opisFor(code)?.terminy)||[];if(!emb.length)return'';n=emb.length;
-  rows=emb.map(t=>{const online=/online|zdaln/i.test(t.lok||'');return `<div class="term-item"><span class="term-date">${esc((t.s||'')+' – '+(t.e||''))}</span>${t.dow?`<span class="term-dow">${esc(t.dow)}</span>`:''}${t.lok?`<span class="term-loc${online?' online':''}">${esc(t.lok)}</span>`:''}</div>`}).join('');
+  rows=emb.map(t=>{const online=/online|zdaln/i.test(t.lok||''),date=((t.s||'')+' – '+(t.e||'')).trim(),dni=(t.dni!=null&&t.dni!=='')?esc(t.dni+' dn.'):'';return `<div class="term-item"><span class="term-date">${esc(date)}</span>${dni?`<span class="term-dow">${dni}</span>`:''}${t.lok?`<span class="term-loc${online?' online':''}">${esc(t.lok)}</span>`:''}</div>`}).join('');
  }
  return `<div class="opis-sec"><h4>Terminy (${n})</h4>${rows}</div>`}
 function showKursInfo(code){const o=opisFor(code);if(!o)return;document.getElementById('infoBody').innerHTML=renderOpis(o,false)+terminyList(code);document.getElementById('infoModal').hidden=false}
