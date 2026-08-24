@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="pl">
 <head>
@@ -117,6 +116,8 @@
   .cal-chip>div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .cal-chip .cal-l2{font-weight:400;opacity:.8;font-size:10.5px}
   .cal-chip:hover{filter:brightness(.93)}
+  /* pasek ciągnie się przez kolejne dni: kontynuacja sięga w lewo przez padding i przerwę siatki
+     (13px = 6px padding poprzedniej komórki + 1px gap + 6px padding bieżącej) */
   .cal-chip.cont-l{margin-left:-13px;border-top-left-radius:0;border-bottom-left-radius:0;border-left-width:0;padding-left:7px}
   .cal-chip.cont-r{border-top-right-radius:0;border-bottom-right-radius:0}
   .cal-slot{height:32px;margin-top:3px}
@@ -183,7 +184,6 @@
   <nav class="tabs" id="tabs">
     <button data-view="rejestr" class="active">Rejestr<span class="cnt" id="cnt-rejestr"></span></button>
     <button data-view="spis">Sprzęt<span class="cnt" id="cnt-spis"></span></button>
-    <button data-view="akcesoria">Akcesoria<span class="cnt" id="cnt-akcesoria"></span></button>
     <button data-view="uprawnienia">Uprawnienia<span class="cnt" id="cnt-uprawnienia"></span></button>
     <button data-view="kalendarz">Kalendarz</button>
   </nav>
@@ -200,10 +200,10 @@
     <ol>
       <li>Wgraj plik na GitHub Pages (lub inny hosting HTTPS).</li>
       <li>W dokumencie Grist dodaj widok <b>Custom → Custom URL</b> i wklej adres pliku.</li>
-      <li>W ustawieniach widgetu ustaw dostęp: <b>Full document access</b> (wymagane — widget czyta i zapisuje 5 tabel).</li>
+      <li>W ustawieniach widgetu ustaw dostęp: <b>Full document access</b> (wymagane — widget czyta i zapisuje 3 tabele).</li>
       <li>Umieść widget sam na stronie, rozciągnij na pełny ekran i udostępnij link do tej strony użytkownikom.</li>
     </ol>
-    <p class="sub">Wymagane tabele: <code>Rejestr</code>, <code>Spis</code>, <code>Uprawnienia</code>, <code>Akcesoria</code>, <code>Rejestr_Akcesoria</code>.</p>
+    <p class="sub">Wymagane tabele: <code>Rejestr</code>, <code>Spis</code>, <code>Uprawnienia</code>.</p>
   </div>
   <div id="view"></div>
 </main>
@@ -225,14 +225,13 @@ const S = {
   q: '',
   stany: { rezerwacja: true, wydany: true, zwrot: true },  // przełączniki statusów (domyślnie wszystkie ON)
   stanySpis: { dostepny: true, zarez: true, teren: true, wyl: true },  // przełączniki statusów sprzętu
-  stanyAkc: { dostepny: true, teren: true, wyl: true },
   sort: { key: 'od', dir: -1 },       // sortowanie tabeli Rejestru
   sortSpis: { key: 'id', dir: 1 },    // sortowanie tabeli Sprzętu
   fDron: 0,          // filtr: konkretny egzemplarz (Rejestr + Kalendarz)
   fUser: 0,          // filtr: konkretny użytkownik
   cal: null,         // {y, m} — wyświetlany miesiąc kalendarza
-  data: { Rejestr: [], Spis: [], Uprawnienia: [], Akcesoria: [], Rejestr_Akcesoria: [] },
-  maps: { spis: new Map(), upr: new Map(), akcesoria: new Map() },
+  data: { Rejestr: [], Spis: [], Uprawnienia: [] },
+  maps: { spis: new Map(), upr: new Map() },
   modal: false,
 };
 
@@ -262,7 +261,7 @@ function pln(v){
   const n = Number(v);
   // zawsze grupuj tysiące (locale pl pomija grupowanie przy 4 cyfrach): 1333.33 → 1 333,33
   const [c, u] = Math.abs(n).toFixed(2).split('.');
-  return (n<0?'-':'') + c.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ',' + u;
+  return (n<0?'-':'') + c.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ',' + u;
 }
 function dniCalc(od, doo){ return (od && doo && doo >= od) ? Math.round((doo-od)/86400)+1 : null; }
 
@@ -279,14 +278,6 @@ function dronSearchHay(d){
   return (dronId(d) + ' ' + (d.Producent||'') + ' ' + (d.Model||'') + ' '
     + (d.Numer_Seryjny||'')).toLowerCase();
 }
-function akcesoriumId(a){
-  if(!a) return '—';
-  if(typeof a.Akcesorium_ID === 'string' && a.Akcesorium_ID.trim()) return a.Akcesorium_ID;
-  return a.Nazwa || ('#'+a.id);
-}
-function akcesoriumLabel(a){
-  return akcesoriumId(a) + (a.Numer_Seryjny ? ' — ' + a.Numer_Seryjny : '');
-}
 function uprName(u){
   if(!u) return '—';
   if(typeof u.NazwImie === 'string' && u.NazwImie.trim()) return u.NazwImie;
@@ -302,10 +293,6 @@ function datalist(id, values){
 }
 function sortedSpis(){
   return S.data.Spis.slice().sort((a,b) => (a.Dron_Lp||9e9)-(b.Dron_Lp||9e9) || a.id-b.id);
-}
-function sortedAkcesoria(){
-  return S.data.Akcesoria.slice().sort((a,b) =>
-    cmpVals([a.Typ||'', akcesoriumId(a)], [b.Typ||'', akcesoriumId(b)]) || a.id - b.id);
 }
 /* porównanie naturalne: tekst alfabetycznie, liczby w tekście numerycznie (09 < 10, 2 < 11);
    tablice porównywane człon po członie (klucze złożone, np. [numer, nazwa]) */
@@ -344,20 +331,6 @@ function availableDrones(from, to, excludeId){
   });
 }
 
-function availableAccessories(from, to, excludeRejId){
-  return S.data.Akcesoria.filter(a => !a.Wylaczone).filter(a => {
-    if(!from || !to) return true;
-    return !S.data.Rejestr_Akcesoria.some(ra => {
-      if(ra.Akcesorium !== a.id) return false;
-      if(ra.Zwrot) return false;
-      if(!ra.Wydany) return false; // nieaktywne – nie blokuj
-      const r = S.data.Rejestr.find(x => x.id === ra.Wpis_Rejestru);
-      if(!r || r.id === excludeRejId) return false;
-      return r.Data_od && r.Data_do && r.Data_od <= to && r.Data_do >= from;
-    });
-  });
-}
-
 /* ---------- dane ---------- */
 function toRows(t){
   const cols = Object.keys(t), n = t.id.length, out = [];
@@ -371,21 +344,8 @@ async function refreshAll(){
   S.data.Rejestr     = toRows(rej);
   S.data.Spis        = toRows(spis);
   S.data.Uprawnienia = toRows(upr);
-
-  try {
-    const [akcesoria, rejAkc] = await Promise.all(
-      ['Akcesoria','Rejestr_Akcesoria'].map(t => grist.docApi.fetchTable(t)));
-    S.data.Akcesoria = toRows(akcesoria);
-    S.data.Rejestr_Akcesoria = toRows(rejAkc);
-  } catch(e){
-    S.data.Akcesoria = [];
-    S.data.Rejestr_Akcesoria = [];
-    console.warn('Brak tabel Akcesoria / Rejestr_Akcesoria albo brak dostępu:', e);
-  }
-
   S.maps.spis = new Map(S.data.Spis.map(r => [r.id, r]));
   S.maps.upr  = new Map(S.data.Uprawnienia.map(r => [r.id, r]));
-  S.maps.akcesoria = new Map(S.data.Akcesoria.map(r => [r.id, r]));
   render();
 }
 
@@ -414,7 +374,6 @@ function toast(msg, isErr){
 function render(){
   $('#cnt-rejestr').textContent     = S.data.Rejestr.length;
   $('#cnt-spis').textContent        = S.data.Spis.length;
-  $('#cnt-akcesoria').textContent   = S.data.Akcesoria.length;
   $('#cnt-uprawnienia').textContent = S.data.Uprawnienia.length;
   document.querySelectorAll('#tabs button').forEach(b =>
     b.classList.toggle('active', b.dataset.view === S.view));
@@ -422,7 +381,6 @@ function render(){
   if(S.view === 'rejestr')     v.innerHTML = renderRejestr();
   if(S.view === 'kalendarz')   v.innerHTML = renderKalendarz();
   if(S.view === 'spis')        v.innerHTML = renderSpis();
-  if(S.view === 'akcesoria')   v.innerHTML = renderAkcesoria();
   if(S.view === 'uprawnienia') v.innerHTML = renderUprawnienia();
 }
 
@@ -704,56 +662,6 @@ function renderSpis(){
     </table></div>`;
 }
 
-/* ===== widok: AKCESORIA ===== */
-function akcesoriumStatus(a){
-  if(a.Wylaczone) return {key:'wyl', label:'Wyłączone', cls:'b-red'};
-  const zajete = S.data.Rejestr_Akcesoria.some(ra => ra.Akcesorium===a.id && ra.Wydany && !ra.Zwrot);
-  if(zajete) return {key:'teren', label:'Wydane', cls:'b-amber'};
-  return {key:'dostepny', label:'Dostępne', cls:'b-green'};
-}
-
-function renderAkcesoria(){
-  let list = sortedAkcesoria().filter(a =>
-    matchQ([akcesoriumId(a), a.Nazwa, a.Numer_Seryjny, a.Typ, a.Uwagi]));
-
-  const counts = {dostepny:0, teren:0, wyl:0};
-  list.forEach(a => counts[akcesoriumStatus(a).key]++);
-  list = list.filter(a => S.stanyAkc[akcesoriumStatus(a).key]);
-
-  const chips = [
-    ['dostepny','Dostępne'], ['teren','Wydane'], ['wyl','Wyłączone'],
-  ].map(([k,label]) =>
-    `<button class="chip ${S.stanyAkc[k]?'on-'+k:''}" data-act="filterAkc" data-filter="${k}"
-       title="Kliknij, aby ${S.stanyAkc[k]?'ukryć':'pokazać'}">
-       ${label}<span class="cnt">${counts[k]}</span></button>`).join('');
-
-  const rows = list.map(a => {
-    const stt = akcesoriumStatus(a);
-    const shownId = akcesoriumId(a);
-    const showNameSub = a.Nazwa && a.Nazwa !== shownId;
-    return `<tr class="${stt.key==='wyl' ? 'row-wyl' : ''}">
-      <td class="w-id"><b>${esc(shownId)}</b>${showNameSub ? `<div class="sub">${esc(a.Nazwa)}</div>` : ''}</td>
-      <td>${esc(a.Typ)}</td>
-      <td class="mono">${esc(a.Numer_Seryjny)}</td>
-      <td><span class="badge ${stt.cls}">${stt.label}</span></td>
-      <td class="w-uwagi">${esc(a.Uwagi)}</td>
-      <td><div class="row-act">
-        <button class="btn ico" data-act="edytujAkcesorium" data-id="${a.id}" title="Edytuj">✏️</button>
-        <button class="btn ico" data-act="toggleWylAkc" data-id="${a.id}"
-          title="${a.Wylaczone?'Przywróć do użytku':'Wyłącz z użytku'}">${a.Wylaczone?'♻️':'🚫'}</button>
-      </div></td>
-    </tr>`;
-  }).join('');
-
-  return `
-    <div class="toolbar">${chips}<div class="spacer"></div>
-      <button class="primary" data-act="noweAkcesorium">+ Dodaj akcesorium</button></div>
-    <div class="card"><table>
-      <thead><tr><th class="w-id">ID</th><th>Typ</th><th>Nr seryjny</th><th>Status</th><th class="w-uwagi">Uwagi</th><th></th></tr></thead>
-      <tbody>${rows || `<tr><td colspan="6"><div class="empty">Brak pozycji</div></td></tr>`}</tbody>
-    </table></div>`;
-}
-
 /* ===== widok: UPRAWNIENIA ===== */
 function renderUprawnienia(){
   let list = sortedUpr();
@@ -868,73 +776,6 @@ function hookDronCombo(excludeId, initialId){
   }
 }
 
-function hookAkcesoriaList(excludeRejId){
-  const host = $('#akc-list');
-  const od = $('#f-od');
-  const doo = $('#f-do');
-  if(!host || !od || !doo) return;
-
-  const initial = new Set(
-    excludeRejId
-      ? S.data.Rejestr_Akcesoria.filter(ra => ra.Wpis_Rejestru === excludeRejId)
-          .map(ra => Number(ra.Akcesorium)).filter(Boolean)
-      : []
-  );
-  const selected = new Set(initial);
-
-  const syncSelected = () => {
-    host.querySelectorAll('input[name="akc"]').forEach(ch => {
-      const id = Number(ch.value) || 0;
-      if(!id) return;
-      if(ch.checked) selected.add(id);
-      else selected.delete(id);
-    });
-  };
-
-  const renderList = () => {
-    syncSelected();
-    const from = input2d(od.value);
-    const to = input2d(doo.value);
-    const available = availableAccessories(from, to, excludeRejId);
-    const map = new Map(available.map(a => [a.id, a]));
-    for(const id of selected){
-      if(!map.has(id)){
-        const a = S.maps.akcesoria.get(id);
-        if(a) map.set(id, a);
-      }
-    }
-    const items = [...map.values()].sort((a,b) =>
-      cmpVals([a.Typ||'', akcesoriumId(a)], [b.Typ||'', akcesoriumId(b)]) || a.id - b.id);
-    if(!items.length){
-      host.innerHTML = `<div class="sub">Brak dostępnych akcesoriów dla wybranego terminu.</div>`;
-      return;
-    }
-    const groups = new Map();
-    items.forEach(a => {
-      const typ = a.Typ || 'Inne';
-      if(!groups.has(typ)) groups.set(typ, []);
-      groups.get(typ).push(a);
-    });
-    host.innerHTML = [...groups.entries()].map(([typ, arr]) => `
-      <div style="margin-bottom:10px">
-        <div class="sub" style="margin-bottom:4px"><b>${esc(typ)}</b></div>
-        ${arr.map(a => `<label class="checkline"><input type="checkbox" name="akc" value="${a.id}" ${selected.has(a.id)?'checked':''}> ${esc(akcesoriumId(a) || a.Nazwa)}${a.Numer_Seryjny ? ` — <span class="mono">${esc(a.Numer_Seryjny)}</span>` : ''}</label>`).join('')}
-      </div>`).join('');
-  };
-
-  host.addEventListener('change', e => {
-    const ch = e.target.closest('input[name="akc"]');
-    if(!ch) return;
-    const id = Number(ch.value) || 0;
-    if(!id) return;
-    if(ch.checked) selected.add(id);
-    else selected.delete(id);
-  });
-  od.addEventListener('change', renderList);
-  doo.addEventListener('change', renderList);
-  renderList();
-}
-
 /* --- rejestr: nowe / edycja --- */
 function modalWyp(rec){
   const isEdit = !!rec;
@@ -953,10 +794,6 @@ function modalWyp(rec){
         <input type="hidden" name="dron" id="f-dron">
         <div class="combo-list" id="f-dron-list" hidden></div>
       </div></div>
-    <fieldset id="fs-akcesoria">
-      <legend>Akcesoria (opcjonalne)</legend>
-      <div id="akc-list"><!-- dynamicznie --></div>
-    </fieldset>
     <div class="field"><label>Uzasadnienie</label>
       <textarea name="uzas">${isEdit?esc(rec.Uzasadnienie):''}</textarea></div>
     ${isEdit ? `
@@ -966,119 +803,40 @@ function modalWyp(rec){
       <div class="field"><label>Uwagi przy zwrocie</label>
         <input name="zwrotUwagi" value="${esc(rec.Zwrot_Uwagi)}"></div>
     </fieldset>` : ''}
-  `, async fd => {
+  `, fd => {
     const od = input2d(fd.get('od')), doo = input2d(fd.get('do'));
     const dron = Number(fd.get('dron'))||0;
-    const akcIds = fd.getAll('akc').map(Number).filter(Boolean);
     if(od && doo && doo < od) return toast('Data „do" nie może być przed datą „od".', true);
     if(!dron) return toast('Wybierz drona z listy.', true);
-
-    try {
-      if(isEdit){
-        const wydany = !!fd.get('wydany');
-        const zwrot = !!fd.get('zwrot');
-        const stare = S.data.Rejestr_Akcesoria.filter(ra => ra.Wpis_Rejestru === rec.id);
-        const usunActions = stare.map(ra => ['RemoveRecord','Rejestr_Akcesoria',ra.id]);
-        const noweActions = akcIds.map(aId => ['AddRecord','Rejestr_Akcesoria',null,{
-          Wpis_Rejestru: rec.id,
-          Akcesorium: aId,
-          Wydany: wydany || zwrot,
-          Zwrot: zwrot,
-        }]);
-        await grist.docApi.applyUserActions([
-          ['UpdateRecord','Rejestr',rec.id,{
-            Dron: dron, Data_od: od, Data_do: doo,
-            Uzasadnienie: fd.get('uzas'), Dni: dniCalc(od,doo),
-            Wydany: wydany, Zwrot: zwrot,
-            Zwrot_Uwagi: fd.get('zwrotUwagi'),
-          }],
-          ...usunActions,
-          ...noweActions,
-        ]);
-        closeModal();
-        toast('Zaktualizowano wypożyczenie');
-        await refreshAll();
-      } else {
-        // Uzytkownik, Data_Utworzenia, Dni itd. uzupełnią trigger formuły w Griście.
-        const res = await grist.docApi.applyUserActions([['AddRecord','Rejestr',null,{
-          Dron: dron, Data_od: od, Data_do: doo,
-          Uzasadnienie: fd.get('uzas'),
-        }]]);
-        const newId = res && res.retValues && res.retValues[0];
-        if(!newId) throw new Error('Nie udało się odczytać ID nowego wpisu.');
-        const akcActions = akcIds.map(aId => ['AddRecord','Rejestr_Akcesoria',null,{
-          Wpis_Rejestru: newId,
-          Akcesorium: aId,
-          Wydany: false,
-          Zwrot: false,
-        }]);
-        if(akcActions.length) await grist.docApi.applyUserActions(akcActions);
-        closeModal();
-        toast('Utworzono wypożyczenie');
-        await refreshAll();
-      }
-    } catch(e){
-      toast('Odmowa / błąd: ' + (e && e.message || e), true);
+    if(isEdit){
+      apply([['UpdateRecord','Rejestr',rec.id,{
+        Dron: dron, Data_od: od, Data_do: doo,
+        Uzasadnienie: fd.get('uzas'), Dni: dniCalc(od,doo),
+        Wydany: !!fd.get('wydany'), Zwrot: !!fd.get('zwrot'),
+        Zwrot_Uwagi: fd.get('zwrotUwagi'),
+      }]], 'Zaktualizowano wypożyczenie');
+    } else {
+      // Uzytkownik, Data_Utworzenia, Dni itd. uzupełnią trigger formuły w Griście.
+      apply([['AddRecord','Rejestr',null,{
+        Dron: dron, Data_od: od, Data_do: doo,
+        Uzasadnienie: fd.get('uzas'),
+      }]], 'Utworzono wypożyczenie');
     }
   });
   hookDronCombo(isEdit ? rec.id : null, isEdit ? rec.Dron : null);
-  hookAkcesoriaList(isEdit ? rec.id : null);
-}
-
-function modalWydanie(rec){
-  const d = S.maps.spis.get(rec.Dron), u = S.maps.upr.get(rec.Uzytkownik);
-  const rel = S.data.Rejestr_Akcesoria.filter(ra => ra.Wpis_Rejestru === rec.id);
-  openModal(`
-    <h2>Wydanie sprzętu</h2>
-    <p style="margin-bottom:12px"><b>${esc(dronId(d))}</b> — ${esc(uprName(u))}<br>
-      <span class="sub">${d2str(rec.Data_od)} → ${d2str(rec.Data_do)}</span></p>
-    <fieldset>
-      <legend>Akcesoria do wydania</legend>
-      ${rel.length
-        ? rel.map(ra => {
-            const a = S.maps.akcesoria.get(ra.Akcesorium);
-            return `<div class="checkline">• ${esc(akcesoriumLabel(a))}</div>`;
-          }).join('')
-        : `<div class="sub">Brak przypisanych akcesoriów.</div>`}
-    </fieldset>
-  `, () => {
-    const actions = [
-      ['UpdateRecord','Rejestr',rec.id,{Wydany:true}],
-      ...rel.map(ra => ['UpdateRecord','Rejestr_Akcesoria',ra.id,{Wydany:true}]),
-    ];
-    apply(actions, 'Dron wydany');
-  });
 }
 
 function modalZwrot(rec){
   const d = S.maps.spis.get(rec.Dron), u = S.maps.upr.get(rec.Uzytkownik);
-  const rel = S.data.Rejestr_Akcesoria.filter(ra =>
-    ra.Wpis_Rejestru === rec.id && ra.Wydany && !ra.Zwrot);
   openModal(`
     <h2>Przyjęcie zwrotu</h2>
     <p style="margin-bottom:12px"><b>${esc(dronId(d))}</b> — ${esc(uprName(u))}<br>
       <span class="sub">${d2str(rec.Data_od)} → ${d2str(rec.Data_do)}</span></p>
-    ${rel.length ? `
-      <fieldset>
-        <legend>Zwrot akcesoriów</legend>
-        ${rel.map(ra => {
-          const a = S.maps.akcesoria.get(ra.Akcesorium);
-          return `<label class="checkline"><input type="checkbox" name="zwrot-akc" value="${ra.id}" checked> ${esc(akcesoriumLabel(a))}</label>`;
-        }).join('')}
-      </fieldset>` : ''}
     <div class="field"><label>Uwagi przy zwrocie (stan sprzętu, braki…)</label>
       <textarea name="uwagi">${esc(rec.Zwrot_Uwagi)}</textarea></div>
-  `, fd => {
-    const akcIds = fd.getAll('zwrot-akc').map(Number).filter(Boolean);
-    const actions = [
-      ['UpdateRecord','Rejestr',rec.id,{
-        Zwrot: true,
-        Zwrot_Uwagi: fd.get('uwagi'),
-      }],
-      ...akcIds.map(id => ['UpdateRecord','Rejestr_Akcesoria',id,{Zwrot:true}]),
-    ];
-    apply(actions, 'Zwrot przyjęty');
-  });
+  `, fd => apply([['UpdateRecord','Rejestr',rec.id,{
+      Zwrot: true, Zwrot_Uwagi: fd.get('uwagi'),
+    }]], 'Zwrot przyjęty'));
 }
 
 /* --- sprzęt --- */
@@ -1118,38 +876,6 @@ function modalDron(rec){
     };
     apply([[isEdit?'UpdateRecord':'AddRecord','Spis',isEdit?rec.id:null,vals]],
       isEdit ? 'Zaktualizowano drona' : 'Dodano drona');
-  });
-}
-
-/* --- akcesoria --- */
-function modalAkcesorium(rec){
-  const isEdit = !!rec;
-  const typy = [...new Set(['Bateria','Ładowarka','Kabel','Propeller', ...distinct(S.data.Akcesoria,'Typ')])]
-    .sort((a,b) => String(a).localeCompare(String(b), 'pl', {numeric:true, sensitivity:'base'}));
-  const dl = datalist('dl-typ-akc', typy);
-  openModal(`
-    <h2>${isEdit ? 'Edycja akcesorium' : 'Nowe akcesorium'}</h2>${dl}
-    <div class="field"><label>Nazwa</label>
-      <input name="nazwa" required value="${isEdit?esc(rec.Nazwa):''}"></div>
-    <div class="grid2">
-      <div class="field"><label>Typ</label>
-        <input name="typ" list="dl-typ-akc" value="${isEdit?esc(rec.Typ):''}"></div>
-      <div class="field"><label>Numer seryjny</label>
-        <input name="sn" value="${isEdit?esc(rec.Numer_Seryjny):''}"></div>
-    </div>
-    <div class="field"><label>Uwagi</label>
-      <textarea name="uwagi">${isEdit?esc(rec.Uwagi):''}</textarea></div>
-    <label class="checkline"><input type="checkbox" name="wyl" ${isEdit&&rec.Wylaczone?'checked':''}> Wyłączone</label>
-  `, fd => {
-    const vals = {
-      Nazwa: fd.get('nazwa'),
-      Typ: fd.get('typ'),
-      Numer_Seryjny: fd.get('sn'),
-      Uwagi: fd.get('uwagi'),
-      Wylaczone: !!fd.get('wyl'),
-    };
-    apply([[isEdit?'UpdateRecord':'AddRecord','Akcesoria',isEdit?rec.id:null,vals]],
-      isEdit ? 'Zaktualizowano akcesorium' : 'Dodano akcesorium');
   });
 }
 
@@ -1198,11 +924,6 @@ const ACTIONS = {
     S.stanySpis[k] = !S.stanySpis[k];
     render();
   },
-  filterAkc(id, btn){
-    const k = btn.dataset.filter;
-    S.stanyAkc[k] = !S.stanyAkc[k];
-    render();
-  },
   fltrDron(id){ S.fDron = (S.fDron === id) ? 0 : id; render(); },   // drugi klik = wyczyść
   fltrUser(id){ S.fUser = (S.fUser === id) ? 0 : id; render(); },
   clearFDron(){ S.fDron = 0; render(); },
@@ -1219,17 +940,14 @@ const ACTIONS = {
   wydaj(id){
     const r = S.data.Rejestr.find(x=>x.id===id); if(!r) return;
     if(!r.Dron) return toast('Ten wpis nie ma wybranego drona — uzupełnij w edycji.', true);
-    modalWydanie(r);
+    const d = S.maps.spis.get(r.Dron);
+    if(confirm(`Wydać drona ${dronId(d)}?`))
+      apply([['UpdateRecord','Rejestr',id,{Wydany:true}]], 'Dron wydany');
   },
   zwrot(id){ const r = S.data.Rejestr.find(x=>x.id===id); if(r) modalZwrot(r); },
   usunWyp(id){
-    if(confirm('Usunąć ten wpis z rejestru? (zwykle lepiej oznaczyć zwrot)')){
-      const rel = S.data.Rejestr_Akcesoria.filter(ra => ra.Wpis_Rejestru === id);
-      apply([
-        ...rel.map(ra => ['RemoveRecord','Rejestr_Akcesoria',ra.id]),
-        ['RemoveRecord','Rejestr',id],
-      ], 'Usunięto wpis');
-    }
+    if(confirm('Usunąć ten wpis z rejestru? (zwykle lepiej oznaczyć zwrot)'))
+      apply([['RemoveRecord','Rejestr',id]], 'Usunięto wpis');
   },
   nowyDron(){ modalDron(null); },
   edytujDron(id){ const d = S.maps.spis.get(id); if(d) modalDron(d); },
@@ -1237,13 +955,6 @@ const ACTIONS = {
     const d = S.maps.spis.get(id); if(!d) return;
     apply([['UpdateRecord','Spis',id,{Wylaczony: !d.Wylaczony}]],
       d.Wylaczony ? 'Dron przywrócony' : 'Dron wyłączony z użytku');
-  },
-  noweAkcesorium(){ modalAkcesorium(null); },
-  edytujAkcesorium(id){ const a = S.maps.akcesoria.get(id); if(a) modalAkcesorium(a); },
-  toggleWylAkc(id){
-    const a = S.maps.akcesoria.get(id); if(!a) return;
-    apply([['UpdateRecord','Akcesoria',id,{Wylaczone: !a.Wylaczone}]],
-      a.Wylaczone ? 'Przywrócono' : 'Wyłączono');
   },
   nowyUser(){ modalUser(null); },
   edytujUser(id){ const u = S.maps.upr.get(id); if(u) modalUser(u); },
@@ -1327,4 +1038,3 @@ main();
 </script>
 </body>
 </html>
-```
