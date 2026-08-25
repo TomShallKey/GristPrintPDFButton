@@ -987,8 +987,12 @@ function modalWyp(rec){
       }
     }
   });
-  hookDronCombo(isEdit ? rec.id : null, isEdit ? rec.Dron : null);
+  // hookAkcUpdate MUSI być przed hookDronCombo — bo pick() wywołuje refreshAkc(),
+  // które musi już mieć ustawioną funkcję _refreshAkc.
   hookAkcUpdate(isEdit ? rec.id : null);
+  hookDronCombo(isEdit ? rec.id : null, isEdit ? rec.Dron : null);
+  // przy edycji dron jest już wybrany → odśwież akcesoria od razu
+  if(isEdit && rec.Dron) refreshAkc();
 }
 
 function modalZwrot(rec){
