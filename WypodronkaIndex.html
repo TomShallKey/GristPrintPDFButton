@@ -174,6 +174,25 @@
   #standalone li{margin-bottom:8px}
   #standalone code{background:var(--grey-soft);padding:2px 6px;border-radius:5px;font-size:12.5px}
 
+  /* akcesoria */
+  .akc-lista{display:flex;flex-direction:column;gap:4px;margin-top:4px;max-height:260px;overflow-y:auto;
+    border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:#fafbfc}
+  .akc-item{display:flex;align-items:flex-start;gap:8px;padding:5px 6px;border-radius:6px;cursor:pointer}
+  .akc-item:hover:not(.akc-zajete){background:var(--accent-soft)}
+  .akc-item input[type=checkbox]{width:15px;height:15px;margin-top:2px;flex-shrink:0;cursor:pointer}
+  .akc-zajete{opacity:.5;cursor:default}
+  .akc-zajete input[type=checkbox]{cursor:default}
+  .akc-label{flex:1;min-width:0}
+  .akc-label b{display:block;font-size:13px}
+  .akc-label .sub{white-space:normal;overflow-wrap:break-word}
+  .akc-badge-zajete{font-size:11px;font-weight:600;color:var(--amber);white-space:nowrap;
+    background:var(--amber-soft);border-radius:5px;padding:1px 6px;flex-shrink:0}
+  .akc-empty{color:var(--muted);font-size:12.5px;padding:6px 4px}
+  .akc-hint{font-size:12px;color:var(--muted);margin-bottom:4px}
+  /* mini-lista akcesoriów w tabeli rejestru */
+  .akc-pills{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px}
+  .akc-pill{font-size:11px;padding:2px 7px;border-radius:5px;background:var(--grey-soft);color:var(--muted);white-space:nowrap}
+
   #loading{padding:60px;text-align:center;color:var(--muted)}
 </style>
 </head>
@@ -203,7 +222,7 @@
       <li>W ustawieniach widgetu ustaw dostęp: <b>Full document access</b> (wymagane — widget czyta i zapisuje 3 tabele).</li>
       <li>Umieść widget sam na stronie, rozciągnij na pełny ekran i udostępnij link do tej strony użytkownikom.</li>
     </ol>
-    <p class="sub">Wymagane tabele: <code>Rejestr</code>, <code>Spis</code>, <code>Uprawnienia</code>.</p>
+    <p class="sub">Wymagane tabele: <code>Rejestr</code>, <code>Spis</code>, <code>Uprawnienia</code>, <code>Akcesoria</code>, <code>Rejestr_Akcesoria</code>.</p>
   </div>
   <div id="view"></div>
 </main>
@@ -230,8 +249,8 @@ const S = {
   fDron: 0,          // filtr: konkretny egzemplarz (Rejestr + Kalendarz)
   fUser: 0,          // filtr: konkretny użytkownik
   cal: null,         // {y, m} — wyświetlany miesiąc kalendarza
-  data: { Rejestr: [], Spis: [], Uprawnienia: [] },
-  maps: { spis: new Map(), upr: new Map() },
+  data: { Rejestr: [], Spis: [], Uprawnienia: [], Akcesoria: [], Rejestr_Akcesoria: [] },
+  maps: { spis: new Map(), upr: new Map(), akc: new Map() },
   modal: false,
 };
 
@@ -261,7 +280,7 @@ function pln(v){
   const n = Number(v);
   // zawsze grupuj tysiące (locale pl pomija grupowanie przy 4 cyfrach): 1333.33 → 1 333,33
   const [c, u] = Math.abs(n).toFixed(2).split('.');
-  return (n<0?'-':'') + c.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ',' + u;
+  return (n<0?'-':'') + c.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ',' + u;
 }
 function dniCalc(od, doo){ return (od && doo && doo >= od) ? Math.round((doo-od)/86400)+1 : null; }
 
@@ -339,14 +358,54 @@ function toRows(t){
 }
 
 async function refreshAll(){
-  const [rej, spis, upr] = await Promise.all(
-    ['Rejestr','Spis','Uprawnienia'].map(t => grist.docApi.fetchTable(t)));
-  S.data.Rejestr     = toRows(rej);
-  S.data.Spis        = toRows(spis);
-  S.data.Uprawnienia = toRows(upr);
+  const tables = ['Rejestr','Spis','Uprawnienia','Akcesoria','Rejestr_Akcesoria'];
+  const results = await Promise.all(tables.map(t =>
+    grist.docApi.fetchTable(t).catch(() => null)));
+  const [rej, spis, upr, akc, rejAkc] = results;
+  S.data.Rejestr            = toRows(rej);
+  S.data.Spis               = toRows(spis);
+  S.data.Uprawnienia        = toRows(upr);
+  S.data.Akcesoria          = akc    ? toRows(akc)    : [];
+  S.data.Rejestr_Akcesoria  = rejAkc ? toRows(rejAkc) : [];
   S.maps.spis = new Map(S.data.Spis.map(r => [r.id, r]));
   S.maps.upr  = new Map(S.data.Uprawnienia.map(r => [r.id, r]));
+  S.maps.akc  = new Map(S.data.Akcesoria.map(r => [r.id, r]));
   render();
+}
+
+/* Zwraca akcesoria zestawu danego drona z informacją o dostępności.
+   excludeWypId — id edytowanego wypożyczenia (jego własne powiązania nie blokują).
+   Wynik: [{akc, status: 'dostepne'|'zajete'}] */
+function akcesoriaDrona(dronId, from, to, excludeWypId){
+  const dron = S.maps.spis.get(dronId);
+  if(!dron || !dron.Zestaw) return [];
+  return S.data.Akcesoria
+    .filter(a => a.Zestaw === dron.Zestaw && !a.Wylaczony)
+    .map(a => {
+      let zajete = false;
+      if(from && to){
+        zajete = S.data.Rejestr_Akcesoria.some(ra => {
+          if(ra.Akcesoria !== a.id) return false;
+          if(ra.Wypozyczenie === excludeWypId) return false;
+          // pobierz daty z powiązanego wypożyczenia
+          const wyp = S.data.Rejestr.find(r => r.id === ra.Wypozyczenie);
+          if(!wyp || wyp.Zwrot) return false;   // zwrócone = wolne
+          return wyp.Data_od && wyp.Data_do &&
+            wyp.Data_od <= to && wyp.Data_do >= from;
+        });
+      }
+      return { akc: a, status: zajete ? 'zajete' : 'dostepne' };
+    })
+    .sort((a,b) => (a.akc.Typ||'').localeCompare(b.akc.Typ||'','pl') || a.akc.id - b.akc.id);
+}
+
+/* Zwraca zestaw id akcesoriów aktualnie przypisanych do wypożyczenia */
+function akcesoriWyp(wypId){
+  return new Set(
+    S.data.Rejestr_Akcesoria
+      .filter(ra => ra.Wypozyczenie === wypId)
+      .map(ra => ra.Akcesoria)
+  );
 }
 
 async function apply(actions, msg){
@@ -487,6 +546,14 @@ function renderRejestr(){
       ? `<button class="lnk" data-act="fltrUser" data-id="${u.id}" title="Pokaż wypożyczenia tej osoby">${esc(uprName(u))}</button>`
         + (u.Email ? `<div class="sub">${esc(u.Email)}</div>` : '')
       : '—';
+    // akcesoria przypisane do tego wypożyczenia
+    const akcItems = S.data.Rejestr_Akcesoria.filter(ra => ra.Wypozyczenie === r.id);
+    const akcCell = akcItems.length
+      ? `<div class="akc-pills">${akcItems.map(ra => {
+          const a = S.maps.akc.get(ra.Akcesoria);
+          return `<span class="akc-pill" title="${esc(a ? a.Nazwa : '')}">${esc(a ? a.Typ : '?')}</span>`;
+        }).join('')}</div>`
+      : `<span class="sub">—</span>`;
     return `<tr>
       <td>${dronCell}</td>
       <td>${userCell}</td>
@@ -494,6 +561,7 @@ function renderRejestr(){
       <td>${d2strD(r.Data_do)}</td>
       <td class="num">${esc(dni)}</td>
       <td class="pre">${esc(r.Uzasadnienie)}</td>
+      <td>${akcCell}</td>
       <td>${cellRez}</td>
       <td>${cellWyd}</td>
       <td>${cellZwr}</td>
@@ -508,11 +576,11 @@ function renderRejestr(){
   return `
     <div class="toolbar">${chips}${filterBar()}<div class="spacer"></div>
       <button class="primary" data-act="nowyWyp">+ Nowe wypożyczenie</button></div>
-    <div class="card"><table style="min-width:1150px">
+    <div class="card"><table style="min-width:1250px">
       <thead><tr>${th('dron','Dron')}${th('user','Użytkownik')}${th('od','Data od')}${th('do','Data do')}${
-        th('dni','Dni','num')}${th('uzas','Uzasadnienie')}${th('status','Rezerwacja')}${th('wyd','Wydany')}${
+        th('dni','Dni','num')}${th('uzas','Uzasadnienie')}<th>Akcesoria</th>${th('status','Rezerwacja')}${th('wyd','Wydany')}${
         th('zwr','Zwrócony')}<th></th><th></th></tr></thead>
-      <tbody>${rows || `<tr><td colspan="11"><div class="empty">Brak pozycji</div></td></tr>`}</tbody>
+      <tbody>${rows || `<tr><td colspan="12"><div class="empty">Brak pozycji</div></td></tr>`}</tbody>
     </table></div>`;
 }
 
@@ -750,6 +818,7 @@ function hookDronCombo(excludeId, initialId){
     hid.value = d.id;
     txt.value = dronLabel(d);
     list.hidden = true;
+    refreshAkc();   // zmiana drona → odśwież akcesoria
   };
   txt.addEventListener('focus', show);
   txt.addEventListener('input', () => { hid.value = ''; show(); });
@@ -776,9 +845,67 @@ function hookDronCombo(excludeId, initialId){
   }
 }
 
+/* Podpina odświeżanie sekcji akcesoriów po zmianie drona / dat.
+   refreshAkc() jest też wywoływane z hookDronCombo po pick(). */
+let _refreshAkc = () => {};
+function refreshAkc(){ _refreshAkc(); }
+
+function hookAkcUpdate(excludeWypId){
+  const wrap = $('#f-akc-wrap');
+  if(!wrap) return;
+  _refreshAkc = () => {
+    const dronId = Number($('#f-dron') && $('#f-dron').value) || 0;
+    const od  = $('#f-od')  ? $('#f-od').value  : '';
+    const doo = $('#f-do')  ? $('#f-do').value  : '';
+    wrap.innerHTML = renderAkcSection(dronId, od, doo, excludeWypId);
+  };
+  const od = $('#f-od'), doo = $('#f-do');
+  if(od)  od.addEventListener('change',  refreshAkc);
+  if(doo) doo.addEventListener('change', refreshAkc);
+  // gdy pole tekstowe drona jest czyszczone (input bez pick) → ukryj akcesoria
+  const txt = $('#f-dron-txt');
+  if(txt) txt.addEventListener('input', () => {
+    if(!$('#f-dron').value) refreshAkc();
+  });
+}
+
 /* --- rejestr: nowe / edycja --- */
+
+/* Renderuje sekcję wyboru akcesoriów w modalu wypożyczenia.
+   Zwraca HTML + zestaw zaznaczonych id (do odczytu przez hookAkcesoria). */
+function renderAkcSection(dronId, od, doo, excludeWypId){
+  if(!dronId) return `<div class="akc-hint">Wybierz drona, aby zobaczyć dostępne akcesoria jego zestawu.</div>`;
+  const dron = S.maps.spis.get(dronId);
+  const from = input2d(od), to = input2d(doo);
+  const items = akcesoriaDrona(dronId, from, to, excludeWypId);
+  if(!items.length){
+    const zestaw = dron ? dron.Zestaw : '';
+    return `<div class="akc-empty">${zestaw ? `Brak akcesoriów dla zestawu <b>${esc(zestaw)}</b>.` : 'Ten dron nie ma przypisanego zestawu — uzupełnij kolumnę Zestaw w tabeli Spis.'}</div>`;
+  }
+  // zaznaczone w edycji — bierzemy aktualne powiązania wypożyczenia
+  const zaznaczone = excludeWypId ? akcesoriWyp(excludeWypId) : new Set();
+  const rows = items.map(({akc, status}) => {
+    const zajete = status === 'zajete';
+    const checked = !zajete && zaznaczone.has(akc.id) ? 'checked' : '';
+    const sn = akc.Numer_Seryjny ? `S/N: ${esc(akc.Numer_Seryjny)}` : '';
+    return `<label class="akc-item ${zajete ? 'akc-zajete' : ''}">
+      <input type="checkbox" name="akc_id" value="${akc.id}" ${checked} ${zajete ? 'disabled' : ''}>
+      <span class="akc-label">
+        <b>${esc(akc.Typ || '—')}</b>
+        <span class="sub">${esc(akc.Nazwa || '')}${sn ? ' · ' + sn : ''}</span>
+      </span>
+      ${zajete ? `<span class="akc-badge-zajete">zajęte</span>` : ''}
+    </label>`;
+  }).join('');
+  const zestaw = dron ? dron.Zestaw : '';
+  return `<div class="akc-hint">Zestaw: <b>${esc(zestaw)}</b> — zaznacz co wypożyczasz (wyszarzone = zajęte w tym terminie)</div>
+    <div class="akc-lista">${rows}</div>`;
+}
+
 function modalWyp(rec){
   const isEdit = !!rec;
+  const initialDronId = isEdit ? rec.Dron : 0;
+
   openModal(`
     <h2>${isEdit ? 'Edycja wypożyczenia' : 'Nowe wypożyczenie'}</h2>
     <div class="grid2">
@@ -794,6 +921,10 @@ function modalWyp(rec){
         <input type="hidden" name="dron" id="f-dron">
         <div class="combo-list" id="f-dron-list" hidden></div>
       </div></div>
+    <div class="field">
+      <label>Akcesoria</label>
+      <div id="f-akc-wrap">${renderAkcSection(initialDronId, isEdit?d2input(rec.Data_od):'', isEdit?d2input(rec.Data_do):'', isEdit?rec.id:null)}</div>
+    </div>
     <div class="field"><label>Uzasadnienie</label>
       <textarea name="uzas">${isEdit?esc(rec.Uzasadnienie):''}</textarea></div>
     ${isEdit ? `
@@ -803,27 +934,61 @@ function modalWyp(rec){
       <div class="field"><label>Uwagi przy zwrocie</label>
         <input name="zwrotUwagi" value="${esc(rec.Zwrot_Uwagi)}"></div>
     </fieldset>` : ''}
-  `, fd => {
+  `, async (fd, form) => {
     const od = input2d(fd.get('od')), doo = input2d(fd.get('do'));
     const dron = Number(fd.get('dron'))||0;
     if(od && doo && doo < od) return toast('Data „do" nie może być przed datą „od".', true);
     if(!dron) return toast('Wybierz drona z listy.', true);
+
+    // akcesoria: id zaznaczonych checkboxów
+    const zaznaczoneIds = [...form.querySelectorAll('input[name=akc_id]:checked')].map(el => Number(el.value));
+
+    const actions = [];
     if(isEdit){
-      apply([['UpdateRecord','Rejestr',rec.id,{
+      actions.push(['UpdateRecord','Rejestr',rec.id,{
         Dron: dron, Data_od: od, Data_do: doo,
         Uzasadnienie: fd.get('uzas'), Dni: dniCalc(od,doo),
         Wydany: !!fd.get('wydany'), Zwrot: !!fd.get('zwrot'),
         Zwrot_Uwagi: fd.get('zwrotUwagi'),
-      }]], 'Zaktualizowano wypożyczenie');
+      }]);
+      // usuń stare powiązania akcesoriów, dodaj nowe
+      const stare = S.data.Rejestr_Akcesoria.filter(ra => ra.Wypozyczenie === rec.id);
+      stare.forEach(ra => actions.push(['RemoveRecord','Rejestr_Akcesoria', ra.id]));
+      zaznaczoneIds.forEach(aid => actions.push(['AddRecord','Rejestr_Akcesoria',null,{Wypozyczenie:rec.id, Akcesoria:aid}]));
     } else {
-      // Uzytkownik, Data_Utworzenia, Dni itd. uzupełnią trigger formuły w Griście.
-      apply([['AddRecord','Rejestr',null,{
+      // nowe wypożyczenie — najpierw dodaj, potem akcesoria (grist zwraca id przez retValues)
+      // używamy dwuetapowego zapisu: najpierw wyp, potem akcesoria po refreshAll
+      actions.push(['AddRecord','Rejestr',null,{
         Dron: dron, Data_od: od, Data_do: doo,
         Uzasadnienie: fd.get('uzas'),
-      }]], 'Utworzono wypożyczenie');
+        _akc_pending: zaznaczoneIds,  // pomocnicze — obsłużone poniżej
+      }]);
+    }
+
+    if(isEdit){
+      await apply(actions, 'Zaktualizowano wypożyczenie');
+    } else {
+      // dla nowego: najpierw utwórz wypożyczenie, potem dołącz akcesoria
+      try {
+        const res = await grist.docApi.applyUserActions(
+          [['AddRecord','Rejestr',null,{Dron:dron, Data_od:od, Data_do:doo, Uzasadnienie:fd.get('uzas')}]]
+        );
+        const newId = res && res.retValues && res.retValues[0];
+        if(newId && zaznaczoneIds.length){
+          const akcActions = zaznaczoneIds.map(aid =>
+            ['AddRecord','Rejestr_Akcesoria',null,{Wypozyczenie:newId, Akcesoria:aid}]);
+          await grist.docApi.applyUserActions(akcActions);
+        }
+        closeModal();
+        toast('Utworzono wypożyczenie');
+        await refreshAll();
+      } catch(e){
+        toast('Odmowa / błąd: ' + (e && e.message || e), true);
+      }
     }
   });
   hookDronCombo(isEdit ? rec.id : null, isEdit ? rec.Dron : null);
+  hookAkcUpdate(isEdit ? rec.id : null);
 }
 
 function modalZwrot(rec){
