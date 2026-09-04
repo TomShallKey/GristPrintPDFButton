@@ -104,7 +104,14 @@ function fmtKoszt(v){v=Number(v)||0;return v?`${v.toLocaleString('pl-PL')} EUR`:
 /* daty terminu — samo "od – do" bez nazwy dnia/godziny */
 function dateOnly(s){s=String(s||'').trim();if(!s)return'';const m=s.match(/\d{4}-\d{2}-\d{2}/)||s.match(/\d{2}[./-]\d{2}[./-]\d{4}/);return m?m[0]:s}
 function dateRangeClean(a,b){const da=dateOnly(a),db=dateOnly(b);if(da&&db&&da!==db)return `${da} – ${db}`;return da||db||''}
-function courseParts(r){return {skrot:(r.Skrot||'').trim(),nazwa:(r.Szkolenie||'').trim()}}
+function courseParts(r){const skrot=(r.Skrot||'').trim();let raw=(r.Szkolenie||'').trim();
+ // Szkolenie zwykle ma format "[KOD] KOD | data | Nazwa | Lokalizacja" — wyciągamy samą nazwę
+ const parts=raw.split('|').map(x=>x.trim()).filter(Boolean);
+ let nazwa=raw;
+ if(parts.length>=3)nazwa=parts[2];
+ else if(parts.length===2)nazwa=parts[1];
+ nazwa=nazwa.replace(/^\[[^\]]*\]\s*/,'').replace(new RegExp('^'+skrot.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*','i'),'').trim();
+ return {skrot,nazwa}}
 function courseKey(r){const {skrot,nazwa}=courseParts(r);return skrot||nazwa||'— bez szkolenia'}
 /* wiersz danych: bold tylko skrót, reszta nazwy zwykła */
 function courseLabelRow(r){const {skrot,nazwa}=courseParts(r);if(!skrot&&!nazwa)return '<span class="empty-val">—</span>';return (skrot?`<strong>${esc(skrot)}</strong>`:'')+(skrot&&nazwa?' ':'')+(nazwa?esc(nazwa):'')}
