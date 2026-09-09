@@ -178,7 +178,7 @@ function terminyList(code){const emb=(opisFor(code)?.terminy)||[];if(!emb.length
  return `<div class="opis-sec"><h4>Terminy (${emb.length})</h4>${rows}</div>`}
 function showKursInfo(anchor,code){const o=opisFor(code);if(!o)return;openPopover(anchor,renderOpis(o,false)+terminyList(code)+feeBox(o.price))}
 catalogPdfBtn.onclick=()=>{
- const w=window.open(encodeURI('2027S1_Katalog Szkoleń IANS.pdf'),'_blank');
+ const w=window.open('https://pansa.sharepoint.com/sites/office3/SiteAssets/Forms/AllItems.aspx?id=%2Fsites%2Foffice3%2FSiteAssets%2FSitePages%2FSzkolenia%2D%2D%2DIANS%2D%28Eurocontrol%29%2F2027S1%5FKatalog%2DSzkole%C5%84%2DIANS%2Epdf&parent=%2Fsites%2Foffice3%2FSiteAssets%2FSitePages%2FSzkolenia%2D%2D%2DIANS%2D%28Eurocontrol%29','_blank');
  if(!w)toast('Zezwól na wyskakujące okna, aby otworzyć katalog szkoleń',true);
 };
 grist.ready({requiredAccess:'full'});grist.onRecords(scheduleReload);loadAll().catch(e=>{console.error(e);tbody.innerHTML='<tr><td colspan="11"><div class="state-msg"><b>Nie udało się wczytać danych.</b></div></td></tr>'});setInterval(()=>{if(!document.hidden)scheduleReload()},45000);
