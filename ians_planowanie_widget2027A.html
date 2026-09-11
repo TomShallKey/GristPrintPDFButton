@@ -68,6 +68,8 @@ const LOG_FIELDS={
 let currentUserEmail='';
 let currentUserPromise=null;
 async function loadCurrentUser(){
+ /* to tylko optymistyczny podgląd "od razu" — jeśli się nie uda, prawdziwy autor i tak
+    przyjdzie chwilę później z serwera (formuła wyzwalana Grista), patrz updateRec() */
  try{
   const t=await grist.docApi.getAccessToken({readOnly:true});
   if(!t||!t.token||!t.baseUrl)throw new Error('Brak tokena dostępu (getAccessToken)');
@@ -78,10 +80,9 @@ async function loadCurrentUser(){
   if(!res.ok)throw new Error(`/api/profile/user -> HTTP ${res.status}`);
   const p=await res.json();
   currentUserEmail=p&&(p.email||p.login||p.name)||'';
-  if(!currentUserEmail){console.warn('Odpowiedź /api/profile/user bez pola email:',p);toast('Nie udało się ustalić Twojego adresu e-mail (log autora będzie pusty)',true)}
+  if(!currentUserEmail)console.warn('Odpowiedź /api/profile/user bez pola email:',p);
  }catch(e){
-  console.error('Nie udało się pobrać danych użytkownika',e);
-  toast('Nie udało się pobrać Twojej tożsamości — log autora będzie pusty',true);
+  console.warn('Nie udało się pobrać tożsamości użytkownika (nie jest to krytyczne — autor i tak dotrze z serwera):',e);
  }
 }
 const COLS=[
@@ -105,8 +106,9 @@ function setColWidth(key,w){const c=COLS.find(x=>x.key===key);if(!c)return;w=Mat
 async function loadAll(){const data=await grist.docApi.fetchTable(TABLE);state.main=colToRecs(data);state.lastMainJson=JSON.stringify(data);const first=!state.loaded;state.loaded=true;render(first)}
 async function loadMain(){const data=await grist.docApi.fetchTable(TABLE),j=JSON.stringify(data);if(j===state.lastMainJson)return;state.lastMainJson=j;state.main=colToRecs(data);render()}
 function scheduleReload(){if(Date.now()<state.suppressUntil)return;clearTimeout(reloadTimer);reloadTimer=setTimeout(()=>loadMain().catch(console.error),150)}
-async function updateRec(id,fields){const r=state.main.find(x=>x.id===id),prev=r?{...r}:null;if(r)Object.assign(r,fields);rerenderRow(id);const hasLogField=Object.keys(LOG_FIELDS).some(k=>k in fields);try{await grist.docApi.applyUserActions([['UpdateRecord',TABLE,id,fields]]);state.suppressUntil=Date.now()+2500;toast('Zapisano');if(hasLogField){/* pola autora/godziny mogą być domyślnie liczone przez formułę wyzwalaną po stronie Grista —
-    wymuszamy pobranie świeżych danych z serwera, z pominięciem chwilowej blokady auto-odświeżania */clearTimeout(reloadTimer);setTimeout(()=>loadMain().catch(console.error),700)}}catch(e){if(r&&prev)Object.assign(r,prev);rerenderRow(id);toast('Nie udało się zapisać — brak uprawnień na tym etapie?',true)}}
+async function updateRec(id,fields){const r=state.main.find(x=>x.id===id),prev=r?{...r}:null;if(r)Object.assign(r,fields);rerenderRow(id);const hasLogField=Object.keys(LOG_FIELDS).some(k=>k in fields);try{await grist.docApi.applyUserActions([['UpdateRecord',TABLE,id,fields]]);/* przy polach z logiem blokada auto-odświeżania jest krótka, żeby jak najszybciej
+    złapać autora policzonego przez formułę wyzwalaną po stronie Grista (przychodzi przez zwykłe onRecords) */
+   state.suppressUntil=Date.now()+(hasLogField?300:2500);toast('Zapisano');if(hasLogField){clearTimeout(reloadTimer);setTimeout(()=>loadMain().catch(console.error),350)}}catch(e){if(r&&prev)Object.assign(r,prev);rerenderRow(id);toast('Nie udało się zapisać — brak uprawnień na tym etapie?',true)}}
 function uczLabel(r){return r.Uczestnik||''}
 function fmtKoszt(v){v=Number(v)||0;return v?`${v.toLocaleString('pl-PL')} EUR`:''}
 /* daty terminu — samo "od – do" bez nazwy dnia/godziny */
