@@ -66,7 +66,20 @@ const LOG_FIELDS={
  Akceptacja_Prezes:{author:'PrezAkceptacja_LogAuthor',time:'PrezAkceptacja_LogTime'}
 };
 let currentUserEmail='';
-async function loadCurrentUser(){try{const t=await grist.docApi.getAccessToken({readOnly:true});const res=await fetch(`${t.baseUrl}/api/profile/user?auth=${t.token}`);if(res.ok){const p=await res.json();currentUserEmail=p?.email||''}}catch(e){console.error('Nie udało się pobrać danych użytkownika',e)}}
+async function loadCurrentUser(){
+ try{
+  const t=await grist.docApi.getAccessToken({readOnly:true});
+  if(!t||!t.token||!t.baseUrl)throw new Error('Brak tokena dostępu (getAccessToken)');
+  const res=await fetch(`${t.baseUrl}/api/profile/user?auth=${t.token}`);
+  if(!res.ok)throw new Error(`/api/profile/user -> HTTP ${res.status}`);
+  const p=await res.json();
+  currentUserEmail=p&&(p.email||p.login||p.name)||'';
+  if(!currentUserEmail){console.warn('Odpowiedź /api/profile/user bez pola email:',p);toast('Nie udało się ustalić Twojego adresu e-mail (log autora będzie pusty)',true)}
+ }catch(e){
+  console.error('Nie udało się pobrać danych użytkownika',e);
+  toast('Nie udało się pobrać Twojej tożsamości — log autora będzie pusty',true);
+ }
+}
 const COLS=[
  {key:'zg',def:120,min:80},{key:'biuro',def:70,min:50},{key:'uczestnik',def:200,min:120},
  {key:'szkolenie',def:300,min:160},{key:'priorytet',def:56,min:40},{key:'uzasadnienie',def:170,min:90},
