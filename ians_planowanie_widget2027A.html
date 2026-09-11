@@ -66,6 +66,7 @@ const LOG_FIELDS={
  Akceptacja_Prezes:{author:'PrezAkceptacja_LogAuthor',time:'PrezAkceptacja_LogTime'}
 };
 let currentUserEmail='';
+let currentUserPromise=null;
 async function loadCurrentUser(){
  try{
   const t=await grist.docApi.getAccessToken({readOnly:true});
@@ -159,7 +160,7 @@ function render(){renderHead();const rs=filteredRecords();if(!rs.length){tbody.i
   const defSort=state.groupBy==='szkolenie'?(a,b)=>String(a.Termin_Rozpoczecia||'').localeCompare(String(b.Termin_Rozpoczecia||''),'pl')||uczLabel(a).localeCompare(uczLabel(b),'pl'):state.groupBy==='termin'?(a,b)=>uczLabel(a).localeCompare(uczLabel(b),'pl'):null;
   for(const k of ks){const grp=g.get(k);h+=groupRow(k,grp.label,grp.rows.length);if(!state.collapsed.has(k))grp.rows.sort(state.sort?cmp:(defSort||cmp)).forEach(r=>h+=rowHtml(r))}}
  tbody.innerHTML=h}
-tbody.addEventListener('change',e=>{const x=e.target;const id=+x.dataset.id,c=x.dataset.col;if(!id||!c)return;const r=state.main.find(y=>y.id===id);const v=x.checked;if(v===!!r[c])return;const fields={[c]:v};const log=LOG_FIELDS[c];if(log){fields[log.author]=currentUserEmail||'';fields[log.time]=Math.floor(Date.now()/1000)}updateRec(id,fields)});
+tbody.addEventListener('change',async e=>{const x=e.target;const id=+x.dataset.id,c=x.dataset.col;if(!id||!c)return;const r=state.main.find(y=>y.id===id);const v=x.checked;if(v===!!r[c])return;const fields={[c]:v};const log=LOG_FIELDS[c];if(log){if(!currentUserEmail)await currentUserPromise;fields[log.time]=Math.floor(Date.now()/1000);if(currentUserEmail)fields[log.author]=currentUserEmail}updateRec(id,fields)});
 tbody.addEventListener('click',e=>{const ib=e.target.closest('.info-btn[data-info]');if(ib)return showKursInfo(ib,ib.dataset.info);const hb=e.target.closest('.hist-btn[data-hist]');if(hb)return showHistoria(hb,hb.dataset.hist,hb.dataset.name);const g=e.target.closest('tr.group');if(g){state.collapsed.has(g.dataset.gkey)?state.collapsed.delete(g.dataset.gkey):state.collapsed.add(g.dataset.gkey);render()}});
 colRow.addEventListener('click',e=>{if(e.target.closest('.resizer'))return;const el=e.target.closest('[data-sortcol]');if(!el)return;const c=el.dataset.sortcol;if(state.sort?.col!==c)state.sort={col:c,dir:1};else if(state.sort.dir===1)state.sort.dir=-1;else state.sort=null;render()});
 colRow.addEventListener('pointerdown',e=>{const rz=e.target.closest('.resizer');if(!rz)return;e.preventDefault();e.stopPropagation();const th=rz.closest('th'),key=th.dataset.rescol,c=COLS.find(x=>x.key===key);if(!c)return;const sx=e.clientX,sw=widthOf(c);rz.setPointerCapture(e.pointerId);rz.classList.add('rz-active');document.body.classList.add('resizing');const move=ev=>setColWidth(key,sw+ev.clientX-sx),up=()=>{rz.classList.remove('rz-active');document.body.classList.remove('resizing');rz.removeEventListener('pointermove',move);rz.removeEventListener('pointerup',up);rz.removeEventListener('pointercancel',up)};rz.addEventListener('pointermove',move);rz.addEventListener('pointerup',up);rz.addEventListener('pointercancel',up)});
@@ -207,7 +208,7 @@ catalogPdfBtn.onclick=()=>{
  const w=window.open('https://pansa.sharepoint.com/sites/office3/SiteAssets/Forms/AllItems.aspx?id=%2Fsites%2Foffice3%2FSiteAssets%2FSitePages%2FSzkolenia%2D%2D%2DIANS%2D%28Eurocontrol%29%2F2027S1%5FKatalog%2DSzkole%C5%84%2DIANS%2Epdf&parent=%2Fsites%2Foffice3%2FSiteAssets%2FSitePages%2FSzkolenia%2D%2D%2DIANS%2D%28Eurocontrol%29','_blank');
  if(!w)toast('Zezwól na wyskakujące okna, aby otworzyć katalog szkoleń',true);
 };
-grist.ready({requiredAccess:'full'});grist.onRecords(scheduleReload);loadAll().catch(e=>{console.error(e);tbody.innerHTML='<tr><td colspan="11"><div class="state-msg"><b>Nie udało się wczytać danych.</b></div></td></tr>'});setInterval(()=>{if(!document.hidden)scheduleReload()},45000);loadCurrentUser();
+grist.ready({requiredAccess:'full'});currentUserPromise=loadCurrentUser();grist.onRecords(scheduleReload);loadAll().catch(e=>{console.error(e);tbody.innerHTML='<tr><td colspan="11"><div class="state-msg"><b>Nie udało się wczytać danych.</b></div></td></tr>'});setInterval(()=>{if(!document.hidden)scheduleReload()},45000);
 </script>
 </body>
 </html>
