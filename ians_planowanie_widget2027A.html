@@ -71,7 +71,10 @@ async function loadCurrentUser(){
  try{
   const t=await grist.docApi.getAccessToken({readOnly:true});
   if(!t||!t.token||!t.baseUrl)throw new Error('Brak tokena dostępu (getAccessToken)');
-  const res=await fetch(`${t.baseUrl}/api/profile/user?auth=${t.token}`);
+  /* t.baseUrl jest już scope'owany do dokumentu (zawiera /api/docs/{docId}) — do /api/profile/user
+     trzeba wrócić do adresu głównego serwera, ucinając wszystko od /api/docs/ */
+  const root=t.baseUrl.split('/api/docs/')[0];
+  const res=await fetch(`${root}/api/profile/user?auth=${t.token}`);
   if(!res.ok)throw new Error(`/api/profile/user -> HTTP ${res.status}`);
   const p=await res.json();
   currentUserEmail=p&&(p.email||p.login||p.name)||'';
