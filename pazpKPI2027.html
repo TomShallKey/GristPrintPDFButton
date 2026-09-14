@@ -308,14 +308,44 @@ function inferDirection(name){
   const n = (name||'').toLowerCase();
   return LOWER_IS_BETTER_KEYWORDS.some(k=>n.includes(k)) ? 'lower' : 'higher';
 }
+// The sheet doesn't always fill in the two annual columns consistently — for
+// some indicators the reported number lives in "Roczna_wartosc_planowana",
+// for others in "Roczna_wartosc_oczekiwana". When BOTH are present we keep the
+// natural reading (oczekiwana = reported/expected value, planowana = target).
+// When only ONE is present, we can't assume which role it plays, so we show it
+// as the value with no separate target rather than guessing / hiding it.
+function annualValueTarget(u){
+  const hasExp = !u.exp.empty && u.exp.value!=null;
+  const hasPlan = !u.plan.empty && u.plan.value!=null;
+  if(hasExp && hasPlan) return {value:u.exp, target:u.plan};
+  if(hasExp) return {value:u.exp, target:null};
+  if(hasPlan) return {value:u.plan, target:null};
+  return {value:null, target:null};
+}
 function latestActual(u){
   for(let i=3;i>=0;i--){ if(!u.q[i].empty && u.q[i].value!=null) return u.q[i].value; }
   if(!u.exp.empty && u.exp.value!=null) return u.exp.value;
+  if(!u.plan.empty && u.plan.value!=null) return u.plan.value;
   return null;
 }
 function computeStatus(u, direction){
-  const planVal = (!u.plan.empty && u.plan.value!=null) ? u.plan.value : null;
-  const actual = latestActual(u);
+  const hasQ = u.q.some(q=>!q.empty && q.value!=null);
+  let planVal, actual;
+  if(hasQ){
+    // quarterly indicators: quarters are the actual data points, the annual
+    // column(s) supply the reference target — prefer "planowana", fall back
+    // to "oczekiwana" if that's the only one filled in for this row.
+    planVal = (!u.plan.empty && u.plan.value!=null) ? u.plan.value
+            : (!u.exp.empty && u.exp.value!=null) ? u.exp.value : null;
+    actual = latestActual(u);
+  } else {
+    // annual-only indicators: only compute a status when BOTH columns are
+    // present (i.e. we actually know which is the target) — a single lone
+    // value has nothing to be measured against.
+    const {value, target} = annualValueTarget(u);
+    planVal = target ? target.value : null;
+    actual = value ? value.value : null;
+  }
   if(planVal==null || actual==null) return 'unknown';
   const diffRatio = (actual - planVal) / (Math.abs(planVal) || 1);
   const signed = direction==='lower' ? diffRatio : -diffRatio; // >0 means "worse than target"
@@ -487,10 +517,12 @@ function populateObszarFilter(){
 
 /* ===================== CARD BUILDERS ===================== */
 let cardIdSeq = 0;
+function cellText(cell){
+  if(cell.empty) return cell.na? 'x' : '—';
+  return cell.raw!==undefined? cell.raw : fmtNum(cell.value, cell.percent);
+}
 function planExpText(u){
-  const plan = u.plan.empty ? (u.plan.na?'x':'—') : (u.plan.raw!==undefined? u.plan.raw : fmtNum(u.plan.value, u.plan.percent));
-  const exp = u.exp.empty ? (u.exp.na?'x':'—') : (u.exp.raw!==undefined? u.exp.raw : fmtNum(u.exp.value, u.exp.percent));
-  return {plan, exp};
+  return {plan: cellText(u.plan), exp: cellText(u.exp)};
 }
 
 // classify a single unit's own data shape (independent of the rest of the group —
@@ -513,7 +545,10 @@ function renderUnitChart(canvasEl, u, meta, compact){
     label:'Wartość', data: u.q.map(q=> (q.empty? null : q.value)),
     backgroundColor: meta.color, borderRadius:4, maxBarThickness: compact?20:28, order:2
   }];
-  const planVal = (!u.plan.empty && u.plan.value!=null) ? u.plan.value : null;
+  // target reference: prefer "planowana", fall back to "oczekiwana" when only
+  // that column was filled in for this row (data entry isn't always consistent)
+  const planVal = (!u.plan.empty && u.plan.value!=null) ? u.plan.value
+                 : (!u.exp.empty && u.exp.value!=null) ? u.exp.value : null;
   if(planVal!=null){
     datasets.push({
       type:'line', label:'Cel roczny', data:[planVal,planVal,planVal,planVal],
@@ -543,16 +578,17 @@ function renderUnitChart(canvasEl, u, meta, compact){
 // annual target — so every chart on the board reads the same way (no mixed
 // horizontal/vertical styles).
 function renderUnitAnnualChart(canvasEl, u, meta, compact){
-  const expVal = (!u.exp.empty && u.exp.value!=null) ? u.exp.value : null;
-  const planVal = (!u.plan.empty && u.plan.value!=null) ? u.plan.value : null;
-  const percent = u.exp.percent || u.plan.percent;
+  const {value, target} = annualValueTarget(u);
+  const val = value ? value.value : null;
+  const targetVal = target ? target.value : null;
+  const percent = (value && value.percent) || (target && target.percent);
   const datasets = [{
-    label:'Wartość', data:[expVal], backgroundColor: meta.color,
+    label:'Wartość', data:[val], backgroundColor: meta.color,
     borderRadius:4, maxBarThickness: compact?36:48, order:2
   }];
-  if(planVal!=null){
+  if(targetVal!=null){
     datasets.push({
-      type:'line', label:'Cel roczny', data:[planVal],
+      type:'line', label:'Cel roczny', data:[targetVal],
       borderColor:'#111827', borderDash:[5,4], pointRadius:0, borderWidth:1.5, order:1, fill:false
     });
   }
@@ -574,10 +610,21 @@ function renderUnitAnnualChart(canvasEl, u, meta, compact){
   }));
 }
 
+// same "value could be in either column" ambiguity applies to qualitative
+// (grade/text) cells too — pick whichever column actually has content.
+function qualitativeValueTarget(u){
+  const hasExp = !u.exp.empty;
+  const hasPlan = !u.plan.empty;
+  if(hasExp && hasPlan) return {value:u.exp, target:u.plan};
+  if(hasExp) return {value:u.exp, target:null};
+  if(hasPlan) return {value:u.plan, target:null};
+  return {value:null, target:null};
+}
 function badgeHtml(u, meta){
-  const {plan, exp} = planExpText(u);
-  return `<span class="grade-chip" style="background:${meta.bg};color:${meta.color}">${exp}</span>
-    <span style="font-size:10.5px;color:var(--mut)">cel: ${plan}</span>`;
+  const {value, target} = qualitativeValueTarget(u);
+  const html = [`<span class="grade-chip" style="background:${meta.bg};color:${meta.color}">${value? cellText(value):'—'}</span>`];
+  if(target) html.push(`<span style="font-size:10.5px;color:var(--mut)">cel: ${cellText(target)}</span>`);
+  return html.join('\n    ');
 }
 
 // renders the body (chart / badge / empty) for a single location into `container` —
@@ -590,12 +637,11 @@ function renderUnitBody(container, g, u, meta, compact){
     container.appendChild(wrap);
     const canvas = wrap.querySelector('canvas');
     chartQueue.push(()=> renderUnitChart(canvas, u, meta, compact));
-    if(u.q.some(q=>q.empty)){
-      container.insertAdjacentHTML('beforeend', `<div class="mini-note">brak części kwartałów</div>`);
-    }
   } else if(uViz==='annual'){
-    const {plan, exp} = planExpText(u);
-    container.insertAdjacentHTML('beforeend', `<div class="kv-line"><b style="color:${meta.color}">${exp}</b><span>cel: ${plan}</span></div>`);
+    const {value, target} = annualValueTarget(u);
+    const valTxt = value ? cellText(value) : '—';
+    const targetHtml = target ? `<span>cel: ${cellText(target)}</span>` : '';
+    container.insertAdjacentHTML('beforeend', `<div class="kv-line"><b style="color:${meta.color}">${valTxt}</b>${targetHtml}</div>`);
     const wrap = document.createElement('div'); wrap.className = 'chart-wrap' + (compact? ' small':'');
     wrap.innerHTML = '<canvas></canvas>';
     container.appendChild(wrap);
@@ -604,9 +650,7 @@ function renderUnitBody(container, g, u, meta, compact){
   } else if(uViz==='badge'){
     container.insertAdjacentHTML('beforeend', `<div class="badge-wrap">${badgeHtml(u, meta)}</div>`);
   } else {
-    const {plan} = planExpText(u);
-    const targetTxt = plan!=='—' ? ` — cel: ${plan}` : '';
-    container.insertAdjacentHTML('beforeend', `<div class="empty-msg">⏳ Brak danych${targetTxt}</div>`);
+    container.insertAdjacentHTML('beforeend', `<div class="empty-msg">⏳ Brak danych</div>`);
   }
 }
 
