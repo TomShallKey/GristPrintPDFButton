@@ -47,10 +47,11 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);
 .btn:active{transform:translateY(1px)}
 
 /* ---------- summary strip ---------- */
-.summary{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;padding:18px 22px 6px}
+.summary{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;padding:18px 22px 6px}
 .stat-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;
   box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px;min-width:0}
-.stat-card .label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);font-weight:700}
+.stat-card.stat-alert{background:#fef2f2;border-color:#fca5a5}
+.stat-card .label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);font-weight:700;display:flex;align-items:center}
 .stat-card .value{font-size:26px;font-weight:800;line-height:1;display:flex;align-items:baseline;gap:6px}
 .stat-card .value small{font-size:13px;font-weight:600;color:var(--mut)}
 .stat-card .foot{font-size:11.5px;color:var(--mut2)}
@@ -136,6 +137,24 @@ main{flex:1;padding:14px 22px 60px}
 .grade-chip{font-size:14px;font-weight:800;padding:3px 12px;border-radius:8px;display:inline-flex}
 .pill-status{width:9px;height:9px;border-radius:50%;flex:none}
 
+/* ---------- multi-location panel: one indicator split into per-location boxes ---------- */
+.card.panel{grid-column:1 / -1}
+.unit-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px;margin-top:2px}
+.unit-box{background:var(--card2);border:1px solid var(--line2);border-radius:9px;padding:9px 10px;display:flex;flex-direction:column;gap:4px}
+.unit-box-label{font-size:10.5px;font-weight:800;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge-wrap{display:flex;flex-direction:column;gap:3px;align-items:flex-start}
+.mini-note{font-size:9.5px;color:var(--amber);margin-top:2px}
+.kv-line{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;color:var(--mut)}
+.kv-line b{font-size:19px;font-weight:800}
+
+/* ---------- status (RAG): only real deviations from target get tinted ---------- */
+.status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.card.status-bad{background:#fef2f2;border-color:#fca5a5}
+.card.status-bad:hover{border-color:#f87171}
+.card.status-warn{background:#fffbeb;border-color:#fde68a}
+.unit-box.status-bad{background:#fef2f2;border-color:#fca5a5}
+.unit-box.status-warn{background:#fffbeb;border-color:#fde68a}
+
 /* ---------- modal ---------- */
 .modal-bg{position:fixed;inset:0;background:rgba(15,18,25,.45);backdrop-filter:blur(2px);z-index:100;
   display:none;align-items:center;justify-content:center;padding:20px}
@@ -179,6 +198,7 @@ main{flex:1;padding:14px 22px 60px}
       <option value="mies.">Miesięczne</option>
     </select>
     <label class="toggle"><input type="checkbox" id="onlyMissing"/> tylko braki danych</label>
+    <label class="toggle"><input type="checkbox" id="onlyProblems"/> <span style="color:#dc2626">●</span> tylko poza celem</label>
     <div class="tabs" id="kpaTabs"></div>
   </section>
 
@@ -220,6 +240,9 @@ let RAW = [];          // flat records straight from grist/demo
 let GROUPS = [];        // one entry per indicator (grouped across Lokalizacja)
 let activeKpa = 'ALL';
 let charts = [];         // chart.js instances currently on screen, so we can destroy on re-render
+let chartQueue = [];     // chart-creation callbacks, run only after the DOM grid has settled
+                          // (creating Chart.js instances while CSS grid columns are still being
+                          // added/resized bakes in wrong tick-label geometry — see mountCharts())
 
 /* ===================== PARSING HELPERS ===================== */
 function parseCell(raw){
@@ -274,6 +297,43 @@ function fmtNum(v, percent){
   return rounded + (percent? '%':'');
 }
 
+/* ===================== STATUS (RAG) =====================
+   To avoid drowning the board in colour, we only tint an indicator when it is
+   actually off-target. "Good" values stay neutral/white; only real deviations
+   from the annual target get a red (bad) or amber (borderline) background —
+   direction (higher-is-better vs lower-is-better) is inferred from the name. */
+const LOWER_IS_BETTER_KEYWORDS = ['opóźni','wypadk','incydent','niezgod','wyłącz','nadliczbow',
+  'absencj','awari','skarg','błęd','reklamacj','ryzyk','brak','naruszen'];
+function inferDirection(name){
+  const n = (name||'').toLowerCase();
+  return LOWER_IS_BETTER_KEYWORDS.some(k=>n.includes(k)) ? 'lower' : 'higher';
+}
+function latestActual(u){
+  for(let i=3;i>=0;i--){ if(!u.q[i].empty && u.q[i].value!=null) return u.q[i].value; }
+  if(!u.exp.empty && u.exp.value!=null) return u.exp.value;
+  return null;
+}
+function computeStatus(u, direction){
+  const planVal = (!u.plan.empty && u.plan.value!=null) ? u.plan.value : null;
+  const actual = latestActual(u);
+  if(planVal==null || actual==null) return 'unknown';
+  const diffRatio = (actual - planVal) / (Math.abs(planVal) || 1);
+  const signed = direction==='lower' ? diffRatio : -diffRatio; // >0 means "worse than target"
+  if(signed > 0.10) return 'bad';
+  if(signed > 0.02) return 'warn';
+  return 'good';
+}
+function worstStatus(statuses){
+  const rank = {bad:3, warn:2, good:1, unknown:0};
+  return statuses.reduce((a,b)=> rank[b]>rank[a] ? b : a, 'unknown');
+}
+const STATUS_LABEL = {bad:'poza celem', warn:'blisko granicy celu', good:'w celu', unknown:''};
+function statusDot(status){
+  if(!status || status==='unknown') return '';
+  const color = status==='bad'? 'var(--bad)' : status==='warn'? 'var(--amber)' : 'var(--ok)';
+  return `<span class="status-dot" style="background:${color}" title="${STATUS_LABEL[status]}"></span>`;
+}
+
 /* ===================== GROUPING ===================== */
 function buildGroups(records){
   const map = new Map();
@@ -303,6 +363,10 @@ function buildGroups(records){
     else if(anyAnnualNumeric) vizType = 'annual';
     else vizType = 'empty';
 
+    const direction = inferDirection(first.Mierniki_2026);
+    units.forEach(u=> u.status = computeStatus(u, direction));
+    const status = worstStatus(units.map(u=>u.status));
+
     groups.push({
       key: [first.Obszar, first.KPA, first.Mierniki_2026].join('§'),
       obszar: first.Obszar || 'Inne',
@@ -312,7 +376,7 @@ function buildGroups(records){
       freq: first.czest_ || '',
       units,
       multiUnit: units.length>1,
-      vizType,
+      vizType, direction, status,
       hasQuarterData, anyAnnualNumeric, allEmpty
     });
   });
@@ -325,11 +389,13 @@ function getFiltered(){
   const obszar = document.getElementById('obszarFilter').value;
   const freq = document.getElementById('freqFilter').value;
   const onlyMissing = document.getElementById('onlyMissing').checked;
+  const onlyProblems = document.getElementById('onlyProblems').checked;
   return GROUPS.filter(g=>{
     if(activeKpa!=='ALL' && g.kpa!==activeKpa) return false;
     if(obszar && g.obszar!==obszar) return false;
     if(freq && g.freq!==freq) return false;
     if(onlyMissing && !(g.allEmpty || (g.vizType==='quarterly' && g.units.some(u=>u.q.some(q=>q.empty))))) return false;
+    if(onlyProblems && !(g.status==='bad' || g.status==='warn')) return false;
     if(search){
       const hay = (g.name+' '+g.obszar+' '+g.cel+' '+g.kpa).toLowerCase();
       if(!hay.includes(search)) return false;
@@ -344,6 +410,8 @@ function renderSummary(){
   const total = GROUPS.length;
   const withData = GROUPS.filter(g=>!g.allEmpty).length;
   const missing = total - withData;
+  const bad = GROUPS.filter(g=>g.status==='bad').length;
+  const warn = GROUPS.filter(g=>g.status==='warn').length;
   const kpaCounts = {};
   KPA_ORDER.forEach(k=>kpaCounts[k]=0);
   GROUPS.forEach(g=>{ kpaCounts[g.kpa] = (kpaCounts[g.kpa]||0)+1; });
@@ -359,6 +427,11 @@ function renderSummary(){
       <div class="label">Z zaraportowanymi danymi</div>
       <div class="value" style="color:#059669">${withData}<small>/ ${total}</small></div>
       <div class="foot">${total? Math.round(withData/total*100):0}% pokrycia danych</div>
+    </div>
+    <div class="stat-card${bad? ' stat-alert':''}">
+      <div class="label"><span class="status-dot" style="background:var(--bad)"></span>Poza celem</div>
+      <div class="value" style="color:#dc2626">${bad}<small>+ ${warn} blisko granicy</small></div>
+      <div class="foot">wymaga uwagi Zarządu</div>
     </div>
     <div class="stat-card">
       <div class="label">Oczekujące na dane</div>
@@ -420,77 +493,150 @@ function planExpText(u){
   return {plan, exp};
 }
 
+// classify a single unit's own data shape (independent of the rest of the group —
+// different locations can have different targets / different reporting states)
+function computeUnitViz(u){
+  const hasQ = u.q.some(q=>!q.empty && q.value!=null);
+  const hasAnnualNum = (!u.plan.empty && u.plan.value!=null) || (!u.exp.empty && u.exp.value!=null);
+  const isQual = u.exp.qualitative || u.plan.qualitative || (u.exp.range && u.exp.value==null);
+  if(hasQ) return 'quarterly';
+  if(isQual && !hasAnnualNum) return 'badge';
+  if(hasAnnualNum) return 'annual';
+  return 'empty';
+}
+
+// bar chart for one location's 4 quarters, with THAT location's own annual target
+// drawn as a dashed reference line — target is always integrated into the same chart.
+function renderUnitChart(canvasEl, u, meta, compact){
+  const labels = ['I kw.','II kw.','III kw.','IV kw.'];
+  const datasets = [{
+    label:'Wartość', data: u.q.map(q=> (q.empty? null : q.value)),
+    backgroundColor: meta.color, borderRadius:4, maxBarThickness: compact?20:28, order:2
+  }];
+  const planVal = (!u.plan.empty && u.plan.value!=null) ? u.plan.value : null;
+  if(planVal!=null){
+    datasets.push({
+      type:'line', label:'Cel roczny', data:[planVal,planVal,planVal,planVal],
+      borderColor:'#111827', borderDash:[5,4], pointRadius:0, borderWidth:1.5, order:1, fill:false
+    });
+  }
+  charts.push(new Chart(canvasEl,{
+    type:'bar',
+    data:{labels, datasets},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index', intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:(c)=> `${c.dataset.label}: ${c.formattedValue}`}}
+      },
+      scales:{
+        x:{grid:{display:false}, ticks:{font:{size:compact?9:10}}},
+        y:{grid:{color:'#eef1f6'}, ticks:{font:{size:compact?9:10}}}
+      },
+      animation:{duration:300}
+    }
+  }));
+}
+// annual (single-value) indicator drawn the same way as quarterly ones — one
+// vertical bar for the reported value, plus a dashed horizontal line for the
+// annual target — so every chart on the board reads the same way (no mixed
+// horizontal/vertical styles).
+function renderUnitAnnualChart(canvasEl, u, meta, compact){
+  const expVal = (!u.exp.empty && u.exp.value!=null) ? u.exp.value : null;
+  const planVal = (!u.plan.empty && u.plan.value!=null) ? u.plan.value : null;
+  const percent = u.exp.percent || u.plan.percent;
+  const datasets = [{
+    label:'Wartość', data:[expVal], backgroundColor: meta.color,
+    borderRadius:4, maxBarThickness: compact?36:48, order:2
+  }];
+  if(planVal!=null){
+    datasets.push({
+      type:'line', label:'Cel roczny', data:[planVal],
+      borderColor:'#111827', borderDash:[5,4], pointRadius:0, borderWidth:1.5, order:1, fill:false
+    });
+  }
+  charts.push(new Chart(canvasEl,{
+    type:'bar',
+    data:{labels:[''], datasets},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:(c)=> `${c.dataset.label}: ${fmtNum(c.parsed.y, percent)}`}}
+      },
+      scales:{
+        x:{grid:{display:false}, ticks:{display:false}},
+        y:{grid:{color:'#eef1f6'}, ticks:{font:{size:compact?9:10}, callback:(v)=>fmtNum(v,percent)}, beginAtZero:true}
+      },
+      animation:{duration:300}
+    }
+  }));
+}
+
+function badgeHtml(u, meta){
+  const {plan, exp} = planExpText(u);
+  return `<span class="grade-chip" style="background:${meta.bg};color:${meta.color}">${exp}</span>
+    <span style="font-size:10.5px;color:var(--mut)">cel: ${plan}</span>`;
+}
+
+// renders the body (chart / badge / empty) for a single location into `container` —
+// every numeric case uses a vertical bar chart for consistency.
+function renderUnitBody(container, g, u, meta, compact){
+  const uViz = computeUnitViz(u);
+  if(uViz==='quarterly'){
+    const wrap = document.createElement('div'); wrap.className = 'chart-wrap' + (compact? ' small':'');
+    wrap.innerHTML = '<canvas></canvas>';
+    container.appendChild(wrap);
+    const canvas = wrap.querySelector('canvas');
+    chartQueue.push(()=> renderUnitChart(canvas, u, meta, compact));
+    if(u.q.some(q=>q.empty)){
+      container.insertAdjacentHTML('beforeend', `<div class="mini-note">brak części kwartałów</div>`);
+    }
+  } else if(uViz==='annual'){
+    const {plan, exp} = planExpText(u);
+    container.insertAdjacentHTML('beforeend', `<div class="kv-line"><b style="color:${meta.color}">${exp}</b><span>cel: ${plan}</span></div>`);
+    const wrap = document.createElement('div'); wrap.className = 'chart-wrap' + (compact? ' small':'');
+    wrap.innerHTML = '<canvas></canvas>';
+    container.appendChild(wrap);
+    const canvas = wrap.querySelector('canvas');
+    chartQueue.push(()=> renderUnitAnnualChart(canvas, u, meta, compact));
+  } else if(uViz==='badge'){
+    container.insertAdjacentHTML('beforeend', `<div class="badge-wrap">${badgeHtml(u, meta)}</div>`);
+  } else {
+    const {plan} = planExpText(u);
+    const targetTxt = plan!=='—' ? ` — cel: ${plan}` : '';
+    container.insertAdjacentHTML('beforeend', `<div class="empty-msg">⏳ Brak danych${targetTxt}</div>`);
+  }
+}
+
 function buildCard(g){
+  return g.multiUnit ? buildPanelCard(g) : buildSingleCard(g);
+}
+
+// single location per indicator — one focused chart/bullet with its target built in
+function buildSingleCard(g){
   const meta = kpaMeta(g.kpa);
   const uid = 'c'+(cardIdSeq++);
-  const commentTxt = g.units.map(u=>u.comment).filter(Boolean).join('\n---\n');
+  const u = g.units[0];
+  const commentTxt = u.comment || '';
   const card = document.createElement('div');
-  card.className = 'card' + (g.vizType==='empty' ? ' empty':'');
+  card.className = 'card status-'+g.status + (g.vizType==='empty' ? ' empty':'');
   card.style.borderLeftColor = meta.color;
-  const locTags = g.multiUnit ? g.units.map(u=>u.loc||'Ogółem') : [];
 
   card.innerHTML = `
     <div class="card-top">
       <div class="card-title">${g.name}</div>
-      <span class="badge freq">${FREQ_LABEL[g.freq]||g.freq||'—'}</span>
+      <span class="badge freq">${statusDot(g.status)}${FREQ_LABEL[g.freq]||g.freq||'—'}</span>
     </div>
-    <div class="subline">${[g.cel, (!g.multiUnit && g.units[0] && g.units[0].loc) ? g.units[0].loc : ''].filter(Boolean).join(' · ')}</div>
+    <div class="subline">${[g.cel, u.loc].filter(Boolean).join(' · ')}</div>
     <div class="body-${uid}"></div>
     <div class="card-foot">
-      <div class="kv" id="kv-${uid}"></div>
+      <div></div>
       ${commentTxt? `<button class="note-btn" title="Komentarz" data-comment="${uid}">💬</button>`:''}
     </div>
   `;
-  const body = card.querySelector(`.body-${uid}`);
-  const kv = card.querySelector(`#kv-${uid}`);
-
-  if(g.vizType==='quarterly'){
-    const wrap = document.createElement('div'); wrap.className='chart-wrap'; wrap.innerHTML = `<canvas></canvas>`;
-    body.appendChild(wrap);
-    buildQuarterlyChart(wrap.querySelector('canvas'), g, meta);
-    const anyMissing = g.units.some(u=>u.q.some(q=>q.empty));
-    const {plan,exp} = planExpText(g.units[0]);
-    kv.innerHTML = `<span>Plan: <b>${plan}</b></span><span>Cel roczny: <b>${exp}</b></span>` + (anyMissing? ' <span style="color:#d97706">• brak części kw.</span>':'');
-  } else if(g.vizType==='annual'){
-    const listWrap = document.createElement('div'); listWrap.style.display='flex'; listWrap.style.flexDirection='column'; listWrap.style.gap='7px';
-    g.units.forEach(u=>{
-      const {plan,exp} = planExpText(u);
-      const planVal = u.plan.value, expVal = u.exp.value;
-      const hasNums = planVal!=null || expVal!=null;
-      const pct = (planVal && expVal!=null) ? Math.max(0,Math.min(150,(expVal/planVal)*100)) : (expVal!=null? 60: 0);
-      const good = planVal!=null && expVal!=null ? (Math.abs(expVal-planVal) <= Math.abs(planVal)*0.15 || expVal>=planVal) : true;
-      const row = document.createElement('div');
-      row.innerHTML = g.multiUnit ? `
-        <div class="unit-row">
-          <span class="u" title="${u.loc||'Ogółem'}">${u.loc||'Ogółem'}</span>
-          <span class="track"><span class="fill" style="width:${Math.min(100,pct)}%;background:${good? meta.color:'var(--amber)'}"></span></span>
-          <span class="val">${exp}</span>
-        </div>` : `
-        <div class="big-stat"><span class="num" style="color:${meta.color}">${exp}</span><span class="cmp">/ plan ${plan}</span></div>
-        <div class="progress-line" style="margin-top:6px">
-          <span class="fill" style="width:${Math.min(100,pct)}%;background:${good? meta.color:'var(--amber)'}"></span>
-        </div>`;
-      listWrap.appendChild(row);
-    });
-    body.appendChild(listWrap);
-    body.insertAdjacentHTML('beforeend', `<div class="empty-msg" style="margin-top:8px">ℹ︎ Wskaźnik raportowany ${FREQ_LABEL[g.freq]||'okresowo'} — rozbicie kwartalne niedostępne.</div>`);
-    kv.innerHTML = '';
-  } else if(g.vizType==='badge'){
-    const listWrap = document.createElement('div'); listWrap.style.display='flex'; listWrap.style.flexWrap='wrap'; listWrap.style.gap='8px';
-    g.units.forEach(u=>{
-      const {plan,exp} = planExpText(u);
-      listWrap.innerHTML += `<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start">
-        ${g.multiUnit? `<span class="tag">${u.loc||'Ogółem'}</span>`:''}
-        <span class="grade-chip" style="background:${meta.bg};color:${meta.color}">${exp}</span>
-        <span style="font-size:10.5px;color:var(--mut)">plan: ${plan}</span>
-      </div>`;
-    });
-    body.appendChild(listWrap);
-    kv.innerHTML = '';
-  } else { // empty
-    body.innerHTML = `<div class="empty-msg">⏳ Brak danych — miernik jeszcze nie zaraportowany (${FREQ_LABEL[g.freq]||'okres bieżący'}).</div>`;
-    kv.innerHTML = '';
-  }
+  renderUnitBody(card.querySelector(`.body-${uid}`), g, u, meta, false);
 
   if(commentTxt){
     card.querySelector('[data-comment]').addEventListener('click', ()=> openModal(g.name, commentTxt));
@@ -498,44 +644,36 @@ function buildCard(g){
   return card;
 }
 
-function buildQuarterlyChart(canvasEl, g, meta){
-  const labels = ['I kw.','II kw.','III kw.','IV kw.'];
-  const palette = [meta.color,'#0ea5e9','#f59e0b','#ec4899','#14b8a6','#6366f1'];
-  const datasets = g.units.map((u,idx)=>({
-    label: u.loc || g.name,
-    data: u.q.map(q=> (q.empty? null : q.value)),
-    backgroundColor: palette[idx%palette.length],
-    borderRadius:4,
-    maxBarThickness:26,
-    order: 2
-  }));
-  // reference line = annual plan (first unit's plan, flat across quarters) if numeric
-  const planVal = g.units[0].plan.value;
-  if(planVal!=null && !g.units[0].plan.empty){
-    datasets.push({
-      type:'line', label:'Plan roczny', data:[planVal,planVal,planVal,planVal],
-      borderColor:'#111827', borderDash:[5,4], pointRadius:0, borderWidth:1.5, order:1, fill:false
-    });
+// multiple locations for the same indicator — split into one compact sub-card per
+// location (each with its own target), rather than merging into one busy chart.
+function buildPanelCard(g){
+  const meta = kpaMeta(g.kpa);
+  const commentTxt = g.units.map(u=>u.comment).filter(Boolean).join('\n---\n');
+  const panel = document.createElement('div');
+  panel.className = 'card panel status-'+g.status + (g.vizType==='empty' ? ' empty':'');
+  panel.style.borderLeftColor = meta.color;
+
+  panel.innerHTML = `
+    <div class="card-top">
+      <div class="card-title">${g.name}</div>
+      <span class="badge freq">${statusDot(g.status)}${FREQ_LABEL[g.freq]||g.freq||'—'}</span>
+    </div>
+    <div class="subline">${g.cel||''} ${g.cel? '· ':''}${g.units.length} lokalizacje / jednostki${commentTxt? ' <button class="note-btn" title="Komentarz" data-comment="panel" style="margin-left:6px;vertical-align:middle">💬</button>':''}</div>
+    <div class="unit-grid"></div>
+  `;
+  const grid = panel.querySelector('.unit-grid');
+  g.units.forEach(u=>{
+    const box = document.createElement('div');
+    box.className = 'unit-box status-'+u.status;
+    box.innerHTML = `<div class="unit-box-label">${statusDot(u.status)}${u.loc || 'Ogółem'}</div>`;
+    renderUnitBody(box, g, u, meta, true);
+    grid.appendChild(box);
+  });
+
+  if(commentTxt){
+    panel.querySelector('[data-comment]').addEventListener('click', ()=> openModal(g.name, commentTxt));
   }
-  const ctx = canvasEl;
-  const showLegend = g.multiUnit;
-  charts.push(new Chart(ctx,{
-    type:'bar',
-    data:{labels, datasets},
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      interaction:{mode:'index', intersect:false},
-      plugins:{
-        legend:{display:showLegend, position:'bottom', labels:{boxWidth:8,font:{size:9}}},
-        tooltip:{callbacks:{label:(c)=> `${c.dataset.label}: ${c.formattedValue}`}}
-      },
-      scales:{
-        x:{grid:{display:false}, ticks:{font:{size:10}}},
-        y:{grid:{color:'#eef1f6'}, ticks:{font:{size:10}}}
-      },
-      animation:{duration:350}
-    }
-  }));
+  return panel;
 }
 
 /* ===================== RENDER: SECTIONS / GRID ===================== */
@@ -544,6 +682,7 @@ function renderContent(){
   main.innerHTML = '';
   charts.forEach(c=>{ try{c.destroy();}catch(e){} });
   charts = [];
+  chartQueue = [];
 
   const list = getFiltered();
   if(!list.length){
@@ -573,6 +712,14 @@ function renderContent(){
     groups.forEach(g=> grid.appendChild(buildCard(g)));
     main.appendChild(section);
   });
+
+  // charts are only instantiated once every card/panel is in the DOM and the
+  // CSS grid has settled — creating Chart.js instances mid-layout bakes in the
+  // wrong canvas width and produces misaligned / overlapping tick labels.
+  const queued = chartQueue; chartQueue = [];
+  requestAnimationFrame(()=> requestAnimationFrame(()=>{
+    queued.forEach(fn=>{ try{ fn(); }catch(e){ console.error(e); } });
+  }));
 }
 
 /* ===================== MODAL ===================== */
@@ -637,6 +784,7 @@ function wireControls(){
   document.getElementById('obszarFilter').addEventListener('change', renderContent);
   document.getElementById('freqFilter').addEventListener('change', renderContent);
   document.getElementById('onlyMissing').addEventListener('change', renderContent);
+  document.getElementById('onlyProblems').addEventListener('change', renderContent);
   document.getElementById('refreshBtn').addEventListener('click', refreshAndRender);
 }
 
