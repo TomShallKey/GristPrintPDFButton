@@ -1,1 +1,655 @@
-test
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PAŻP — Dashboard KPI 2027</title>
+<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#f3f5f9; --card:#ffffff; --card2:#fbfcfe;
+  --line:#e3e7ee; --line2:#eef1f6;
+  --txt:#1a1e27; --mut:#6b7280; --mut2:#98a2b3;
+  --safety:#ef4444; --safety-b:rgba(239,68,68,.10);
+  --capacity:#3b82f6; --capacity-b:rgba(59,130,246,.10);
+  --cost:#8b5cf6; --cost-b:rgba(139,92,246,.10);
+  --env:#10b981; --env-b:rgba(16,185,129,.10);
+  --amber:#f59e0b; --amber-b:rgba(245,158,11,.12);
+  --ok:#10b981; --bad:#ef4444; --neutral:#94a3b8;
+  --radius:16px; --shadow:0 1px 2px rgba(20,24,34,.04),0 8px 24px -12px rgba(20,24,34,.12);
+  --shadow-hover:0 4px 10px rgba(20,24,34,.06),0 16px 36px -14px rgba(20,24,34,.18);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);
+  font-family:"Inter","Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;font-size:14px;}
+#app{min-height:100vh;display:flex;flex-direction:column}
+::-webkit-scrollbar{height:8px;width:8px}
+::-webkit-scrollbar-thumb{background:#cdd3dd;border-radius:8px}
+::-webkit-scrollbar-thumb:hover{background:#b7bece}
+
+/* ---------- top bar ---------- */
+.topbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:16px;
+  padding:14px 22px;background:linear-gradient(135deg,#111827 0%,#1f2937 55%,#111827 100%);
+  color:#fff;box-shadow:0 2px 14px rgba(0,0,0,.18)}
+.topbar h1{font-size:17px;font-weight:700;margin:0;letter-spacing:.2px;display:flex;align-items:center;gap:10px}
+.topbar h1 .logo{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex:none}
+.topbar .sub{font-size:12px;color:#c7cdd8;font-weight:500;margin-top:1px}
+.topbar .spacer{flex:1}
+.topbar .meta{display:flex;align-items:center;gap:10px;font-size:12px;color:#c7cdd8}
+.topbar .dot{width:8px;height:8px;border-radius:50%;background:#34d399;box-shadow:0 0 0 3px rgba(52,211,153,.25)}
+.btn{appearance:none;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;
+  padding:7px 13px;border-radius:10px;font-size:12.5px;font-weight:600;cursor:pointer;display:flex;gap:6px;align-items:center;
+  transition:.15s}
+.btn:hover{background:rgba(255,255,255,.18)}
+.btn:active{transform:translateY(1px)}
+
+/* ---------- summary strip ---------- */
+.summary{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;padding:18px 22px 6px}
+.stat-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;
+  box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px;min-width:0}
+.stat-card .label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);font-weight:700}
+.stat-card .value{font-size:26px;font-weight:800;line-height:1;display:flex;align-items:baseline;gap:6px}
+.stat-card .value small{font-size:13px;font-weight:600;color:var(--mut)}
+.stat-card .foot{font-size:11.5px;color:var(--mut2)}
+.kpa-bars{display:flex;flex-direction:column;gap:6px;margin-top:2px}
+.kpa-bars .row{display:flex;align-items:center;gap:8px;font-size:11.5px}
+.kpa-bars .row .name{width:96px;flex:none;color:var(--mut);font-weight:600}
+.kpa-bars .row .track{flex:1;height:7px;border-radius:6px;background:var(--line2);overflow:hidden}
+.kpa-bars .row .fill{display:block;height:100%;border-radius:6px}
+.kpa-bars .row .n{width:24px;text-align:right;font-weight:700;color:var(--txt)}
+
+/* ---------- controls ---------- */
+.controls{position:sticky;top:60px;z-index:30;background:var(--bg);padding:10px 22px 12px;
+  display:flex;flex-wrap:wrap;gap:10px;align-items:center;border-bottom:1px solid var(--line2)}
+.search{position:relative;flex:1;min-width:220px;max-width:340px}
+.search input{width:100%;padding:9px 12px 9px 32px;border-radius:10px;border:1px solid var(--line);
+  background:var(--card);font-size:13px;color:var(--txt);outline:none;transition:.15s}
+.search input:focus{border-color:#93c5fd;box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+.search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);opacity:.45}
+select,.chip-select{padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);
+  font-size:12.5px;color:var(--txt);font-weight:600;cursor:pointer;outline:none}
+.toggle{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--mut);cursor:pointer;
+  user-select:none;background:var(--card);border:1px solid var(--line);padding:8px 12px;border-radius:10px}
+.toggle input{accent-color:#3b82f6}
+.tabs{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+.tab{padding:8px 14px;border-radius:10px;font-size:12.5px;font-weight:700;cursor:pointer;border:1px solid transparent;
+  color:var(--mut);background:transparent;display:flex;align-items:center;gap:7px;transition:.15s}
+.tab .n{background:var(--line2);color:var(--mut);border-radius:20px;padding:1px 7px;font-size:11px}
+.tab:hover{background:var(--line2)}
+.tab.active{background:var(--txt);color:#fff;box-shadow:var(--shadow)}
+.tab.active .n{background:rgba(255,255,255,.22);color:#fff}
+.tab[data-kpa="Safety"].active{background:var(--safety)}
+.tab[data-kpa="Capacity"].active{background:var(--capacity)}
+.tab[data-kpa="Cost-Efficiency"].active{background:var(--cost)}
+.tab[data-kpa="Environment"].active{background:var(--env)}
+
+/* ---------- content ---------- */
+main{flex:1;padding:14px 22px 60px}
+.section{margin-bottom:22px;border-radius:18px;overflow:hidden;border:1px solid var(--line2);background:var(--card2)}
+.section-head{display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;background:var(--card);
+  border-bottom:1px solid var(--line2)}
+.section-head .accent{width:5px;align-self:stretch;border-radius:3px;flex:none}
+.section-head h3{margin:0;font-size:14px;font-weight:800;flex:1;display:flex;align-items:center;gap:8px}
+.section-head .count{font-size:11.5px;font-weight:700;color:var(--mut);background:var(--line2);padding:2px 9px;border-radius:20px}
+.section-head .chev{transition:.2s;opacity:.5}
+.section.collapsed .chev{transform:rotate(-90deg)}
+.section.collapsed .grid{display:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;padding:16px}
+
+/* ---------- kpi card ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--line);border-radius:10px;padding:13px 14px 11px;
+  box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;transition:.15s;position:relative}
+.card:hover{border-color:#d3d8e0}
+.card.empty{background:var(--card2);border-style:dashed;border-left-style:dashed}
+.card.empty:hover{border-color:var(--line)}
+.card-top{display:flex;justify-content:space-between;gap:8px}
+.card-title{font-size:12.8px;font-weight:700;line-height:1.3;color:var(--txt);max-width:100%}
+.badge{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.03em;
+  white-space:nowrap;flex:none}
+.badge.freq{background:transparent;color:var(--mut2);border:1px solid var(--line)}
+.subline{font-size:11px;color:var(--mut);font-weight:500}
+.tag{font-size:10px;font-weight:700;color:var(--mut);background:var(--line2);padding:2px 7px;border-radius:6px}
+.chart-wrap{position:relative;height:150px;width:100%}
+.chart-wrap.small{height:96px}
+.card-foot{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--mut);gap:6px}
+.kv{display:flex;gap:10px}
+.kv b{color:var(--txt);font-weight:800}
+.note-btn{border:none;background:var(--line2);color:var(--mut);width:22px;height:22px;border-radius:7px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex:none}
+.note-btn:hover{background:#dfe4ec}
+.empty-msg{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--mut2);font-style:italic;
+  background:var(--line2);border-radius:8px;padding:8px 10px}
+.progress-line{height:8px;border-radius:5px;background:var(--line2);overflow:hidden;position:relative}
+.progress-line .fill{display:block;height:100%;border-radius:5px;transition:width .4s}
+.progress-line .target{position:absolute;top:-3px;width:2px;height:15px;background:var(--txt);opacity:.55}
+.big-stat{display:flex;align-items:baseline;gap:6px}
+.big-stat .num{font-size:22px;font-weight:800}
+.big-stat .cmp{font-size:11.5px;color:var(--mut)}
+.unit-row{display:flex;align-items:center;gap:8px;font-size:11px}
+.unit-row .u{width:64px;flex:none;color:var(--mut);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.unit-row .track{flex:1;height:7px;border-radius:4px;background:var(--line2);overflow:hidden;position:relative}
+.unit-row .fill{display:block;height:100%;border-radius:4px}
+.unit-row .val{width:42px;text-align:right;font-weight:700}
+.grade-chip{font-size:14px;font-weight:800;padding:3px 12px;border-radius:8px;display:inline-flex}
+.pill-status{width:9px;height:9px;border-radius:50%;flex:none}
+
+/* ---------- modal ---------- */
+.modal-bg{position:fixed;inset:0;background:rgba(15,18,25,.45);backdrop-filter:blur(2px);z-index:100;
+  display:none;align-items:center;justify-content:center;padding:20px}
+.modal-bg.show{display:flex}
+.modal{background:#fff;border-radius:16px;max-width:460px;width:100%;padding:20px 22px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.modal h4{margin:0 0 8px;font-size:14px}
+.modal p{margin:0;font-size:13px;color:var(--mut);line-height:1.5;white-space:pre-wrap}
+.modal .close{margin-top:16px;text-align:right}
+
+.empty-state{padding:60px 20px;text-align:center;color:var(--mut)}
+.empty-state b{display:block;font-size:15px;color:var(--txt);margin-bottom:6px}
+
+@media (max-width:900px){
+  .summary{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header class="topbar">
+    <h1><span class="logo">P</span> Dashboard KPI 2027 <span class="sub" style="font-weight:500;color:#9aa3b2;margin-left:4px">/ PAŻP</span></h1>
+    <div class="spacer"></div>
+    <div class="meta" id="lastUpdate"><span class="dot"></span> synchronizacja…</div>
+    <button class="btn" id="refreshBtn">⟳ Odśwież</button>
+  </header>
+
+  <section class="summary" id="summary"></section>
+
+  <section class="controls">
+    <div class="search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.3-4.3M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z" stroke="#666" stroke-width="2" stroke-linecap="round"/></svg>
+      <input id="searchInput" placeholder="Szukaj miernika, obszaru, celu…"/>
+    </div>
+    <select id="obszarFilter"><option value="">Wszystkie obszary</option></select>
+    <select id="freqFilter">
+      <option value="">Wszystkie częstotliwości</option>
+      <option value="kw.">Kwartalne</option>
+      <option value="pół r.">Półroczne</option>
+      <option value="r.">Roczne</option>
+      <option value="mies.">Miesięczne</option>
+    </select>
+    <label class="toggle"><input type="checkbox" id="onlyMissing"/> tylko braki danych</label>
+    <div class="tabs" id="kpaTabs"></div>
+  </section>
+
+  <main id="content"></main>
+
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h4 id="modalTitle">Komentarz</h4>
+    <p id="modalBody"></p>
+    <div class="close"><button class="btn" style="background:#111827;color:#fff" onclick="closeModal()">Zamknij</button></div>
+  </div>
+</div>
+
+<script type="application/json" id="demo-data">
+{"Obszar": ["AOL", "AOL", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-FIS", "KP-FIS", "KP-FIS", "KP-FIS", "KP-FIS", "KP-FIS", "KP-FIS", "KP-FIS", "KP-FIS", "KP-AIM", "KP-AIM", "KP-AIM", "KP-AIM", "KP-AIM", "KP-AIM", "KP-AIM", "KP-AIM", "KP-AIM", "KP-AIM", "KP-AIM", "KP-AIM", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-ASM1", "KP-ASM2", "KP-FPL", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-TECH", "KP-TECH", "KP-TECH", "KP-TECH", "KP-TECH", "SMS", "SMS", "SMS", "SMS", "SMS", "SZBI", "SZBI", "KP-TR-ATS", "KP-TR-ATS", "KP-TR-ATS", "KP-TR-ATS", "KP-TR-ATS", "KP-TR-ATS", "KP-TR-ATS", "KP-TR-ATS", "KP-TR-ATS", "KP-TR-ATS", "KP-TR-ATS", "KP-TR-ATS", "KP-TR-ATS", "SZCD", "SZCD", "SZCD", "SZCD", "SZCD", "SZCD", "KP-ZAK", "KP-ZAK", "KP-INWEST", "KP-INWEST", "KP-INWEST", "KP-INWEST", "KP-INWEST", "KP-INWEST", "KP-INWEST", "KP-INWEST", "KP-INWEST", "AX", "AX", "KP-HRM", "KP-HRM", "KP-HRM", "KP-HRM", "KP-HRM", "KP-HRM", "KP-HRM", "KP-HRM", "KP-HRM", "KP-HRM", "KP-HRM", "KP-HRM", "KP-HRM", "KP-HRM", "KP-HRM", "KP-HRM", "KP-HRM", "MA", "MA", "MA", "MF", "MF", "MF", "MF", "MF", "OB.", "OB.", "BHP", "BHP"], "Cel_strategiczny": ["S.02", "S.02", "S.03", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.03", "S,03", "S.04", "S,04", "S.05", "S,05", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.03", "S.03", "S.03", "S.03", "S.02", "S.03", "S.04", "S.05", "S.06", "S.08", "S.08", "S.08", "S.08", "S.08", "S.08", "S.08", "S.08", "S.08", "S.08", "S.08", "S.08", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.05", "S.05", "S.05", "S.05", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.05", "S.05", "S.05", "S.05", "S.03", "S.03", "S.03", "S.03", "S.01", "S.01", "S.01", "S.01", "S.01", "S.03", "S.01", "S.01", "S.06", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.01", "S.06", "S.06", "S.06", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.05", "S.05", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.02", "S.01", "S.10", "S.01", "S.06", "S.01", "S.02", "S.02", "S.02", "S.02", "S.02", "S.09", "S.09", "S.01", "S.01"], "KPA": ["Capacity", "Capacity", "Capacity", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Safety", "Safety", "Safety", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Environment", "Safety", "Safety", "Safety", "Safety", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Capacity", "Cost-Efficiency", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Safety", "Capacity", "Capacity", "Capacity", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Safety", "Safety", "Safety", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Safety", "Safety", "Safety", "Cost-Efficiency"], "Mierniki_2026": ["Liczba wyłączeń urządzeń spowodowanych brakiem oblotów", "Uśredniony czas  wyłączeń urządzeń z pracy operacyjnej spowodowany brakiem oblotów", "Maksymalna wartość średnia opóźnień", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik zatrudnienia w organie", "Wskaźnik zatrudnienia w organie", "Wskaźnik zatrudnienia w organie", "Wskaźnik zatrudnienia w organie", "Wskaźnik zatrudnienia w organie", "Wskaźnik zatrudnienia w organie", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Liczba wtargnięć na drogę startową w wyniku decyzji ATC", "Liczba wszystkich wtargnięć na drogę startową", "Liczba przerwanych startów decyzją ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik obciażenia ruchem lotniczym", "Wskaźnik obciażenia ruchem lotniczym", "Wskaźnik obciażenia ruchem lotniczym", "Wskaźnik obciażenia ruchem lotniczym", "Wskaźnik wydajności FISO na godzinę pracy", "Wskaźnik zatrudnienia w ośrodku FIS", "Wskaźnik zatrudnienia w ośrodku FIS", "Wskaźnik zatrudnienia w ośrodku FIS", "Wskaźnik zatrudnienia w ośrodku FIS", "Terminowość publikacji AIS", "Jakość publikacji", "Terminowość dostarczania danych", "Format danych", "Jakość danych", "Kompletność danych", "Jakość zgłoszeń NOTAM", "Jakość publikacji NOTAM", "Czas publikacji NOTAM", "Jakość danych PIB", "Terminowość danych w PIB", "Zakres danych w PIB", "Efektywność wykorzystania struktur przestrzeni powietrznej powyżej FL095 ujętych w AUP.", "Efektywność wykorzystania dodatkowych struktur przestrzeni powietrznej powyżej FL095 nieujętych w AUP.", "Efektywność wykorzystania struktur przestrzeni powietrznej powyżej FL095 ujętych w AUP, niezwolnionych z 3-godzinnym wyprzedzeniem przed czasem planowanego rozpoczęcia.", "Efektywność wykorzystania struktur przestrzeni powietrznej powyżej FL315", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Dostępność przestrzeni powietrznej dla ruchu tranzytowego GAT w oparciu o rzeczywistą aktywność struktur przestrzeni powietrznej powyżej FL315.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Optymalizacja trajektorii lotu (rozwój sieci tras lotniczych)", "Dokładność danych zmian struktur przestrzeni powietrznej przekazanych do publikacji AIS", "Skuteczność weryfikacji poprawności, kompletności oraz aktualnych danych lotniczych zawartych w planach lotów wprowadzonych do systemu ATM", "Poziom pewności zastosowanych zabezpieczeń przed niepowołana modyfikacją lub zniekształceniem danych na jakimkolwiek etapie realizacji procesu", "Poziom jakości wdrażanych procedur lotu", "Projektowe wydłużenie tras SID (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras SID (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras SID (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras SID (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras SID (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras SID (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras SID (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras SID (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras SID (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras SID (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras SID (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras SID (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras SID (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras SID (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Sprawdzalność", "Sprawdzalność", "Sprawdzalność", "Sprawdzalność", "Terminowość", "Terminowość", "Terminowość", "Terminowość", "Kompletność usługi", "Kompletność usługi", "Kompletność usługi", "Kompletność usługi", "Poprawność formalna", "Poprawność formalna", "Poprawność formalna", "Poprawność formalna", "Dostępność", "Dostępność", "Dostępność", "Dostępność", "Bezpieczeństwo świadczonej usługi osłony meteorologicznej", "Bezpieczeństwo świadczonej usługi osłony meteorologicznej", "Bezpieczeństwo świadczonej usługi osłony meteorologicznej", "Bezpieczeństwo świadczonej usługi osłony meteorologicznej", "Stopień realizacji planowanych przeglądów (urządzeń/systemów CNS/ATM)", "Opóźnienia w ruchu lotniczym z powodów awarii systemów zabezpieczenia ruchu lotniczego", "Stopień realizacji zleceń dot. bezpośredniego wsparcia użytkownika (HELPDESK/IT)", "Liczba incydentów poważnych mogących spowodować poważne obniżenie lub przerwania ciągłości świadczenia usługi kluczowej", "Zapewnienie usług: COM,NAV,SUR,MET,DP(systemy),DP(sieć), IT (back off- służby operacyjne)", "Polityka w zakresie bezpieczeństwa", "zarzadzanie ryzykiem w zakresie bezpieczeństwa", "zapewnienie bezpieczeństwa", "promowanie bezpieczeństwa", "kultura bezpieczeństwa", "Liczba incydentów związanych z nieuprawnionym wejściem do stref bezpieczeństwa - cała organizacja", "Liczba wykrytych niezgodności przy przeglądzie bezpieczeństwa informacji", "Skuteczność szkolenia podstawowego (etap szkolenia wstępnego) personelu ATS w OSPA", "Skuteczność szkolenia w zakresie uprawnienia (etap szkolenia wstępnego) personelu ATS w OSPA", "Skuteczność szkolenia w zakresie uprawnienia (etap szkolenia wstępnego) personelu ATS w OSPA", "Skuteczność szkolenia w zakresie uprawnienia (etap szkolenia wstępnego) personelu ATS w OSPA", "Skuteczność szkolenia w zakresie uprawnienia (etap szkolenia wstępnego) personelu ATS w OSPA", "Skuteczność szkolenia personelu ATS w jednostce", "Skuteczność szkolenia personelu ATS w jednostce", "Skuteczność szkolenia personelu ATS w jednostce", "Skuteczność szkolenia personelu ATS w jednostce w odniesieniu do jednego naboru", "Skuteczność szkolenia uzupełniającego personelu ATS", "Dostępność techniczna symulatora (P_21)", "Dostępność techniczna symulatora (BEST-Warszawa)", "Dostępność techniczna symulatorów (BEST-Poznań)", "Testy czasu RTO w scenariuszach PA 6/ PA7 służb operacyjnych PAŻP", "Pokrycie zidentyfikowanych nieakceptowalnych ryzyk utraty ciagłości działania planami postępowania z ryzykiem", "Liczba zrealizowanych testów względem liczby zaplanowanych testów ujętych w harmonogramie na dany rok", "Opracowanie strategii ciągłości działania dla procesów krytycznych zidentyfikowanych w ramach analizy BIA", "Skuteczność realizacji rekomendacji wynikajacych z testów w ramach BCMS", "Procent przeszkolonych pracowników BCMS", "Wskaźnik terminowego inicjowania procesu zakupowego", "Wskaźnik terminowego zawierania umów zakupowych", "Wskaźnik realizacji inwestycji dla PAŻP", "Wskaźnik realizacji inwestycji dla komórek bezpośrednio podległych AO", "Wskaźnik realizacji inwestycji dla Biura OP", "Wskaźnik realizacji inwestycji dla Biura AY", "Wskaźnik realizacji inwestycji dla Biura MZ", "Wskaźnik realizacji inwestycji dla Biura MA", "Wskaźnik realizacji inwestycji dla Biura MF", "Wskaźnik realizacji inwestycji dla Biura OR", "Wskaźnik realizacji inwestycji dla Biura OZ", "Stopień wdrożonych przez PAŻP celów ATM MP w roku sprawozdawczym", "Stopień wdrożonych przez PAŻP celów ATM MP ogółem", "Planowany stan zatrudnienia w etatach (PRU)", "Planowany stan zatrudnienia w etatach (PRU)", "Planowany stan zatrudnienia w etatach (PRU)", "Planowany stan zatrudnienia w etatach (PRU)", "Planowany stan zatrudnienia w etatach (PRU)", "Planowany stan zatrudnienia w etatach (PRU)", "Planowany stan zatrudnienia w etatach (PRU)", "Planowany stan zatrudnienia w etatach (PRU)", "Planowany stan zatrudnienia w etatach (PRU)", "Planowany stan zatrudnienia w etatach (PRU)", "Planowany stan zatrudnienia w etatach (PRU)", "Planowana liczba ATCO w podziale na służby", "Planowana liczba ATCO w podziale na służby", "Planowana liczba ATCO w podziale na służby", "Odsetek Kontrolerów ruchu lotniczego (ATCI in OPS) w ogólnej liczbie zatrudnionych", "Wykonanie budżetu szkoleń", "Poziom zaangażowania pracowników", "Realizacja wymaganych przeglądów", "Uśredniony czas wyłaczeń urządzeń CNS spowodowany awarią energetyczną", "Wskaźnik zgodności gaśnic", "Zabezpieczenie płynności", "Terminowa realizacja sprawozdań związanych z bieżącym monitoringiem realizacji planu finansowego na dany rok", "Terminowa realizacja sprawozdań związanych z bieżącym monitoringiem realizacji planu finansowego na dany rok", "Monitorowanie kowenantów na potrzeby umów kredytowych", "Monitorowanie kowenantów na potrzeby umów kredytowych", "Integracja środowiska UTM z systemami TWR (do 2030 r.)", "Pełna wymiana danych pomiędzy systemami ATM i UTM (do 2034 r.)", "Wypadki w pracy", "Wysokość stopy procentowej na ubezpieczenie wypadkowe"], "Lokalizacja": ["", "", "", "ACC GAT", "ACC OAT", "APP GD", "APP KK", "APP PO", "APP WA", "ACC GAT", "ACC OAT", "APP GD", "APP KK", "APP PO", "APP WA", "ACC GAT", "ACC OAT", "APP GD", "APP KK", "APP PO", "APP WA", "ACC GAT", "ACC OAT", "APP GD", "APP KK", "APP PO", "APP WA", "ACC GAT", "ACC OAT", "APP GD", "APP KK", "APP PO", "APP WA", "ACC GAT", "ACC OAT", "APP GD", "APP KK", "APP PO", "APP WA", "ACC GAT", "ACC OAT", "APP GD", "APP KK", "APP PO", "APP WA", "", "", "", "BY", "GD", "KK", "KT", "LB", "LL", "MO", "PO", "RA", "RZ", "SC", "SY", "WA", "WR", "ZG", "BY", "GD", "KK", "KT", "LB", "LL", "MO", "PO", "RA", "RZ", "SC", "SY", "WA", "WR", "ZG", "BY", "GD", "KK", "KT", "LB", "LL", "MO", "PO", "RA", "RZ", "SC", "SY", "WA", "WR", "ZG", "BY", "GD", "KK", "KT", "LB", "LL", "MO", "PO", "RA", "RZ", "SC", "SY", "WA", "WR", "ZG", "BY", "GD", "KK", "KT", "LB", "LL", "MO", "PO", "RA", "RZ", "SC", "SY", "WA", "WR", "ZG", "BY", "GD", "KK", "KT", "LB", "LL", "MO", "PO", "RA", "RZ", "SC", "SY", "WA", "WR", "ZG", "BY", "GD", "KK", "KT", "LB", "LL", "MO", "PO", "RA", "RZ", "SC", "SY", "WA", "WR", "ZG", "FIS Warszawa", "FIS Kraków", "FIS Poznań", "FIS Gdańsk", "", "FIS Warszawa", "FIS Kraków", "FIS Poznań", "FIS Gdańsk", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "BY", "GD", "KK", "KT", "LB", "LL", "MO", "PO", "RA", "RZ", "SC", "SY", "WA", "WR", "ZG", "", "BY", "GD", "KK", "KT", "LB", "LL", "MO", "PO", "RA", "RZ", "SC", "SY", "WA", "WR", "ZG", "", "", "", "", "", "EPGD", "EPKK", "EPKT", "EPLL", "EPMO", "EPRA", "EPSY", "EPWA", "EPWR", "EPBY", "EPLB", "EPRZ", "EPPO", "EPSC", "EPGD", "EPKK", "EPKT", "EPLL", "EPMO", "EPRA", "EPSY", "EPWA", "EPWR", "EPBY", "EPLB", "EPRZ", "EPPO", "EPZG", "EPSC", "IMGW - PIB", "Airport Meteo", "Port Lotniczy Bydgoszcz S.A.", "Warmia i Mazury Sp. z o.o.", "IMGW - PIB", "Airport Meteo", "Port Lotniczy Bydgoszcz S.A.", "Warmia i Mazury Sp. z o.o.", "IMGW - PIB", "Airport Meteo", "Port Lotniczy Bydgoszcz S.A.", "Warmia i Mazury Sp. z o.o.", "IMGW - PIB", "Airport Meteo", "Port Lotniczy Bydgoszcz S.A.", "Warmia i Mazury Sp. z o.o.", "IMGW - PIB", "Airport Meteo", "Port Lotniczy Bydgoszcz S.A.", "Warmia i Mazury Sp. z o.o.", "IMGW - PIB", "Airport Meteo", "Port Lotniczy Bydgoszcz S.A.", "Warmia i Mazury Sp. z o.o.", "", "", "", "", "", "", "", "", "", "", "", "", "", "ACS", "APS", "ADC", "APP", "ACC", "APP", "TWR", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "Kontrolerzy ruchu lotniczego (PRU1)", "Kontrolerzy ruchu lotniczego oddelegowani do innych zadań (PRU2)", "Praktykanci ruchu lotniczego (PRU3)", "praktykanci-kontrolerzy ruchu lotniczego (PRU 4)", "Asystenci ATC (PRU5)", "Pracownicy wsparcia operacyjnego nie będący ATCO (PRU6)", "Pracownicy wsparcia technicznego systemów CNS/ATM, monitoringu i kontroli (PRU7A)", "Pracownicy wsparcia technicznego ds.. Rozwoju i wdrożeń systemów CNS/ATM (PRU 7B)", "Pracownicy administracyjni (PRU8)", "Pracownicy służb pomocniczych (PRU9)", "Pozostali pracownicy (PRU10)", "ACC", "APP", "TWR", "", "", "", "", "", "", "", "miernik 1", "miernik 2", "dług netto/EBITDA", "DSCR (wskaźnik pokrycia obsługi długu)", "", "", "", ""], "czest_": ["kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "r.", "r.", "r.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "r.", "r.", "r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "n.ż.", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "", "", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "r.", "", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "r.", "r.", "r.", "r.", "kw.", "r.", "kw.", "kw.", "kw.", "mies.", "mies.", "mies.", "mies.", "mies.", "r.", "r.", "r.", "r."], "Roczna_wartosc_planowana": ["0", "0", "0.18", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "x", "x", "x", "x", "x", "x", "173", "19", "24.7", "50", "36.8", "54.5", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "9", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "12", "23", "35.2", "24.7", "10.5", "17.8", "21.3", "23.7", "6.8", "25", "14.7", "5", "51.2", "21.3", "4", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "119698", "73332", "57618", "53350", "7/9", "35.25", "19", "18", "19.5", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "0.95", "<1,0 x 10-5", ">=98%", ">=90%", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "0", "0", "0", "0", "1", "x", "0.95", "0", "0.95", "x", "C", "x", "x", "x", "0", "0", "0.8", "0.65", "0.6", "0.7", "0.9", "0.6", "0.65", "0.7", "0.7", ">=95%", ">=75%", ">=85%", ">=60%", "x", "70%-80%", "80%-90%", "1", "x", "x", "0.9", "0.9", "425073998", "7122586", "1173000", "6670130", "1318400", "128655516", "11000000", "1500000", "267634367", "1", "0.45", "654.03", "24.45", "96", "63", "54", "385", "412.4", "157.83", "365.2", "63.75", "29", "204", "173", "314", "0.284", "13521694", "0.6", "1", "0", "1", "348359424", "0", "0", "<3", ">1,2", "0.15", "0.25", "0", "0.0096"], "Roczna_wartosc_oczekiwana": ["0", "0", "0.18", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "2828", "3391", "1973", "602", "6045", "712", "173", "19", "24.7", "50", "36.8", "54.5", "16.4", "178.5", "79.9", "12", "164.5", "13.1", "0.24", "0.2", "0.2", "0.21", "0.22", "0.23", "0.6", "0.64", "0.68", "0.67", "0.72", "0.61", "0.16", "0.16", "0.12", "0.12", "0.06", "0.16", "0", "0", "9", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "59", "2919", "3357", "1378", "853", "465", "1921", "4540", "422", "1946", "974", "876", "1508", "2034", "106", "12", "23", "35.2", "24.7", "10.5", "17.8", "21.3", "23.7", "6.8", "25", "14.7", "5", "51.2", "21.3", "4", "4.9", "126.9", "95.5", "55.8", "81.3", "26.1", "90.4", "191.6", "62.5", "77.9", "66.3", "175.2", "29.5", "95.3", "26.5", "0.2", "0.2", "0.2", "0.2", "0.2", "0.2", "0.2", "0.2", "0.2", "0.2", "0.2", "0.2", "0.2", "0.2", "0.2", "0.7", "0.7", "0.7", "0.7", "0.7", "0.7", "0.7", "0.7", "0.7", "0.7", "0.7", "0.7", "0.7", "0.7", "0.7", "0.1", "0.1", "0.1", "0.1", "0.1", "0.1", "0.1", "0.1", "0.1", "0.1", "0.1", "0.1", "0.1", "0.1", "0.1", "123400", "75600", "59400", "55000", "7/9", "35.25", "19", "18", "19.5", ">=95%", ">=95%", ">=95%", ">=95%", "1", "1", ">=95%", ">=95%", ">=95%", ">=99%", ">=99%", ">=99%", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "0.98", "<5", ">=98%", ">=90%", "<=2,6000926732006", "<=2,44402761795167", "<=2,45704663262637", "<=2,79159803890153", "<=4,0097869641458", "<=3,02493825124899", "<=3,11539434619853", "<=2,40097137305318", "<=2,89229475264355", "<=2,7272455413439", "<=2,89180146932018", "<=2,42280016775005", "<=2,82011590893364", "<=2,55740671775406", "<=2,9566422815207", "<=3,06337646789939", "<=2,74156234988952", "<=2,81316816816817", "<=2,9722829021238", "<=2,48282931305716", "<=2,94178303480906", "<=3,35286453758581", "<=2,77975095022625", "<=2,11002207505519", "<=2,21885627639987", "<=2,21195033192034", "<=3,00975184269995", "<=4,4259571023877", "<=2,29507991505533", "0.8", "0.8", "0.8", "0.8", "0.98", "0.98", "0.98", "0.98", "0.98", "x", "x", "x", "0.98", "0.98", "0.98", "0.98", "0.98", "0.98", "0.98", "0.98", "0", "0", "0", "0", "1", "0.05", "x", "0", "x", "C", "C", "C", "C", "B", "0", "0", "x", "0.65", "0.6", "0.7", "0.9", "0.6", "0.65", "0.7", "0.7", ">=95%", ">=75%", ">=85%", ">=60%", "0.8", "70%-80%", "80%-90%", "1", "0.8", "0.8", "0.9", "0.9", "425073998", "7122586", "1173000", "6670130", "1318400", "128655516", "11000000", "1500000", "267634367", "1", "0.45", "654.03", "24.45", "96", "63", "54", "385", "412.4", "157.83", "365.2", "63.75", "29", "204", "173", "314", "0.284", "0.95", "55%-60%", "1", "0", "1", "x", "0", "0", "<3", ">1,2", "0.1", "0.2", "2", "0.0096"], "I_kw_": [0, 0, 0.02, 0.62, 0.87, 0.88, 0.86, 0.61, 0.75, 266, 584, 1204, 1320.5, 1385.5, 248, 163.9167, 17, 23.5, 48, 34.75, 48.75, 1.6228, 34.3529, 51.234, 27.5104, 39.8705, 5.0872, 0.2258, 0.1993, 0.1517, 0.1851, 0.2131, 0.2157, 0.5348, 0.6022, 0.6692, 0.6139, 0.6942, 0.5978, 0.2394, 0.1985, 0.1791, 0.201, 0.0927, 0.1865, 2, 7, 6, 0.63, 0.74, 0.82, 0.76, 0.87, 0.87, 0.73, 1.01, 0.74, 0.67, 0.9, 0.87, 0.88, 0.79, 0.69, 65.75, 410, 1101, 447.5, 90, 94.5, 255.5, 936.5, 66, 515, 358, 88, 447.5, 584.5, 36.5, 10, 23, 35.1667, 27, 10.5, 16.25, 23.25, 26.5, 4.75, 22, 12.5, 5, 47.625, 22.3333, 2, 6.575, 17.8261, 31.308, 16.5741, 8.5714, 5.8154, 10.9892, 35.3396, 13.8947, 23.4091, 28.64, 17.6, 9.3963, 26.1717, 18.25, 0.1596, 0.1817, 0.2123, 0.1584, 0.162, 0.2297, 0.2405, 0.2253, 0.2102, 0.168, 0.1697, 0.1649, 0.2569, 0.181, 0.147, 0.6967, 0.7055, 0.6255, 0.7076, 0.6234, 0.6103, 0.6391, 0.6394, 0.4806, 0.6038, 0.7672, 0.6781, 0.6356, 0.6865, 0.6974, 0.1437, 0.1127, 0.1622, 0.134, 0.2147, 0.16, 0.1204, 0.1353, 0.3093, 0.2283, 0.0631, 0.157, 0.1075, 0.1325, 0.1556, "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", 0.4748, 0, 0.8558, 0.4618, 0.1702, 0.1911, 0.1701, 0.1701, 0.2556, 0.2428, 0.2335, 0.1704, 0.3047, 0.1134, 0.2047, 0.3153, 0.2925, 0.1728, 0.1412, 0.8685, 0.9573, 0.9341, 0.968, 0.968, 0.9384, 0.9484, 0.9442, 0.9516, 0.8835, 0.9783, 0.9253, 0.929, 0.9244, 0.968, 0.9663, "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", 0.9, 0.91, 0.92, 0.92, 1, 0.99, 1, 1, 1, "x", "x", "x", 0.99, 1, 0.99, 1, 1, 1, 1, 1, 5, "-", "-", "-", 0.9995, 0.0201, 0.98, 0, "x", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", 1.25, 0.73, 11899542.86, 0, 0, 0, 0, 7621468.66, 0, 0, 3567519.2, "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", 0.12, "", 1, "", "", 408291794, 0, 13, 1.68, 1.95, "", "", "", ""], "II_kw_": ["", "", 0.15, 0.75, 0.89, 0.89, 0.92, 0.78, 0.8, 1892.5, 801, 1242.5, 1162.5, 1118.5, 481, 163.6667, 17, 23.5, 47, 34.75, 51.75, 11.5631, 47.1176, 52.8723, 24.734, 32.1871, 9.2947, 0.2549, 0.2766, 0.1857, 0.1881, 0.2278, 0.2015, 0.5971, 0.6124, 0.6698, 0.6386, 0.6465, 0.5769, 0.148, 0.111, 0.1446, 0.1733, 0.1258, 0.2216, 5, 7, 5, 0.63, 0.74, 0.81, 0.79, 0.86, 0.92, 0.74, 0.77, 0.84, 0.69, 0.58, 0.91, 0.88, 0.8, 0.73, 122.25, 609, 527, 512.5, 369.5, 329, 199.5, 1164.5, 170, 321, 556, 277.5, 421.5, 705.5, 59.5, 10, 23, 37.6667, 27, 10.5, 16.5, 22.25, 26.5, 4.75, 22, 12.5, 5, 48.625, 22.8333, 2, 12.225, 26.4783, 13.9911, 18.9815, 35.1905, 19.9394, 8.9663, 43.9434, 35.7895, 14.5909, 44.48, 55.5, 8.6684, 30.8979, 29.75, 0.2032, 0.2326, 0.2368, 0.2082, 0.1982, 0.2287, 0.2201, 0.2045, 0.171, 0.2354, 0.209, 0.1915, 0.23, 0.2381, 0.0874, 0.7264, 0.7008, 0.6432, 0.7098, 0.7035, 0.6283, 0.6635, 0.6221, 0.7466, 0.627, 0.7549, 0.6532, 0.6476, 0.6572, 0.8378, 0.0704, 0.0666, 0.1201, 0.0821, 0.0982, 0.143, 0.1164, 0.1735, 0.0824, 0.1376, 0.036, 0.1553, 0.1224, 0.1048, 0.0749, "", "", "", "", "", "", "", "", "", 1, 0.99, 1, 1, 0.99, 0.98, 0.9997, 0.9981, 0.9999, "", "", "", 0.4638, 0, 0.9352, 0.6388, 0.209, 0.2463, 0.2184, 0.2184, 0.3636, 0.2417, 0.2316, 0.2279, 0.4215, 0.2748, 0.2664, 0.5844, 0.3339, 0.2093, 0.1879, 0.7157, 0.9417, 0.8993, 0.9498, 0.9498, 0.9081, 0.9395, 0.9382, 0.9226, 0.807, 0.9518, 0.8726, 0.9341, 0.9036, 0.9533, 0.951, "", "", "", 1, 1, 1, 1, 1, 1, 1.002, 1, 1, 1.0601, 1, 1.1645, 1, 1, 1, 1, 1, 1, 1, 1, 1.409, 1, 1, 1, 1, 0.9995, 1, 1, 1, 1, 1, 0.96, 0.95, 0.97, 0.89, 1, 0.99, 1, 0.99, 1, "x", "x", "x", 0.99, 1, 1, 0.99, 1, 1, 1, 1, 4, "-", 2, "-", 1, 0.0239, 0.96, 0, "x", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", 0.29, "", "", "", "", "", "", "", "", "", "", "", "", ""], "III_kw_": ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""], "IV_kw_": ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""], "TSz_Komentarz": ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""], "id": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340]}
+</script>
+
+<script>
+/* ===================== CONFIG ===================== */
+const TABLE = 'TOTAL';
+const COLS = ['Obszar','Cel_strategiczny','KPA','Mierniki_2026','Lokalizacja','czest_',
+  'Roczna_wartosc_planowana','Roczna_wartosc_oczekiwana','I_kw_','II_kw_','III_kw_','IV_kw_','TSz_Komentarz'];
+
+const KPA_META = {
+  'Safety':          {color:'#ef4444', bg:'rgba(239,68,68,.10)',  label:'Bezpieczeństwo'},
+  'Capacity':        {color:'#3b82f6', bg:'rgba(59,130,246,.10)', label:'Przepustowość'},
+  'Cost-Efficiency': {color:'#8b5cf6', bg:'rgba(139,92,246,.10)', label:'Efektywność kosztowa'},
+  'Environment':     {color:'#10b981', bg:'rgba(16,185,129,.10)', label:'Środowisko'},
+};
+const KPA_ORDER = ['Safety','Capacity','Cost-Efficiency','Environment'];
+function kpaMeta(k){ return KPA_META[k] || {color:'#64748b', bg:'rgba(100,116,139,.10)', label:k||'Inne'}; }
+
+const FREQ_LABEL = {'kw.':'kwartalnie','pół r.':'półrocznie','r.':'rocznie','mies.':'miesięcznie','n.ż.':'nie dotyczy','':'—'};
+
+/* ===================== STATE ===================== */
+let RAW = [];          // flat records straight from grist/demo
+let GROUPS = [];        // one entry per indicator (grouped across Lokalizacja)
+let activeKpa = 'ALL';
+let charts = [];         // chart.js instances currently on screen, so we can destroy on re-render
+
+/* ===================== PARSING HELPERS ===================== */
+function parseCell(raw){
+  if(raw===null||raw===undefined) return {empty:true};
+  let s = String(raw).trim();
+  if(s==='') return {empty:true};
+  if(/^x$/i.test(s)) return {empty:true, na:true};
+  const percent = s.includes('%');
+  let op = null;
+  const opM = s.match(/^(>=|<=|>|<)\s*/);
+  if(opM){ op = opM[1]; s = s.slice(opM[1].length).trim(); }
+
+  // range "70%-80%" / "70-80%"
+  let m = s.match(/^(-?\d+(?:[.,]\d+)?)\s*%?\s*-\s*(-?\d+(?:[.,]\d+)?)\s*%?$/);
+  if(m){
+    const lo = parseFloat(m[1].replace(',','.')), hi = parseFloat(m[2].replace(',','.'));
+    return {range:[lo,hi], value:(lo+hi)/2, percent, raw:s, empty:false, op};
+  }
+  // fraction "7/9"
+  m = s.match(/^(\d+(?:[.,]\d+)?)\s*\/\s*(\d+(?:[.,]\d+)?)$/);
+  if(m){
+    const a=parseFloat(m[1].replace(',','.')), b=parseFloat(m[2].replace(',','.'));
+    return {value: b?(a/b*100):null, fraction:[a,b], percent:true, raw:s, empty:false, op};
+  }
+  // scientific-ish "<1,0 x 10-5"
+  m = s.match(/^(-?\d+(?:[.,]\d+)?)\s*x\s*10\s*-?\s*(\d+)$/i);
+  if(m){
+    const base=parseFloat(m[1].replace(',','.')), exp=parseFloat(m[2]);
+    return {value: base*Math.pow(10,-Math.abs(exp)), sci:true, raw:s, empty:false, op};
+  }
+  // plain number (optionally %)
+  m = s.match(/^(-?\d+(?:[.,]\d+)?)\s*%?$/);
+  if(m){
+    const v = parseFloat(m[1].replace(',','.'));
+    return {value:v, percent, raw:s, empty:false, op};
+  }
+  // qualitative text / grade letter / status word
+  return {text:s, qualitative:true, empty:false, op};
+}
+
+function colToRecs(data){
+  return (data.id||[]).map((id,i)=>{
+    const r = {id};
+    for(const c of Object.keys(data)) if(c!=='id') r[c]=data[c][i];
+    return r;
+  });
+}
+
+function fmtNum(v, percent){
+  if(v===null||v===undefined||Number.isNaN(v)) return '—';
+  const rounded = Math.abs(v)>=100 ? Math.round(v*10)/10 : Math.round(v*100)/100;
+  return rounded + (percent? '%':'');
+}
+
+/* ===================== GROUPING ===================== */
+function buildGroups(records){
+  const map = new Map();
+  records.forEach(r=>{
+    const key = [r.Obszar, r.KPA, r.Cel_strategiczny, r.Mierniki_2026].join('§');
+    if(!map.has(key)) map.set(key, []);
+    map.get(key).push(r);
+  });
+  const groups = [];
+  map.forEach(rows=>{
+    const first = rows[0];
+    const units = rows.map(r=>({
+      loc: (r.Lokalizacja && String(r.Lokalizacja).trim()) || null,
+      plan: parseCell(r.Roczna_wartosc_planowana),
+      exp: parseCell(r.Roczna_wartosc_oczekiwana),
+      q: [parseCell(r.I_kw_), parseCell(r.II_kw_), parseCell(r.III_kw_), parseCell(r.IV_kw_)],
+      comment: r.TSz_Komentarz ? String(r.TSz_Komentarz).trim() : ''
+    }));
+    const hasQuarterData = units.some(u=>u.q.some(q=>!q.empty && q.value!=null));
+    const anyAnnualNumeric = units.some(u=> (!u.exp.empty && u.exp.value!=null) || (!u.plan.empty && u.plan.value!=null));
+    const anyQualitative = units.some(u=> (u.exp.qualitative) || (u.exp.range && !u.exp.value) || (u.plan.qualitative));
+    const allEmpty = units.every(u=> u.q.every(q=>q.empty) && u.exp.empty && u.plan.empty);
+
+    let vizType;
+    if(hasQuarterData) vizType = 'quarterly';
+    else if(anyQualitative && !anyAnnualNumeric) vizType = 'badge';
+    else if(anyAnnualNumeric) vizType = 'annual';
+    else vizType = 'empty';
+
+    groups.push({
+      key: [first.Obszar, first.KPA, first.Mierniki_2026].join('§'),
+      obszar: first.Obszar || 'Inne',
+      kpa: first.KPA || 'Inne',
+      cel: first.Cel_strategiczny || '',
+      name: first.Mierniki_2026 || '(brak nazwy)',
+      freq: first.czest_ || '',
+      units,
+      multiUnit: units.length>1,
+      vizType,
+      hasQuarterData, anyAnnualNumeric, allEmpty
+    });
+  });
+  return groups;
+}
+
+/* ===================== FILTERING ===================== */
+function getFiltered(){
+  const search = document.getElementById('searchInput').value.trim().toLowerCase();
+  const obszar = document.getElementById('obszarFilter').value;
+  const freq = document.getElementById('freqFilter').value;
+  const onlyMissing = document.getElementById('onlyMissing').checked;
+  return GROUPS.filter(g=>{
+    if(activeKpa!=='ALL' && g.kpa!==activeKpa) return false;
+    if(obszar && g.obszar!==obszar) return false;
+    if(freq && g.freq!==freq) return false;
+    if(onlyMissing && !(g.allEmpty || (g.vizType==='quarterly' && g.units.some(u=>u.q.some(q=>q.empty))))) return false;
+    if(search){
+      const hay = (g.name+' '+g.obszar+' '+g.cel+' '+g.kpa).toLowerCase();
+      if(!hay.includes(search)) return false;
+    }
+    return true;
+  });
+}
+
+/* ===================== RENDER: SUMMARY ===================== */
+function renderSummary(){
+  const el = document.getElementById('summary');
+  const total = GROUPS.length;
+  const withData = GROUPS.filter(g=>!g.allEmpty).length;
+  const missing = total - withData;
+  const kpaCounts = {};
+  KPA_ORDER.forEach(k=>kpaCounts[k]=0);
+  GROUPS.forEach(g=>{ kpaCounts[g.kpa] = (kpaCounts[g.kpa]||0)+1; });
+  const obszarCount = new Set(GROUPS.map(g=>g.obszar)).size;
+
+  el.innerHTML = `
+    <div class="stat-card">
+      <div class="label">Mierniki ogółem</div>
+      <div class="value">${total}</div>
+      <div class="foot">${obszarCount} obszarów organizacyjnych</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Z zaraportowanymi danymi</div>
+      <div class="value" style="color:#059669">${withData}<small>/ ${total}</small></div>
+      <div class="foot">${total? Math.round(withData/total*100):0}% pokrycia danych</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Oczekujące na dane</div>
+      <div class="value" style="color:#d97706">${missing}</div>
+      <div class="foot">gł. wskaźniki roczne, rozliczane po zakończeniu okresu</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Rozkład wg KPA</div>
+      <div class="kpa-bars">
+        ${KPA_ORDER.map(k=>{
+          const n=kpaCounts[k]||0, pct= total? (n/total*100):0, m=kpaMeta(k);
+          return `<div class="row"><span class="name">${m.label}</span><span class="track"><span class="fill" style="width:${pct}%;background:${m.color}"></span></span><span class="n">${n}</span></div>`;
+        }).join('')}
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Rozkład wg częstotliwości</div>
+      <div class="kpa-bars" id="freqBars"></div>
+    </div>
+  `;
+
+  // simple horizontal bar list — frequency distribution (no donut, minimal ink)
+  const freqOrder = ['kw.','pół r.','r.','mies.','n.ż.',''];
+  const freqCounts = {};
+  GROUPS.forEach(g=>{ const f=g.freq||''; freqCounts[f]=(freqCounts[f]||0)+1; });
+  const freqBars = document.getElementById('freqBars');
+  freqBars.innerHTML = freqOrder.filter(f=>freqCounts[f]).map(f=>{
+    const n = freqCounts[f], pct = total? (n/total*100):0;
+    return `<div class="row"><span class="name">${FREQ_LABEL[f]||'brak'}</span><span class="track"><span class="fill" style="width:${pct}%;background:#64748b"></span></span><span class="n">${n}</span></div>`;
+  }).join('');
+}
+
+/* ===================== RENDER: TABS + OBSZAR FILTER OPTIONS ===================== */
+function renderTabs(){
+  const tabs = document.getElementById('kpaTabs');
+  const counts = {ALL: GROUPS.length};
+  KPA_ORDER.forEach(k=> counts[k] = GROUPS.filter(g=>g.kpa===k).length);
+  const extra = [...new Set(GROUPS.map(g=>g.kpa))].filter(k=>!KPA_ORDER.includes(k));
+  const list = [{k:'ALL', label:'Wszystkie'}, ...KPA_ORDER.map(k=>({k,label:kpaMeta(k).label})), ...extra.map(k=>({k,label:k}))];
+  tabs.innerHTML = list.map(({k,label})=>`<button class="tab ${k===activeKpa?'active':''}" data-kpa="${k}">${label} <span class="n">${counts[k]||0}</span></button>`).join('');
+  tabs.querySelectorAll('.tab').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ activeKpa = btn.dataset.kpa; renderTabs(); renderContent(); });
+  });
+}
+
+function populateObszarFilter(){
+  const sel = document.getElementById('obszarFilter');
+  const cur = sel.value;
+  const areas = [...new Set(GROUPS.map(g=>g.obszar))].sort();
+  sel.innerHTML = '<option value="">Wszystkie obszary</option>' + areas.map(a=>`<option value="${a}">${a}</option>`).join('');
+  sel.value = cur;
+}
+
+/* ===================== CARD BUILDERS ===================== */
+let cardIdSeq = 0;
+function planExpText(u){
+  const plan = u.plan.empty ? (u.plan.na?'x':'—') : (u.plan.raw!==undefined? u.plan.raw : fmtNum(u.plan.value, u.plan.percent));
+  const exp = u.exp.empty ? (u.exp.na?'x':'—') : (u.exp.raw!==undefined? u.exp.raw : fmtNum(u.exp.value, u.exp.percent));
+  return {plan, exp};
+}
+
+function buildCard(g){
+  const meta = kpaMeta(g.kpa);
+  const uid = 'c'+(cardIdSeq++);
+  const commentTxt = g.units.map(u=>u.comment).filter(Boolean).join('\n---\n');
+  const card = document.createElement('div');
+  card.className = 'card' + (g.vizType==='empty' ? ' empty':'');
+  card.style.borderLeftColor = meta.color;
+  const locTags = g.multiUnit ? g.units.map(u=>u.loc||'Ogółem') : [];
+
+  card.innerHTML = `
+    <div class="card-top">
+      <div class="card-title">${g.name}</div>
+      <span class="badge freq">${FREQ_LABEL[g.freq]||g.freq||'—'}</span>
+    </div>
+    <div class="subline">${[g.cel, (!g.multiUnit && g.units[0] && g.units[0].loc) ? g.units[0].loc : ''].filter(Boolean).join(' · ')}</div>
+    <div class="body-${uid}"></div>
+    <div class="card-foot">
+      <div class="kv" id="kv-${uid}"></div>
+      ${commentTxt? `<button class="note-btn" title="Komentarz" data-comment="${uid}">💬</button>`:''}
+    </div>
+  `;
+  const body = card.querySelector(`.body-${uid}`);
+  const kv = card.querySelector(`#kv-${uid}`);
+
+  if(g.vizType==='quarterly'){
+    const wrap = document.createElement('div'); wrap.className='chart-wrap'; wrap.innerHTML = `<canvas></canvas>`;
+    body.appendChild(wrap);
+    buildQuarterlyChart(wrap.querySelector('canvas'), g, meta);
+    const anyMissing = g.units.some(u=>u.q.some(q=>q.empty));
+    const {plan,exp} = planExpText(g.units[0]);
+    kv.innerHTML = `<span>Plan: <b>${plan}</b></span><span>Cel roczny: <b>${exp}</b></span>` + (anyMissing? ' <span style="color:#d97706">• brak części kw.</span>':'');
+  } else if(g.vizType==='annual'){
+    const listWrap = document.createElement('div'); listWrap.style.display='flex'; listWrap.style.flexDirection='column'; listWrap.style.gap='7px';
+    g.units.forEach(u=>{
+      const {plan,exp} = planExpText(u);
+      const planVal = u.plan.value, expVal = u.exp.value;
+      const hasNums = planVal!=null || expVal!=null;
+      const pct = (planVal && expVal!=null) ? Math.max(0,Math.min(150,(expVal/planVal)*100)) : (expVal!=null? 60: 0);
+      const good = planVal!=null && expVal!=null ? (Math.abs(expVal-planVal) <= Math.abs(planVal)*0.15 || expVal>=planVal) : true;
+      const row = document.createElement('div');
+      row.innerHTML = g.multiUnit ? `
+        <div class="unit-row">
+          <span class="u" title="${u.loc||'Ogółem'}">${u.loc||'Ogółem'}</span>
+          <span class="track"><span class="fill" style="width:${Math.min(100,pct)}%;background:${good? meta.color:'var(--amber)'}"></span></span>
+          <span class="val">${exp}</span>
+        </div>` : `
+        <div class="big-stat"><span class="num" style="color:${meta.color}">${exp}</span><span class="cmp">/ plan ${plan}</span></div>
+        <div class="progress-line" style="margin-top:6px">
+          <span class="fill" style="width:${Math.min(100,pct)}%;background:${good? meta.color:'var(--amber)'}"></span>
+        </div>`;
+      listWrap.appendChild(row);
+    });
+    body.appendChild(listWrap);
+    body.insertAdjacentHTML('beforeend', `<div class="empty-msg" style="margin-top:8px">ℹ︎ Wskaźnik raportowany ${FREQ_LABEL[g.freq]||'okresowo'} — rozbicie kwartalne niedostępne.</div>`);
+    kv.innerHTML = '';
+  } else if(g.vizType==='badge'){
+    const listWrap = document.createElement('div'); listWrap.style.display='flex'; listWrap.style.flexWrap='wrap'; listWrap.style.gap='8px';
+    g.units.forEach(u=>{
+      const {plan,exp} = planExpText(u);
+      listWrap.innerHTML += `<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start">
+        ${g.multiUnit? `<span class="tag">${u.loc||'Ogółem'}</span>`:''}
+        <span class="grade-chip" style="background:${meta.bg};color:${meta.color}">${exp}</span>
+        <span style="font-size:10.5px;color:var(--mut)">plan: ${plan}</span>
+      </div>`;
+    });
+    body.appendChild(listWrap);
+    kv.innerHTML = '';
+  } else { // empty
+    body.innerHTML = `<div class="empty-msg">⏳ Brak danych — miernik jeszcze nie zaraportowany (${FREQ_LABEL[g.freq]||'okres bieżący'}).</div>`;
+    kv.innerHTML = '';
+  }
+
+  if(commentTxt){
+    card.querySelector('[data-comment]').addEventListener('click', ()=> openModal(g.name, commentTxt));
+  }
+  return card;
+}
+
+function buildQuarterlyChart(canvasEl, g, meta){
+  const labels = ['I kw.','II kw.','III kw.','IV kw.'];
+  const palette = [meta.color,'#0ea5e9','#f59e0b','#ec4899','#14b8a6','#6366f1'];
+  const datasets = g.units.map((u,idx)=>({
+    label: u.loc || g.name,
+    data: u.q.map(q=> (q.empty? null : q.value)),
+    backgroundColor: palette[idx%palette.length],
+    borderRadius:4,
+    maxBarThickness:26,
+    order: 2
+  }));
+  // reference line = annual plan (first unit's plan, flat across quarters) if numeric
+  const planVal = g.units[0].plan.value;
+  if(planVal!=null && !g.units[0].plan.empty){
+    datasets.push({
+      type:'line', label:'Plan roczny', data:[planVal,planVal,planVal,planVal],
+      borderColor:'#111827', borderDash:[5,4], pointRadius:0, borderWidth:1.5, order:1, fill:false
+    });
+  }
+  const ctx = canvasEl;
+  const showLegend = g.multiUnit;
+  charts.push(new Chart(ctx,{
+    type:'bar',
+    data:{labels, datasets},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index', intersect:false},
+      plugins:{
+        legend:{display:showLegend, position:'bottom', labels:{boxWidth:8,font:{size:9}}},
+        tooltip:{callbacks:{label:(c)=> `${c.dataset.label}: ${c.formattedValue}`}}
+      },
+      scales:{
+        x:{grid:{display:false}, ticks:{font:{size:10}}},
+        y:{grid:{color:'#eef1f6'}, ticks:{font:{size:10}}}
+      },
+      animation:{duration:350}
+    }
+  }));
+}
+
+/* ===================== RENDER: SECTIONS / GRID ===================== */
+function renderContent(){
+  const main = document.getElementById('content');
+  main.innerHTML = '';
+  charts.forEach(c=>{ try{c.destroy();}catch(e){} });
+  charts = [];
+
+  const list = getFiltered();
+  if(!list.length){
+    main.innerHTML = `<div class="empty-state"><b>Brak wyników</b>Zmień kryteria filtrowania lub wyszukiwania.</div>`;
+    return;
+  }
+  // group by Obszar within current view, ordered by count desc
+  const byObszar = new Map();
+  list.forEach(g=>{ if(!byObszar.has(g.obszar)) byObszar.set(g.obszar, []); byObszar.get(g.obszar).push(g); });
+  const sections = [...byObszar.entries()].sort((a,b)=> b[1].length - a[1].length);
+
+  sections.forEach(([obszar, groups])=>{
+    const kpaSet = new Set(groups.map(g=>g.kpa));
+    const primaryMeta = kpaMeta(kpaSet.size===1 ? groups[0].kpa : null);
+    const section = document.createElement('div');
+    section.className = 'section';
+    section.innerHTML = `
+      <div class="section-head">
+        <span class="accent" style="background:${primaryMeta.color}"></span>
+        <h3>${obszar} <span class="count">${groups.length}</span></h3>
+        <span class="chev">▾</span>
+      </div>
+      <div class="grid"></div>
+    `;
+    section.querySelector('.section-head').addEventListener('click', ()=> section.classList.toggle('collapsed'));
+    const grid = section.querySelector('.grid');
+    groups.forEach(g=> grid.appendChild(buildCard(g)));
+    main.appendChild(section);
+  });
+}
+
+/* ===================== MODAL ===================== */
+function openModal(title, text){
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').textContent = text;
+  document.getElementById('modalBg').classList.add('show');
+}
+function closeModal(){ document.getElementById('modalBg').classList.remove('show'); }
+document.addEventListener('DOMContentLoaded', ()=>{
+  document.getElementById('modalBg').addEventListener('click', (e)=>{ if(e.target.id==='modalBg') closeModal(); });
+});
+
+/* ===================== DATA LOADING ===================== */
+function setLastUpdate(ok){
+  const el = document.getElementById('lastUpdate');
+  const t = new Date().toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
+  el.innerHTML = `<span class="dot" style="background:${ok?'#34d399':'#f59e0b'}"></span> ${ok? 'zsynchronizowano':'dane demo'} • ${t}`;
+}
+
+function getDemoData(){
+  const el = document.getElementById('demo-data');
+  return JSON.parse(el.textContent);
+}
+
+async function withTimeout(promise, ms){
+  return Promise.race([promise, new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')), ms))]);
+}
+
+async function loadData(){
+  const inGrist = window.grist && window.parent !== window;
+  let records;
+  if(inGrist){
+    try{
+      const data = await withTimeout(grist.docApi.fetchTable(TABLE), 6000);
+      records = colToRecs(data);
+      setLastUpdate(true);
+    }catch(e){
+      console.warn('Grist fetch failed, using demo data', e);
+      records = colToRecs(getDemoData());
+      setLastUpdate(false);
+    }
+  } else {
+    records = colToRecs(getDemoData());
+    setLastUpdate(false);
+  }
+  RAW = records;
+  GROUPS = buildGroups(records);
+}
+
+async function refreshAndRender(){
+  await loadData();
+  populateObszarFilter();
+  renderSummary();
+  renderTabs();
+  renderContent();
+}
+
+/* ===================== INIT ===================== */
+function wireControls(){
+  document.getElementById('searchInput').addEventListener('input', renderContent);
+  document.getElementById('obszarFilter').addEventListener('change', renderContent);
+  document.getElementById('freqFilter').addEventListener('change', renderContent);
+  document.getElementById('onlyMissing').addEventListener('change', renderContent);
+  document.getElementById('refreshBtn').addEventListener('click', refreshAndRender);
+}
+
+(async function init(){
+  wireControls();
+  if(window.grist && window.parent !== window){
+    try{ grist.ready({requiredAccess:'read table'}); }catch(e){}
+    try{ grist.onRecords(()=> refreshAndRender()); }catch(e){}
+  }
+  await refreshAndRender();
+  setInterval(()=>{ if(!document.hidden) refreshAndRender(); }, 60000);
+})();
+
+</script>
+</body>
+</html>
