@@ -539,7 +539,11 @@ function computeUnitViz(u){
 
 // bar chart for one location's 4 quarters, with THAT location's own annual target
 // drawn as a dashed reference line — target is always integrated into the same chart.
-function renderUnitChart(canvasEl, u, meta, compact){
+// `yScale` (when given) fixes min/max so every location in the same panel shares
+// one vertical axis — otherwise Chart.js auto-scales each chart independently and
+// bars for very different magnitudes (e.g. small vs. large units) look deceptively
+// similar in height.
+function renderUnitChart(canvasEl, u, meta, compact, yScale){
   const labels = ['I kw.','II kw.','III kw.','IV kw.'];
   const datasets = [{
     label:'Wartość', data: u.q.map(q=> (q.empty? null : q.value)),
@@ -555,6 +559,8 @@ function renderUnitChart(canvasEl, u, meta, compact){
       borderColor:'#111827', borderDash:[5,4], pointRadius:0, borderWidth:1.5, order:1, fill:false
     });
   }
+  const yAxis = {grid:{color:'#eef1f6'}, ticks:{font:{size:compact?9:10}}, beginAtZero:true};
+  if(yScale){ yAxis.min = yScale.min; yAxis.max = yScale.max; }
   charts.push(new Chart(canvasEl,{
     type:'bar',
     data:{labels, datasets},
@@ -567,7 +573,7 @@ function renderUnitChart(canvasEl, u, meta, compact){
       },
       scales:{
         x:{grid:{display:false}, ticks:{font:{size:compact?9:10}}},
-        y:{grid:{color:'#eef1f6'}, ticks:{font:{size:compact?9:10}}}
+        y:yAxis
       },
       animation:{duration:300}
     }
@@ -576,8 +582,8 @@ function renderUnitChart(canvasEl, u, meta, compact){
 // annual (single-value) indicator drawn the same way as quarterly ones — one
 // vertical bar for the reported value, plus a dashed horizontal line for the
 // annual target — so every chart on the board reads the same way (no mixed
-// horizontal/vertical styles).
-function renderUnitAnnualChart(canvasEl, u, meta, compact){
+// horizontal/vertical styles). Same shared-`yScale` rule as renderUnitChart.
+function renderUnitAnnualChart(canvasEl, u, meta, compact, yScale){
   const {value, target} = annualValueTarget(u);
   const val = value ? value.value : null;
   const targetVal = target ? target.value : null;
@@ -592,6 +598,8 @@ function renderUnitAnnualChart(canvasEl, u, meta, compact){
       borderColor:'#111827', borderDash:[5,4], pointRadius:0, borderWidth:1.5, order:1, fill:false
     });
   }
+  const yAxis = {grid:{color:'#eef1f6'}, ticks:{font:{size:compact?9:10}, callback:(v)=>fmtNum(v,percent)}, beginAtZero:true};
+  if(yScale){ yAxis.min = yScale.min; yAxis.max = yScale.max; }
   charts.push(new Chart(canvasEl,{
     type:'bar',
     data:{labels:[''], datasets},
@@ -603,7 +611,7 @@ function renderUnitAnnualChart(canvasEl, u, meta, compact){
       },
       scales:{
         x:{grid:{display:false}, ticks:{display:false}},
-        y:{grid:{color:'#eef1f6'}, ticks:{font:{size:compact?9:10}, callback:(v)=>fmtNum(v,percent)}, beginAtZero:true}
+        y:yAxis
       },
       animation:{duration:300}
     }
@@ -628,15 +636,16 @@ function badgeHtml(u, meta){
 }
 
 // renders the body (chart / badge / empty) for a single location into `container` —
-// every numeric case uses a vertical bar chart for consistency.
-function renderUnitBody(container, g, u, meta, compact){
+// every numeric case uses a vertical bar chart for consistency. `yScale` (optional)
+// forces a shared min/max so all locations of the same indicator are comparable.
+function renderUnitBody(container, g, u, meta, compact, yScale){
   const uViz = computeUnitViz(u);
   if(uViz==='quarterly'){
     const wrap = document.createElement('div'); wrap.className = 'chart-wrap' + (compact? ' small':'');
     wrap.innerHTML = '<canvas></canvas>';
     container.appendChild(wrap);
     const canvas = wrap.querySelector('canvas');
-    chartQueue.push(()=> renderUnitChart(canvas, u, meta, compact));
+    chartQueue.push(()=> renderUnitChart(canvas, u, meta, compact, yScale));
   } else if(uViz==='annual'){
     const {value, target} = annualValueTarget(u);
     const valTxt = value ? cellText(value) : '—';
@@ -646,7 +655,7 @@ function renderUnitBody(container, g, u, meta, compact){
     wrap.innerHTML = '<canvas></canvas>';
     container.appendChild(wrap);
     const canvas = wrap.querySelector('canvas');
-    chartQueue.push(()=> renderUnitAnnualChart(canvas, u, meta, compact));
+    chartQueue.push(()=> renderUnitAnnualChart(canvas, u, meta, compact, yScale));
   } else if(uViz==='badge'){
     container.insertAdjacentHTML('beforeend', `<div class="badge-wrap">${badgeHtml(u, meta)}</div>`);
   } else {
@@ -688,11 +697,30 @@ function buildSingleCard(g){
   return card;
 }
 
+// A panel splits one indicator across several locations/units — so all of its
+// sub-charts must share ONE y-axis (same min/max), otherwise a unit reporting
+// e.g. 40h of overtime and one reporting 4000h would draw equally tall bars and
+// mislead the reader about relative scale. We scan every numeric value across
+// ALL units of the group (quarters + annual plan/expected) and fix a common
+// range, with ~10% headroom above the highest bar/target so nothing touches the
+// top of the chart.
+function computeGroupYScale(g){
+  let max = -Infinity, min = 0, any = false;
+  g.units.forEach(u=>{
+    u.q.forEach(q=>{ if(!q.empty && q.value!=null){ any=true; if(q.value>max) max=q.value; if(q.value<min) min=q.value; } });
+    if(!u.plan.empty && u.plan.value!=null){ any=true; if(u.plan.value>max) max=u.plan.value; if(u.plan.value<min) min=u.plan.value; }
+    if(!u.exp.empty && u.exp.value!=null){ any=true; if(u.exp.value>max) max=u.exp.value; if(u.exp.value<min) min=u.exp.value; }
+  });
+  if(!any || max<=0) return null;
+  return {min, max: max*1.1};
+}
+
 // multiple locations for the same indicator — split into one compact sub-card per
 // location (each with its own target), rather than merging into one busy chart.
 function buildPanelCard(g){
   const meta = kpaMeta(g.kpa);
   const commentTxt = g.units.map(u=>u.comment).filter(Boolean).join('\n---\n');
+  const yScale = computeGroupYScale(g);
   const panel = document.createElement('div');
   panel.className = 'card panel status-'+g.status + (g.vizType==='empty' ? ' empty':'');
   panel.style.borderLeftColor = meta.color;
@@ -710,7 +738,7 @@ function buildPanelCard(g){
     const box = document.createElement('div');
     box.className = 'unit-box status-'+u.status;
     box.innerHTML = `<div class="unit-box-label">${statusDot(u.status)}${u.loc || 'Ogółem'}</div>`;
-    renderUnitBody(box, g, u, meta, true);
+    renderUnitBody(box, g, u, meta, true, yScale);
     grid.appendChild(box);
   });
 
