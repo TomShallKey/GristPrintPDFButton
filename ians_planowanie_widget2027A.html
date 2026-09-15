@@ -14,7 +14,7 @@
 .resizer{position:absolute;right:0;top:0;bottom:0;width:8px;cursor:col-resize;user-select:none;z-index:20}.resizer:hover,.resizer.rz-active{background:rgba(59,130,246,.4)}body.resizing{cursor:col-resize;user-select:none}body.resizing *{cursor:col-resize!important}
 tbody td{padding:4px 8px;border-bottom:1px solid var(--line2);vertical-align:top;background:#fff;overflow:hidden}.tgl-wrap{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2px;min-height:20px}tbody tr:hover td{background:#fbfbfc}td.c-dyr{background:var(--db)}td.c-prezes{background:var(--pb)}td.c-ayx{background:var(--ab)}tr.sections th.sec-l{box-shadow:inset 3px 0 0 rgba(139,92,246,.55)}thead tr.cols th.sec-l{box-shadow:inset 3px 0 0 rgba(139,92,246,.55)}tr.sections th.sec-r{box-shadow:inset 3px 0 0 rgba(16,185,129,.55)}thead tr.cols th.sec-r{box-shadow:inset 3px 0 0 rgba(16,185,129,.55)}td.sec-l{box-shadow:inset 3px 0 0 rgba(139,92,246,.4)}td.sec-r{box-shadow:inset 3px 0 0 rgba(16,185,129,.4)}tr.sections th.sec-b{box-shadow:inset 3px 0 0 rgba(14,165,233,.55)}thead tr.cols th.sec-b{box-shadow:inset 3px 0 0 rgba(14,165,233,.55)}td.sec-b{box-shadow:inset 3px 0 0 rgba(14,165,233,.4)}
 tr.group td{background:var(--bg2);border-bottom:1px solid var(--line);font-weight:500;height:34px;cursor:pointer}tr.group strong{font-weight:700}tr.group .chev{display:inline-block;width:16px;color:var(--mut)}tr.group.collapsed .chev{transform:rotate(-90deg)}tr.group .meta{margin-left:10px;color:var(--mut);font-weight:500;font-size:11px}.gr-date{color:var(--mut);font-weight:500;margin-left:6px}
-.cellcol{min-width:0;overflow:hidden}.readtxt{display:block;white-space:pre-line;overflow-wrap:anywhere;line-height:1.35;color:var(--txt)}.readtxt.mut{color:var(--mut)}.cellcol .sub{font-size:11px;color:var(--mut);margin-top:1px;overflow-wrap:anywhere;line-height:1.25}.online{color:var(--p);font-weight:600}.cost-paid{color:var(--red);font-weight:650}.empty-val{color:var(--mut2)}
+.cellcol{min-width:0;overflow:hidden}.readtxt{display:block;white-space:pre-line;overflow-wrap:anywhere;line-height:1.35;color:var(--txt)}.readtxt.mut{color:var(--mut)}.cellcol .sub{font-size:11px;color:var(--mut);margin-top:1px;overflow-wrap:anywhere;line-height:1.25}.online{color:var(--p);font-weight:600}.cost-paid{color:var(--red);font-weight:650}.empty-val{color:var(--mut2)}.txt-center{text-align:center}
 .szk-flex,.uc-flex{display:flex;align-items:center;gap:4px}
 .info-btn,.hist-btn{flex:none;width:19px;height:19px;border-radius:50%;border:1.5px solid var(--k);color:var(--k);background:#fff;font:italic 700 12px Georgia,serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;transition:background .15s,color .15s}
 .info-btn{margin-top:-6px}
@@ -88,11 +88,11 @@ async function loadCurrentUser(){
  }
 }
 const COLS=[
- {key:'zg',def:120,min:80},{key:'biuro',def:70,min:50},{key:'uczestnik',def:200,min:120},
- {key:'szkolenie',def:300,min:160},{key:'priorytet',def:56,min:40},{key:'uzasadnienie',def:170,min:90},
- {key:'ayxrekom',def:90,min:64},{key:'ayxkoment',def:170,min:100},
- {key:'dyrpriorytet',def:78,min:56},{key:'dyrakcept',def:92,min:64},{key:'dyrkoment',def:170,min:100},
- {key:'prezesakcept',def:100,min:64}
+ {key:'zg',def:110,min:80},{key:'biuro',def:64,min:50},{key:'uczestnik',def:190,min:120},
+ {key:'szkolenie',def:300,min:160},{key:'priorytet',def:56,min:40},{key:'uzasadnienie',def:200,min:100},
+ {key:'ayxrekom',def:86,min:64},{key:'ayxkoment',def:150,min:100},
+ {key:'dyrpriorytet',def:74,min:56},{key:'dyrakcept',def:86,min:64},{key:'dyrkoment',def:190,min:110},
+ {key:'prezesakcept',def:94,min:64}
 ];
 const state={main:[],groupBy:'none',collapsed:new Set(),sort:null,colFilters:{zg:'',biuro:'',uczestnik:'',szkolenie:''},loaded:false,colWidths:{},groupSortDesc:false,lastMainJson:'',suppressUntil:0,filtDyr:'all',filtPrezes:'all'};
 try{Object.assign(state.colWidths,JSON.parse(localStorage.getItem(LS_WIDTHS)||'{}'))}catch(e){}
@@ -148,7 +148,7 @@ function logLine(r,authorCol,timeCol){const email=r[authorCol]||'',a=shortAuthor
 function cellSzkolenie(r){const line1=courseLabelRow(r);const rng=dateRangeClean(r.Termin_Rozpoczecia,r.Termin_Zakonczenia),loc=(r.Lokalizacja||'').trim();const locHtml=loc?(/^online$/i.test(loc)?`<span class="online">${esc(loc)}</span>`:esc(loc)):'';const n=Number(r.DodatkowyKoszt_EUR_)||0,koszt=n>0?`<span class="cost-paid">${esc(fmtKoszt(n))}</span>`:'';const line2parts=[rng?esc(rng):'',locHtml,koszt].filter(Boolean);const line2=line2parts.join(' · ');const code=kursCode(r),ib=code&&opisFor(code)?`<button class="info-btn" data-info="${esc(code)}" title="Opis szkolenia z biuletynu">i</button>`:'';return `<div class="cellcol szk-flex"><div style="flex:1;min-width:0"><div class="readtxt">${line1}</div>${line2?`<div class="sub">${line2}</div>`:''}</div>${ib}</div>`}
 function cellUczestnik(r){const v=uczLabel(r)?esc(uczLabel(r)):'<span class="empty-val">—</span>';const hist=(r.Historia_Pracownika||'').trim();const hb=hist?`<button class="hist-btn" data-hist="${esc(hist)}" data-name="${esc(uczLabel(r))}" title="Historia szkoleń uczestnika"><span class="ic">🕘</span></button>`:'';return `<div class="cellcol uc-flex"><span class="readtxt" style="flex:1;min-width:0">${v}</span>${hb}</div>`}
 function rowHtml(r){const dv=(c)=>`<span class="readtxt mut">${r[c]?esc(r[c]):''}</span>`;
- return `<tr data-id="${r.id}"><td class="cell-mid">${dv('Zg_aszajacy')}</td><td class="cell-mid">${dv('Biuro')}</td><td class="cell-mid">${cellUczestnik(r)}</td><td class="cell-mid">${cellSzkolenie(r)}</td><td class="cell-toggle">${toggleCell(star(r,'Priorytet',false))}</td><td><span class="readtxt mut">${esc(r.Uzasadnienie||'')}</span></td><td class="c-ayx sec-b cell-toggle">${toggleCell(accept(r,'AYX_Rekomendacja',false))}</td><td class="c-ayx"><span class="readtxt mut">${esc(r.AYX_Komentarz||'')}</span></td><td class="c-dyr sec-l cell-toggle">${toggleCell(star(r,'Dyr_Priorytet',true),logLine(r,'DyrPriorytet_LogAuthor','DyrPriorytet_LogTime'))}</td><td class="c-dyr cell-toggle">${toggleCell(accept(r,'Akceptacja_Dyr',true),logLine(r,'DyrAkceptacja_LogAuthor','DyrAkceptacja_LogTime'))}</td><td class="c-dyr">${comment(r,'Dyrektor_Komentarz',true,'')}</td><td class="c-prezes sec-r cell-toggle">${toggleCell(accept(r,'Akceptacja_Prezes',true),logLine(r,'PrezAkceptacja_LogAuthor','PrezAkceptacja_LogTime'))}</td></tr>`}
+ return `<tr data-id="${r.id}"><td class="cell-mid">${dv('Zg_aszajacy')}</td><td class="cell-mid txt-center">${dv('Biuro')}</td><td class="cell-mid">${cellUczestnik(r)}</td><td class="cell-mid">${cellSzkolenie(r)}</td><td class="cell-toggle">${toggleCell(star(r,'Priorytet',false))}</td><td><span class="readtxt mut">${esc(r.Uzasadnienie||'')}</span></td><td class="c-ayx sec-b cell-toggle">${toggleCell(accept(r,'AYX_Rekomendacja',false))}</td><td class="c-ayx"><span class="readtxt mut">${esc(r.AYX_Komentarz||'')}</span></td><td class="c-dyr sec-l cell-toggle">${toggleCell(star(r,'Dyr_Priorytet',true),logLine(r,'DyrPriorytet_LogAuthor','DyrPriorytet_LogTime'))}</td><td class="c-dyr cell-toggle">${toggleCell(accept(r,'Akceptacja_Dyr',true),logLine(r,'DyrAkceptacja_LogAuthor','DyrAkceptacja_LogTime'))}</td><td class="c-dyr">${comment(r,'Dyrektor_Komentarz',true,'')}</td><td class="c-prezes sec-r cell-toggle">${toggleCell(accept(r,'Akceptacja_Prezes',true),logLine(r,'PrezAkceptacja_LogAuthor','PrezAkceptacja_LogTime'))}</td></tr>`}
 function rerenderRow(id){const tr=document.querySelector(`#tbody tr[data-id="${id}"]`),r=state.main.find(x=>x.id===id);if(!tr||!r)return render();const t=document.createElement('tbody');t.innerHTML=rowHtml(r);tr.replaceWith(t.firstElementChild)}
 function matchFilt(v,f){return f==='all'||(f==='yes'?!!v:!v)}
 function colMatch(v,q){return !q||(v||'').toLowerCase().includes(q)}
@@ -217,7 +217,9 @@ function terminyList(code){const emb=(opisFor(code)?.terminy)||[];if(!emb.length
  return `<div class="opis-sec"><h4>Terminy (${emb.length})</h4>${rows}</div>`}
 function showKursInfo(anchor,code){const o=opisFor(code);if(!o)return;openPopover(anchor,renderOpis(o,false)+terminyList(code)+feeBox(o.price))}
 catalogPdfBtn.onclick=()=>{
- const w=window.open('https://pansa.sharepoint.com/sites/office3/SiteAssets/Forms/AllItems.aspx?id=%2Fsites%2Foffice3%2FSiteAssets%2FSitePages%2FSzkolenia%2D%2D%2DIANS%2D%28Eurocontrol%29%2F2027S1%5FKatalog%2DSzkole%C5%84%2DIANS%2Epdf&parent=%2Fsites%2Foffice3%2FSiteAssets%2FSitePages%2FSzkolenia%2D%2D%2DIANS%2D%28Eurocontrol%29','_blank');
+ const path='/sites/office3/SiteAssets/SitePages/Szkolenia---IANS-(Eurocontrol)/2027S1_Katalog-Szkoleń-IANS.pdf';
+ const url='https://pansa.sharepoint.com'+encodeURI(path)+'?web=1';
+ const w=window.open(url,'_blank');
  if(!w)toast('Zezwól na wyskakujące okna, aby otworzyć katalog szkoleń',true);
 };
 grist.ready({requiredAccess:'full'});currentUserPromise=loadCurrentUser();grist.onRecords(scheduleReload);loadAll().catch(e=>{console.error(e);tbody.innerHTML='<tr><td colspan="12"><div class="state-msg"><b>Nie udało się wczytać danych.</b></div></td></tr>'});setInterval(()=>{if(!document.hidden)scheduleReload()},45000);
