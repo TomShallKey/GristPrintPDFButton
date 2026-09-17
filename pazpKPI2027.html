@@ -402,6 +402,25 @@ function alignUtilizationScale(u){
     if(!cell.empty && cell.value!=null){ cell.percent = true; }
   });
 }
+// General companion fix: several indicators write the target as an explicit
+// percentage (">=95%", "100%"...) but report the actual quarterly/annual
+// figures as bare 0–1 fractions with no "%" ("1", "0.99") — e.g. "Czas
+// publikacji NOTAM" target ">=95%" vs. quarters "1"/"1", which means 100%,
+// not 1%. Whenever the target itself is unambiguously a percent, any other
+// cell on that same row that looks like a 0–1 fraction is safe to read the
+// same way — unlike the utilization case above, there's no name-matching
+// needed here because the "%" on the target already tells us the unit.
+function alignPercentScale(u){
+  const targetIsPercent = (!u.exp.empty && u.exp.percent) || (!u.plan.empty && u.plan.percent);
+  if(!targetIsPercent) return;
+  const scaleCell = (cell)=>{
+    if(!cell.empty && cell.value!=null && !cell.percent && cell.value>0 && cell.value<=1.5){
+      cell.value = cell.value*100; cell.percent = true;
+    }
+  };
+  scaleCell(u.plan); scaleCell(u.exp);
+  u.q.forEach(scaleCell);
+}
 function buildGroups(records){
   const map = new Map();
   records.forEach(r=>{
@@ -425,6 +444,7 @@ function buildGroups(records){
       q: [parseCell(r.I_kw_), parseCell(r.II_kw_), parseCell(r.III_kw_), parseCell(r.IV_kw_)],
       comment: r.TSz_Komentarz ? String(r.TSz_Komentarz).trim() : ''
     }));
+    units.forEach(alignPercentScale);
     if(isUtilizationMetric(first.Mierniki_2026)) units.forEach(alignUtilizationScale);
     const hasQuarterData = units.some(u=>u.q.some(q=>!q.empty && q.value!=null));
     const anyAnnualNumeric = units.some(u=> (!u.exp.empty && u.exp.value!=null) || (!u.plan.empty && u.plan.value!=null));
@@ -551,7 +571,12 @@ function renderUnitChart(canvasEl, u, meta, compact, yScale, freq){
     });
   }
   const yAxis = {grid:{color:'#eef1f6'}, ticks:{font:{size:compact?9:10}}, beginAtZero:true};
+  const percent = qCells.some(q=>q.percent) || (!u.exp.empty && u.exp.percent) || (!u.plan.empty && u.plan.percent);
   if(yScale){ yAxis.min = yScale.min; yAxis.max = yScale.max; }
+  else {
+    const localMax = Math.max(0, ...qCells.map(q=> q.empty? 0 : (q.value||0)), planVal||0);
+    if(localMax>0) yAxis.max = niceAxisMax(localMax*1.1, percent);
+  }
   charts.push(new Chart(canvasEl,{
     type:'bar',
     data:{labels, datasets},
@@ -591,6 +616,10 @@ function renderUnitAnnualChart(canvasEl, u, meta, compact, yScale){
   }
   const yAxis = {grid:{color:'#eef1f6'}, ticks:{font:{size:compact?9:10}, callback:(v)=>fmtNum(v,percent)}, beginAtZero:true};
   if(yScale){ yAxis.min = yScale.min; yAxis.max = yScale.max; }
+  else {
+    const localMax = Math.max(val||0, targetVal||0);
+    if(localMax>0) yAxis.max = niceAxisMax(localMax*1.1, percent);
+  }
   charts.push(new Chart(canvasEl,{
     type:'bar',
     data:{labels:[''], datasets},
@@ -667,7 +696,7 @@ function buildSingleCard(g){
   card.innerHTML = `
     <div class="card-top">
       <div class="card-title">${g.name}</div>
-      <span class="freq-badge" style="display:flex;align-items:center;gap:5px">${statusDot(g.status)}${freqDotsHtml(g.freq)}</span>
+      <span class="freq-badge">${freqDotsHtml(g.freq)}</span>
     </div>
     <div class="subline">${u.loc||''}</div>
     <div class="body-${uid}"></div>
@@ -684,6 +713,22 @@ function buildSingleCard(g){
   return card;
 }
 
+// Axis max rounding: raw headroom (max*1.1) often lands on an ugly number like
+// 90.2 or 107.6. Percent-based metrics (utilization, on-time rate, etc.) have a
+// natural ceiling of 100, so those just snap straight to 100 unless the data
+// itself already runs past it. Everything else rounds up to the nearest "nice"
+// step for its own magnitude (e.g. 107.6 -> 110, 1240 -> 1300).
+function niceRoundUp(v){
+  if(!(v>0)) return v;
+  const digits = Math.floor(Math.log10(v))+1;
+  const magnitude = Math.pow(10, Math.max(0, digits-2));
+  return Math.ceil(v/magnitude)*magnitude;
+}
+function niceAxisMax(rawMax, percent){
+  if(percent && rawMax<=100) return 100;
+  return niceRoundUp(rawMax);
+}
+
 // A panel splits one indicator across several locations/units — so all of its
 // sub-charts must share ONE y-axis (same min/max), otherwise a unit reporting
 // e.g. 40h of overtime and one reporting 4000h would draw equally tall bars and
@@ -692,14 +737,14 @@ function buildSingleCard(g){
 // range, with ~10% headroom above the highest bar/target so nothing touches the
 // top of the chart.
 function computeGroupYScale(g){
-  let max = -Infinity, min = 0, any = false;
+  let max = -Infinity, min = 0, any = false, percent = false;
   g.units.forEach(u=>{
-    u.q.forEach(q=>{ if(!q.empty && q.value!=null){ any=true; if(q.value>max) max=q.value; if(q.value<min) min=q.value; } });
-    if(!u.plan.empty && u.plan.value!=null){ any=true; if(u.plan.value>max) max=u.plan.value; if(u.plan.value<min) min=u.plan.value; }
-    if(!u.exp.empty && u.exp.value!=null){ any=true; if(u.exp.value>max) max=u.exp.value; if(u.exp.value<min) min=u.exp.value; }
+    u.q.forEach(q=>{ if(!q.empty && q.value!=null){ any=true; if(q.value>max) max=q.value; if(q.value<min) min=q.value; if(q.percent) percent=true; } });
+    if(!u.plan.empty && u.plan.value!=null){ any=true; if(u.plan.value>max) max=u.plan.value; if(u.plan.value<min) min=u.plan.value; if(u.plan.percent) percent=true; }
+    if(!u.exp.empty && u.exp.value!=null){ any=true; if(u.exp.value>max) max=u.exp.value; if(u.exp.value<min) min=u.exp.value; if(u.exp.percent) percent=true; }
   });
   if(!any || max<=0) return null;
-  return {min, max: max*1.1};
+  return {min, max: niceAxisMax(max*1.1, percent)};
 }
 
 // multiple locations for the same indicator — split into one compact sub-card per
@@ -715,7 +760,7 @@ function buildPanelCard(g){
   panel.innerHTML = `
     <div class="card-top">
       <div class="card-title">${g.name}</div>
-      <span class="freq-badge" style="display:flex;align-items:center;gap:5px">${statusDot(g.status)}${freqDotsHtml(g.freq)}</span>
+      <span class="freq-badge">${freqDotsHtml(g.freq)}</span>
     </div>
     <div class="subline">${g.units.length} lokalizacje / jednostki${commentTxt? ' <button class="note-btn" title="Komentarz" data-comment="panel" style="margin-left:6px;vertical-align:middle">💬</button>':''}</div>
     <div class="unit-grid"></div>
