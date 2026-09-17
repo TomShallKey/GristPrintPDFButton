@@ -381,16 +381,27 @@ function statusDot(status){
 }
 
 /* ===================== GROUPING ===================== */
+// data-entry noise (trailing spaces, "S,03" vs "S.03" typos in Cel_strategiczny)
+// must not fracture one indicator into several one-location cards — normalize
+// the fields used for matching before grouping.
+function normText(s){ return String(s==null? '' : s).trim().replace(/\s+/g,' '); }
+function normCel(s){ return normText(s).replace(/,(?=\d)/g, '.'); }
 function buildGroups(records){
   const map = new Map();
   records.forEach(r=>{
-    const key = [r.Obszar, r.KPA, r.Cel_strategiczny, r.Mierniki_2026].join('§');
+    // NOTE: Cel_strategiczny is intentionally NOT part of the key — it's a
+    // strategic-goal reference code, not something that should ever differ
+    // between locations reporting the same indicator. Rows that only differ
+    // by a typo'd/blank Cel_strategiczny must still land in the same card.
+    const key = [normText(r.Obszar), normText(r.KPA), normText(r.Mierniki_2026)].join('§');
     if(!map.has(key)) map.set(key, []);
     map.get(key).push(r);
   });
   const groups = [];
   map.forEach(rows=>{
     const first = rows[0];
+    // prefer the first non-empty Cel_strategiczny in the group for display
+    const celRow = rows.find(r=> normCel(r.Cel_strategiczny));
     const units = rows.map(r=>({
       loc: (r.Lokalizacja && String(r.Lokalizacja).trim()) || null,
       plan: parseCell(r.Roczna_wartosc_planowana),
@@ -414,11 +425,11 @@ function buildGroups(records){
     const status = worstStatus(units.map(u=>u.status));
 
     groups.push({
-      key: [first.Obszar, first.KPA, first.Mierniki_2026].join('§'),
-      obszar: first.Obszar || 'Inne',
+      key: [normText(first.Obszar), normText(first.KPA), normText(first.Mierniki_2026)].join('§'),
+      obszar: normText(first.Obszar) || 'Inne',
       kpa: first.KPA || 'Inne',
-      cel: first.Cel_strategiczny || '',
-      name: first.Mierniki_2026 || '(brak nazwy)',
+      cel: celRow ? normCel(celRow.Cel_strategiczny) : '',
+      name: normText(first.Mierniki_2026) || '(brak nazwy)',
       freq: first.czest_ || '',
       units,
       multiUnit: units.length>1,
