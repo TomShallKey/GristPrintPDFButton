@@ -52,22 +52,6 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);
 .btn:hover{background:rgba(255,255,255,.18)}
 .btn:active{transform:translateY(1px)}
 
-/* ---------- summary strip ---------- */
-.summary{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;padding:18px 22px 6px}
-.stat-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;
-  box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px;min-width:0}
-.stat-card.stat-alert{background:var(--bad-b);border-color:var(--bad-line)}
-.stat-card .label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);font-weight:700;display:flex;align-items:center}
-.stat-card .value{font-size:26px;font-weight:800;line-height:1;display:flex;align-items:baseline;gap:6px}
-.stat-card .value small{font-size:13px;font-weight:600;color:var(--mut)}
-.stat-card .foot{font-size:11.5px;color:var(--mut2)}
-.kpa-bars{display:flex;flex-direction:column;gap:6px;margin-top:2px}
-.kpa-bars .row{display:flex;align-items:center;gap:8px;font-size:11.5px}
-.kpa-bars .row .name{width:96px;flex:none;color:var(--mut);font-weight:600}
-.kpa-bars .row .track{flex:1;height:7px;border-radius:6px;background:var(--line2);overflow:hidden}
-.kpa-bars .row .fill{display:block;height:100%;border-radius:6px}
-.kpa-bars .row .n{width:24px;text-align:right;font-weight:700;color:var(--txt)}
-
 /* ---------- controls ---------- */
 .controls{position:sticky;top:60px;z-index:30;background:var(--bg);padding:10px 22px 12px;
   display:flex;flex-wrap:wrap;gap:10px;align-items:center;border-bottom:1px solid var(--line2)}
@@ -171,10 +155,6 @@ main{flex:1;padding:14px 22px 60px}
 
 .empty-state{padding:60px 20px;text-align:center;color:var(--mut)}
 .empty-state b{display:block;font-size:15px;color:var(--txt);margin-bottom:6px}
-
-@media (max-width:900px){
-  .summary{grid-template-columns:repeat(2,1fr)}
-}
 </style>
 </head>
 <body>
@@ -186,8 +166,6 @@ main{flex:1;padding:14px 22px 60px}
     <div class="meta" id="lastUpdate"><span class="dot"></span> synchronizacja…</div>
     <button class="btn" id="refreshBtn">⟳ Odśwież</button>
   </header>
-
-  <section class="summary" id="summary"></section>
 
   <section class="controls">
     <div class="search">
@@ -386,6 +364,24 @@ function statusDot(status){
 // the fields used for matching before grouping.
 function normText(s){ return String(s==null? '' : s).trim().replace(/\s+/g,' '); }
 function normCel(s){ return normText(s).replace(/,(?=\d)/g, '.'); }
+// Some sheet columns mix scales for the *same* metric: the annual target is
+// entered as a 0–1 ratio ("0,82") while the quarterly figures are entered as
+// bare percentage points ("62", "88", no "%" sign) — comparing them raw would
+// make every quarter look like a wild breach of target. This is a narrow,
+// name-based fix (utilization/occupancy indicators only) rather than a blind
+// numeric guess, so it doesn't touch unrelated counts/minutes-style metrics
+// that happen to also have small targets (e.g. delay or incident counts).
+function isUtilizationMetric(name){ return /wykorzystani/i.test(name||''); }
+function alignUtilizationScale(u){
+  [u.plan, u.exp].forEach(cell=>{
+    if(!cell.empty && cell.value!=null && cell.value>0 && cell.value<=1.5 && !cell.percent){
+      cell.value = cell.value*100; cell.percent = true;
+    }
+  });
+  u.q.forEach(cell=>{
+    if(!cell.empty && cell.value!=null){ cell.percent = true; }
+  });
+}
 function buildGroups(records){
   const map = new Map();
   records.forEach(r=>{
@@ -409,6 +405,7 @@ function buildGroups(records){
       q: [parseCell(r.I_kw_), parseCell(r.II_kw_), parseCell(r.III_kw_), parseCell(r.IV_kw_)],
       comment: r.TSz_Komentarz ? String(r.TSz_Komentarz).trim() : ''
     }));
+    if(isUtilizationMetric(first.Mierniki_2026)) units.forEach(alignUtilizationScale);
     const hasQuarterData = units.some(u=>u.q.some(q=>!q.empty && q.value!=null));
     const anyAnnualNumeric = units.some(u=> (!u.exp.empty && u.exp.value!=null) || (!u.plan.empty && u.plan.value!=null));
     const anyQualitative = units.some(u=> (u.exp.qualitative) || (u.exp.range && !u.exp.value) || (u.plan.qualitative));
@@ -459,66 +456,6 @@ function getFiltered(){
     }
     return true;
   });
-}
-
-/* ===================== RENDER: SUMMARY ===================== */
-function renderSummary(){
-  const el = document.getElementById('summary');
-  const total = GROUPS.length;
-  const withData = GROUPS.filter(g=>!g.allEmpty).length;
-  const missing = total - withData;
-  const bad = GROUPS.filter(g=>g.status==='bad').length;
-  const warn = GROUPS.filter(g=>g.status==='warn').length;
-  const kpaCounts = {};
-  KPA_ORDER.forEach(k=>kpaCounts[k]=0);
-  GROUPS.forEach(g=>{ kpaCounts[g.kpa] = (kpaCounts[g.kpa]||0)+1; });
-  const obszarCount = new Set(GROUPS.map(g=>g.obszar)).size;
-
-  el.innerHTML = `
-    <div class="stat-card">
-      <div class="label">Mierniki ogółem</div>
-      <div class="value">${total}</div>
-      <div class="foot">${obszarCount} obszarów organizacyjnych</div>
-    </div>
-    <div class="stat-card">
-      <div class="label">Z zaraportowanymi danymi</div>
-      <div class="value" style="color:var(--txt)">${withData}<small>/ ${total}</small></div>
-      <div class="foot">${total? Math.round(withData/total*100):0}% pokrycia danych</div>
-    </div>
-    <div class="stat-card${bad? ' stat-alert':''}">
-      <div class="label"><span class="status-dot" style="background:var(--bad)"></span>Poza celem</div>
-      <div class="value" style="color:var(--bad)">${bad}<small>+ ${warn} blisko granicy</small></div>
-      <div class="foot">wymaga uwagi Zarządu</div>
-    </div>
-    <div class="stat-card">
-      <div class="label">Oczekujące na dane</div>
-      <div class="value" style="color:var(--mut)">${missing}</div>
-      <div class="foot">gł. wskaźniki roczne, rozliczane po zakończeniu okresu</div>
-    </div>
-    <div class="stat-card">
-      <div class="label">Rozkład wg KPA</div>
-      <div class="kpa-bars">
-        ${KPA_ORDER.map(k=>{
-          const n=kpaCounts[k]||0, pct= total? (n/total*100):0, m=kpaMeta(k);
-          return `<div class="row"><span class="name">${m.label}</span><span class="track"><span class="fill" style="width:${pct}%;background:${m.color}"></span></span><span class="n">${n}</span></div>`;
-        }).join('')}
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="label">Rozkład wg częstotliwości</div>
-      <div class="kpa-bars" id="freqBars"></div>
-    </div>
-  `;
-
-  // simple horizontal bar list — frequency distribution (no donut, minimal ink)
-  const freqOrder = ['kw.','pół r.','r.','mies.','n.ż.',''];
-  const freqCounts = {};
-  GROUPS.forEach(g=>{ const f=g.freq||''; freqCounts[f]=(freqCounts[f]||0)+1; });
-  const freqBars = document.getElementById('freqBars');
-  freqBars.innerHTML = freqOrder.filter(f=>freqCounts[f]).map(f=>{
-    const n = freqCounts[f], pct = total? (n/total*100):0;
-    return `<div class="row"><span class="name">${FREQ_LABEL[f]||'brak'}</span><span class="track"><span class="fill" style="width:${pct}%;background:#64748b"></span></span><span class="n">${n}</span></div>`;
-  }).join('');
 }
 
 /* ===================== RENDER: TABS + OBSZAR FILTER OPTIONS ===================== */
@@ -872,7 +809,6 @@ async function loadData(){
 async function refreshAndRender(){
   await loadData();
   populateObszarFilter();
-  renderSummary();
   renderTabs();
   renderContent();
 }
