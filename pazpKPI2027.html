@@ -98,9 +98,9 @@ main{flex:1;padding:14px 22px 60px}
 .card.empty:hover{border-color:var(--line);opacity:.85;filter:none}
 .card-top{display:flex;justify-content:space-between;gap:8px}
 .card-title{font-size:12.8px;font-weight:700;line-height:1.3;color:var(--txt);max-width:100%}
-.badge{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.03em;
-  white-space:nowrap;flex:none}
-.badge.freq{background:transparent;color:var(--mut2);border:1px solid var(--line)}
+.freq-dots{display:flex;align-items:center;gap:4px;flex:none}
+.freq-dots .dot{width:6px;height:6px;border-radius:50%;border:1.4px solid var(--mut2);background:transparent}
+.freq-dots .dot.on{background:var(--mut2);border-color:var(--mut2)}
 .subline{font-size:11px;color:var(--mut);font-weight:500}
 .tag{font-size:10px;font-weight:700;color:var(--mut);background:var(--line2);padding:2px 7px;border-radius:6px}
 .chart-wrap{position:relative;height:150px;width:100%}
@@ -219,6 +219,24 @@ const KPA_ORDER = ['Safety','Capacity','Cost-Efficiency','Environment'];
 function kpaMeta(k){ return KPA_META[k] || {color:'#0F304D', bg:'rgba(190,191,191,.28)', label:k||'Inne'}; }
 
 const FREQ_LABEL = {'kw.':'kwartalnie','pół r.':'półrocznie','r.':'rocznie','mies.':'miesięcznie','n.ż.':'nie dotyczy','':'—'};
+// Instead of a text pill, cadence is shown as 4 dots representing the year's
+// reporting checkpoints (quarters) — filled where that frequency actually
+// files a number: quarterly reports every checkpoint, half-yearly only at
+// Q2/Q4, annual only at Q4. Falls back to all-empty for unknown/n.a. cadence.
+const FREQ_DOTS = {
+  'kw.':    [1,1,1,1],
+  'mies.':  [1,1,1,1],
+  'pół r.': [0,1,0,1],
+  'r.':     [0,0,0,1],
+  'n.ż.':   [0,0,0,0],
+  '':       [0,0,0,0],
+};
+function freqDotsHtml(freq){
+  const pattern = FREQ_DOTS[freq] || [0,0,0,0];
+  const label = FREQ_LABEL[freq] || freq || '—';
+  const dots = pattern.map(on=> `<span class="dot${on? ' on':''}"></span>`).join('');
+  return `<span class="freq-dots" title="${label}">${dots}</span>`;
+}
 
 // brand palette used for data ink — colour is reserved for status; everything
 // "on target" stays a quiet neutral pastel (storytelling-with-data approach).
@@ -649,9 +667,9 @@ function buildSingleCard(g){
   card.innerHTML = `
     <div class="card-top">
       <div class="card-title">${g.name}</div>
-      <span class="badge freq">${statusDot(g.status)}${FREQ_LABEL[g.freq]||g.freq||'—'}</span>
+      <span class="freq-badge" style="display:flex;align-items:center;gap:5px">${statusDot(g.status)}${freqDotsHtml(g.freq)}</span>
     </div>
-    <div class="subline">${[g.cel, u.loc].filter(Boolean).join(' · ')}</div>
+    <div class="subline">${u.loc||''}</div>
     <div class="body-${uid}"></div>
     <div class="card-foot">
       <div></div>
@@ -697,9 +715,9 @@ function buildPanelCard(g){
   panel.innerHTML = `
     <div class="card-top">
       <div class="card-title">${g.name}</div>
-      <span class="badge freq">${statusDot(g.status)}${FREQ_LABEL[g.freq]||g.freq||'—'}</span>
+      <span class="freq-badge" style="display:flex;align-items:center;gap:5px">${statusDot(g.status)}${freqDotsHtml(g.freq)}</span>
     </div>
-    <div class="subline">${g.cel||''} ${g.cel? '· ':''}${g.units.length} lokalizacje / jednostki${commentTxt? ' <button class="note-btn" title="Komentarz" data-comment="panel" style="margin-left:6px;vertical-align:middle">💬</button>':''}</div>
+    <div class="subline">${g.units.length} lokalizacje / jednostki${commentTxt? ' <button class="note-btn" title="Komentarz" data-comment="panel" style="margin-left:6px;vertical-align:middle">💬</button>':''}</div>
     <div class="unit-grid"></div>
   `;
   const grid = panel.querySelector('.unit-grid');
