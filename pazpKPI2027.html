@@ -84,7 +84,11 @@ main{flex:1;padding:14px 22px 60px}
 .section-head .chev{transition:.2s;opacity:.5}
 .section.collapsed .chev{transform:rotate(-90deg)}
 .section.collapsed .grid{display:none}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;padding:16px}
+/* auto-fill + a min-width that is the larger of 300px or 1/9th of the row
+   width means a 9th column never has room to squeeze in — so at most 8
+   indicator cards ever share one line (e.g. 15 cards -> 8 + 7), while still
+   wrapping down to fewer columns on narrower viewports. */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(max(300px,calc(100%/9)),1fr));gap:14px;padding:16px}
 
 /* ---------- kpi card ---------- */
 .card{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--line);border-radius:10px;padding:13px 14px 11px;
