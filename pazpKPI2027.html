@@ -130,8 +130,6 @@ main{flex:1;padding:14px 22px 60px}
 .unit-box-label{font-size:10.5px;font-weight:800;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .badge-wrap{display:flex;flex-direction:column;gap:3px;align-items:flex-start}
 .mini-note{font-size:9.5px;color:var(--warn);margin-top:2px}
-.kv-line{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;color:var(--mut)}
-.kv-line b{font-size:19px;font-weight:800}
 
 /* ---------- status (RAG): only real deviations from target get tinted ---------- */
 .status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:middle}
@@ -501,16 +499,22 @@ function computeUnitViz(u){
   return 'empty';
 }
 
-// bar chart for one location's 4 quarters, with THAT location's own annual target
-// drawn as a dashed reference line — target is always integrated into the same chart.
+// bar chart for one location's reporting periods, with THAT location's own annual
+// target drawn as a dashed reference line — target is always integrated into the
+// same chart. Semi-annual indicators ("pół r.") only ever populate the I/II kw.
+// columns (used as H1/H2 slots) — showing all 4 quarterly categories for those
+// would waste two columns on permanently-empty III/IV bars, so we render just
+// the 2 periods that are actually meaningful for that frequency.
 // `yScale` (when given) fixes min/max so every location in the same panel shares
 // one vertical axis — otherwise Chart.js auto-scales each chart independently and
 // bars for very different magnitudes (e.g. small vs. large units) look deceptively
 // similar in height.
-function renderUnitChart(canvasEl, u, meta, compact, yScale){
-  const labels = ['I kw.','II kw.','III kw.','IV kw.'];
+function renderUnitChart(canvasEl, u, meta, compact, yScale, freq){
+  const isHalfYear = freq==='pół r.';
+  const labels = isHalfYear ? ['I półr.','II półr.'] : ['I kw.','II kw.','III kw.','IV kw.'];
+  const qCells = isHalfYear ? u.q.slice(0,2) : u.q;
   const datasets = [{
-    label:'Wartość', data: u.q.map(q=> (q.empty? null : q.value)),
+    label:'Wartość', data: qCells.map(q=> (q.empty? null : q.value)),
     backgroundColor: statusInk(u.status), borderRadius:4, maxBarThickness: compact?20:28, order:2
   }];
   // target reference: prefer "oczekiwana", fall back to "planowana" when only
@@ -519,7 +523,7 @@ function renderUnitChart(canvasEl, u, meta, compact, yScale){
                  : (!u.plan.empty && u.plan.value!=null) ? u.plan.value : null;
   if(planVal!=null){
     datasets.push({
-      type:'line', label:'Cel roczny', data:[planVal,planVal,planVal,planVal],
+      type:'line', label:'Cel roczny', data: labels.map(()=>planVal),
       borderColor:BRAND.navy, borderDash:[5,4], pointRadius:0, borderWidth:1.5, order:1, fill:false
     });
   }
@@ -609,12 +613,8 @@ function renderUnitBody(container, g, u, meta, compact, yScale){
     wrap.innerHTML = '<canvas></canvas>';
     container.appendChild(wrap);
     const canvas = wrap.querySelector('canvas');
-    chartQueue.push(()=> renderUnitChart(canvas, u, meta, compact, yScale));
+    chartQueue.push(()=> renderUnitChart(canvas, u, meta, compact, yScale, g.freq));
   } else if(uViz==='annual'){
-    const {value, target} = annualValueTarget(u);
-    const valTxt = value ? cellText(value) : '—';
-    const targetHtml = target ? `<span>cel: ${cellText(target)}</span>` : '';
-    container.insertAdjacentHTML('beforeend', `<div class="kv-line"><b style="color:${meta.color}">${valTxt}</b>${targetHtml}</div>`);
     const wrap = document.createElement('div'); wrap.className = 'chart-wrap' + (compact? ' small':'');
     wrap.innerHTML = '<canvas></canvas>';
     container.appendChild(wrap);
