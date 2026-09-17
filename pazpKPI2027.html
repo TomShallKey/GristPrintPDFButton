@@ -8,15 +8,21 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
 :root{
+  /* brand palette (storytelling-with-data: neutral ink everywhere; colour is
+     spent only on RAG status — pastel red = currently over the limit, pastel
+     yellow = was over the limit earlier this year but is back on track) */
+  --navy:#0F304D; --accent:#C4007A;
+  --brand-blue:#5795CA; --brand-blue-light:#8BB9D3; --brand-gray:#BEBFBF;
   --bg:#f3f5f9; --card:#ffffff; --card2:#fbfcfe;
   --line:#e3e7ee; --line2:#eef1f6;
   --txt:#1a1e27; --mut:#6b7280; --mut2:#98a2b3;
-  --safety:#ef4444; --safety-b:rgba(239,68,68,.10);
-  --capacity:#3b82f6; --capacity-b:rgba(59,130,246,.10);
-  --cost:#8b5cf6; --cost-b:rgba(139,92,246,.10);
-  --env:#10b981; --env-b:rgba(16,185,129,.10);
-  --amber:#f59e0b; --amber-b:rgba(245,158,11,.12);
-  --ok:#10b981; --bad:#ef4444; --neutral:#94a3b8;
+  /* KPA categories no longer carry distinct colours — a single neutral ink is
+     used for all of them so colour is reserved for status only */
+  --kpa-ink:#0F304D; --kpa-b:rgba(190,191,191,.28);
+  --data:#8BB9D3; /* default neutral bar/data colour when "good"/no target */
+  --bad:#E57373; --bad-b:rgba(229,115,115,.16); --bad-line:rgba(211,47,47,.4);
+  --warn:#F0C36D; --warn-b:rgba(240,195,109,.22); --warn-line:rgba(191,133,15,.4);
+  --ok:#98a2b3; --neutral:#94a3b8;
   --radius:16px; --shadow:0 1px 2px rgba(20,24,34,.04),0 8px 24px -12px rgba(20,24,34,.12);
   --shadow-hover:0 4px 10px rgba(20,24,34,.06),0 16px 36px -14px rgba(20,24,34,.18);
 }
@@ -50,7 +56,7 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);
 .summary{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;padding:18px 22px 6px}
 .stat-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;
   box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px;min-width:0}
-.stat-card.stat-alert{background:#fef2f2;border-color:#fca5a5}
+.stat-card.stat-alert{background:var(--bad-b);border-color:var(--bad-line)}
 .stat-card .label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);font-weight:700;display:flex;align-items:center}
 .stat-card .value{font-size:26px;font-weight:800;line-height:1;display:flex;align-items:baseline;gap:6px}
 .stat-card .value small{font-size:13px;font-weight:600;color:var(--mut)}
@@ -68,24 +74,20 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);
 .search{position:relative;flex:1;min-width:220px;max-width:340px}
 .search input{width:100%;padding:9px 12px 9px 32px;border-radius:10px;border:1px solid var(--line);
   background:var(--card);font-size:13px;color:var(--txt);outline:none;transition:.15s}
-.search input:focus{border-color:#93c5fd;box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+.search input:focus{border-color:var(--brand-blue-light);box-shadow:0 0 0 3px rgba(87,149,202,.15)}
 .search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);opacity:.45}
 select,.chip-select{padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);
   font-size:12.5px;color:var(--txt);font-weight:600;cursor:pointer;outline:none}
 .toggle{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--mut);cursor:pointer;
   user-select:none;background:var(--card);border:1px solid var(--line);padding:8px 12px;border-radius:10px}
-.toggle input{accent-color:#3b82f6}
+.toggle input{accent-color:var(--brand-blue)}
 .tabs{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
 .tab{padding:8px 14px;border-radius:10px;font-size:12.5px;font-weight:700;cursor:pointer;border:1px solid transparent;
   color:var(--mut);background:transparent;display:flex;align-items:center;gap:7px;transition:.15s}
 .tab .n{background:var(--line2);color:var(--mut);border-radius:20px;padding:1px 7px;font-size:11px}
 .tab:hover{background:var(--line2)}
-.tab.active{background:var(--txt);color:#fff;box-shadow:var(--shadow)}
+.tab.active{background:var(--navy);color:#fff;box-shadow:var(--shadow)}
 .tab.active .n{background:rgba(255,255,255,.22);color:#fff}
-.tab[data-kpa="Safety"].active{background:var(--safety)}
-.tab[data-kpa="Capacity"].active{background:var(--capacity)}
-.tab[data-kpa="Cost-Efficiency"].active{background:var(--cost)}
-.tab[data-kpa="Environment"].active{background:var(--env)}
 
 /* ---------- content ---------- */
 main{flex:1;padding:14px 22px 60px}
@@ -104,8 +106,8 @@ main{flex:1;padding:14px 22px 60px}
 .card{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--line);border-radius:10px;padding:13px 14px 11px;
   box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;transition:.15s;position:relative}
 .card:hover{border-color:#d3d8e0}
-.card.empty{background:var(--card2);border-style:dashed;border-left-style:dashed}
-.card.empty:hover{border-color:var(--line)}
+.card.empty{background:var(--card2);border-style:dashed;border-left-style:dashed;opacity:.55;filter:grayscale(.5)}
+.card.empty:hover{border-color:var(--line);opacity:.85;filter:none}
 .card-top{display:flex;justify-content:space-between;gap:8px}
 .card-title{font-size:12.8px;font-weight:700;line-height:1.3;color:var(--txt);max-width:100%}
 .badge{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.03em;
@@ -143,17 +145,20 @@ main{flex:1;padding:14px 22px 60px}
 .unit-box{background:var(--card2);border:1px solid var(--line2);border-radius:9px;padding:9px 10px;display:flex;flex-direction:column;gap:4px}
 .unit-box-label{font-size:10.5px;font-weight:800;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .badge-wrap{display:flex;flex-direction:column;gap:3px;align-items:flex-start}
-.mini-note{font-size:9.5px;color:var(--amber);margin-top:2px}
+.mini-note{font-size:9.5px;color:var(--warn);margin-top:2px}
 .kv-line{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;color:var(--mut)}
 .kv-line b{font-size:19px;font-weight:800}
 
 /* ---------- status (RAG): only real deviations from target get tinted ---------- */
 .status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:middle}
-.card.status-bad{background:#fef2f2;border-color:#fca5a5}
-.card.status-bad:hover{border-color:#f87171}
-.card.status-warn{background:#fffbeb;border-color:#fde68a}
-.unit-box.status-bad{background:#fef2f2;border-color:#fca5a5}
-.unit-box.status-warn{background:#fffbeb;border-color:#fde68a}
+.card.status-bad{background:var(--bad-b);border-color:var(--bad-line)}
+.card.status-bad:hover{border-color:rgba(211,47,47,.6)}
+.card.status-warn{background:var(--warn-b);border-color:var(--warn-line)}
+.card.status-empty{opacity:.55;filter:grayscale(.5)}
+.card.status-empty:hover{opacity:.85;filter:none}
+.unit-box.status-bad{background:var(--bad-b);border-color:var(--bad-line)}
+.unit-box.status-warn{background:var(--warn-b);border-color:var(--warn-line)}
+.unit-box.status-empty{opacity:.55;filter:grayscale(.5)}
 
 /* ---------- modal ---------- */
 .modal-bg{position:fixed;inset:0;background:rgba(15,18,25,.45);backdrop-filter:blur(2px);z-index:100;
@@ -225,15 +230,23 @@ const COLS = ['Obszar','Cel_strategiczny','KPA','Mierniki_2026','Lokalizacja','c
   'Roczna_wartosc_planowana','Roczna_wartosc_oczekiwana','I_kw_','II_kw_','III_kw_','IV_kw_','TSz_Komentarz'];
 
 const KPA_META = {
-  'Safety':          {color:'#ef4444', bg:'rgba(239,68,68,.10)',  label:'Bezpieczeństwo'},
-  'Capacity':        {color:'#3b82f6', bg:'rgba(59,130,246,.10)', label:'Przepustowość'},
-  'Cost-Efficiency': {color:'#8b5cf6', bg:'rgba(139,92,246,.10)', label:'Efektywność kosztowa'},
-  'Environment':     {color:'#10b981', bg:'rgba(16,185,129,.10)', label:'Środowisko'},
+  'Safety':          {color:'#0F304D', bg:'rgba(190,191,191,.28)',  label:'Bezpieczeństwo'},
+  'Capacity':        {color:'#0F304D', bg:'rgba(190,191,191,.28)', label:'Przepustowość'},
+  'Cost-Efficiency': {color:'#0F304D', bg:'rgba(190,191,191,.28)', label:'Efektywność kosztowa'},
+  'Environment':     {color:'#0F304D', bg:'rgba(190,191,191,.28)', label:'Środowisko'},
 };
 const KPA_ORDER = ['Safety','Capacity','Cost-Efficiency','Environment'];
-function kpaMeta(k){ return KPA_META[k] || {color:'#64748b', bg:'rgba(100,116,139,.10)', label:k||'Inne'}; }
+function kpaMeta(k){ return KPA_META[k] || {color:'#0F304D', bg:'rgba(190,191,191,.28)', label:k||'Inne'}; }
 
 const FREQ_LABEL = {'kw.':'kwartalnie','pół r.':'półrocznie','r.':'rocznie','mies.':'miesięcznie','n.ż.':'nie dotyczy','':'—'};
+
+// brand palette used for data ink — colour is reserved for status; everything
+// "on target" stays a quiet neutral pastel (storytelling-with-data approach).
+// bad = pastel red (currently breaching target), warn = pastel yellow (breached
+// earlier this year, back in range now), good/empty = neutral brand blue-gray.
+const BRAND = {navy:'#0F304D', accent:'#C4007A', blue:'#5795CA', blueLight:'#8BB9D3', gray:'#BEBFBF'};
+const STATUS_COLOR = {bad:'#E57373', warn:'#F0C36D', good: BRAND.blueLight, empty: BRAND.gray};
+function statusInk(status){ return STATUS_COLOR[status] || STATUS_COLOR.good; }
 
 /* ===================== STATE ===================== */
 let RAW = [];          // flat records straight from grist/demo
@@ -298,69 +311,72 @@ function fmtNum(v, percent){
 }
 
 /* ===================== STATUS (RAG) =====================
-   To avoid drowning the board in colour, we only tint an indicator when it is
-   actually off-target. "Good" values stay neutral/white; only real deviations
-   from the annual target get a red (bad) or amber (borderline) background —
-   direction (higher-is-better vs lower-is-better) is inferred from the name. */
+   New rule set (history-aware, not just a magnitude threshold):
+   - 'empty'  → nothing reported yet at all (e.g. annual indicator only settled
+     at year-end) → card is greyed out / de-emphasised, no RAG judgement made.
+   - 'bad'    → the LATEST reported data point currently breaches the target.
+   - 'warn'   → it breached the target at some point earlier this year but the
+     latest reported point is back within target (a "used to be a problem" flag).
+   - 'good'   → never breached the target (or no target is known to compare
+     against, in which case we simply don't accuse it of anything).
+   Direction (higher-is-better vs lower-is-better) is inferred from the name,
+   and drives what "breach" even means for a given indicator. */
 const LOWER_IS_BETTER_KEYWORDS = ['opóźni','wypadk','incydent','niezgod','wyłącz','nadliczbow',
   'absencj','awari','skarg','błęd','reklamacj','ryzyk','brak','naruszen'];
 function inferDirection(name){
   const n = (name||'').toLowerCase();
   return LOWER_IS_BETTER_KEYWORDS.some(k=>n.includes(k)) ? 'lower' : 'higher';
 }
-// The sheet doesn't always fill in the two annual columns consistently — for
-// some indicators the reported number lives in "Roczna_wartosc_planowana",
-// for others in "Roczna_wartosc_oczekiwana". When BOTH are present we keep the
-// natural reading (oczekiwana = reported/expected value, planowana = target).
-// When only ONE is present, we can't assume which role it plays, so we show it
-// as the value with no separate target rather than guessing / hiding it.
+// The sheet doesn't always fill in the two annual columns consistently. Confirmed
+// mapping: "Roczna_wartosc_oczekiwana" is the CEL/target (limit to compare
+// against), "Roczna_wartosc_planowana" is the actually reported/expected value.
+// When only ONE column is present we can't assume which role it plays, so it's
+// shown as the value with no separate target rather than guessing.
 function annualValueTarget(u){
   const hasExp = !u.exp.empty && u.exp.value!=null;
   const hasPlan = !u.plan.empty && u.plan.value!=null;
-  if(hasExp && hasPlan) return {value:u.exp, target:u.plan};
-  if(hasExp) return {value:u.exp, target:null};
+  if(hasExp && hasPlan) return {value:u.plan, target:u.exp};
   if(hasPlan) return {value:u.plan, target:null};
+  if(hasExp) return {value:u.exp, target:null};
   return {value:null, target:null};
 }
-function latestActual(u){
-  for(let i=3;i>=0;i--){ if(!u.q[i].empty && u.q[i].value!=null) return u.q[i].value; }
-  if(!u.exp.empty && u.exp.value!=null) return u.exp.value;
-  if(!u.plan.empty && u.plan.value!=null) return u.plan.value;
-  return null;
+// true when `actual` is on the wrong side of `target` for the given direction
+// (small 0.5% tolerance so float/rounding noise doesn't flip the verdict)
+function isBreach(actual, target, direction){
+  const ratio = (actual - target) / (Math.abs(target) || 1);
+  const signed = direction==='lower' ? ratio : -ratio; // >0 means "worse than target"
+  return signed > 0.005;
 }
 function computeStatus(u, direction){
-  const hasQ = u.q.some(q=>!q.empty && q.value!=null);
-  let planVal, actual;
-  if(hasQ){
-    // quarterly indicators: quarters are the actual data points, the annual
-    // column(s) supply the reference target — prefer "planowana", fall back
-    // to "oczekiwana" if that's the only one filled in for this row.
-    planVal = (!u.plan.empty && u.plan.value!=null) ? u.plan.value
-            : (!u.exp.empty && u.exp.value!=null) ? u.exp.value : null;
-    actual = latestActual(u);
-  } else {
-    // annual-only indicators: only compute a status when BOTH columns are
-    // present (i.e. we actually know which is the target) — a single lone
-    // value has nothing to be measured against.
-    const {value, target} = annualValueTarget(u);
-    planVal = target ? target.value : null;
-    actual = value ? value.value : null;
+  const uViz = computeUnitViz(u);
+  if(uViz==='empty') return 'empty';
+  if(uViz==='badge') return 'good'; // qualitative grades aren't judged numerically
+  if(uViz==='quarterly'){
+    // target: prefer "oczekiwana" (cel), fall back to "planowana" if that's the
+    // only column filled in for this row
+    const target = (!u.exp.empty && u.exp.value!=null) ? u.exp.value
+                 : (!u.plan.empty && u.plan.value!=null) ? u.plan.value : null;
+    const reported = u.q.filter(q=>!q.empty && q.value!=null).map(q=>q.value);
+    if(reported.length===0) return 'empty';
+    if(target==null) return 'good';
+    const breaches = reported.map(v=> isBreach(v, target, direction));
+    if(breaches[breaches.length-1]) return 'bad';           // currently over the limit
+    return breaches.some(Boolean) ? 'warn' : 'good';         // was over it earlier, now clear
   }
-  if(planVal==null || actual==null) return 'unknown';
-  const diffRatio = (actual - planVal) / (Math.abs(planVal) || 1);
-  const signed = direction==='lower' ? diffRatio : -diffRatio; // >0 means "worse than target"
-  if(signed > 0.10) return 'bad';
-  if(signed > 0.02) return 'warn';
-  return 'good';
+  // annual-only indicators (single reported value per year)
+  const {value, target} = annualValueTarget(u);
+  if(!value || value.value==null) return 'empty';
+  if(!target || target.value==null) return 'good';
+  return isBreach(value.value, target.value, direction) ? 'bad' : 'good';
 }
 function worstStatus(statuses){
-  const rank = {bad:3, warn:2, good:1, unknown:0};
-  return statuses.reduce((a,b)=> rank[b]>rank[a] ? b : a, 'unknown');
+  const rank = {bad:3, warn:2, good:1, empty:0};
+  return statuses.reduce((a,b)=> rank[b]>rank[a] ? b : a, 'empty');
 }
-const STATUS_LABEL = {bad:'poza celem', warn:'blisko granicy celu', good:'w celu', unknown:''};
+const STATUS_LABEL = {bad:'przekracza cel', warn:'przekraczał wcześniej, teraz w celu', good:'w celu', empty:'brak danych'};
 function statusDot(status){
-  if(!status || status==='unknown') return '';
-  const color = status==='bad'? 'var(--bad)' : status==='warn'? 'var(--amber)' : 'var(--ok)';
+  if(!status || status==='empty') return '';
+  const color = status==='bad'? 'var(--bad)' : status==='warn'? 'var(--warn)' : 'var(--ok)';
   return `<span class="status-dot" style="background:${color}" title="${STATUS_LABEL[status]}"></span>`;
 }
 
@@ -455,17 +471,17 @@ function renderSummary(){
     </div>
     <div class="stat-card">
       <div class="label">Z zaraportowanymi danymi</div>
-      <div class="value" style="color:#059669">${withData}<small>/ ${total}</small></div>
+      <div class="value" style="color:var(--txt)">${withData}<small>/ ${total}</small></div>
       <div class="foot">${total? Math.round(withData/total*100):0}% pokrycia danych</div>
     </div>
     <div class="stat-card${bad? ' stat-alert':''}">
       <div class="label"><span class="status-dot" style="background:var(--bad)"></span>Poza celem</div>
-      <div class="value" style="color:#dc2626">${bad}<small>+ ${warn} blisko granicy</small></div>
+      <div class="value" style="color:var(--bad)">${bad}<small>+ ${warn} blisko granicy</small></div>
       <div class="foot">wymaga uwagi Zarządu</div>
     </div>
     <div class="stat-card">
       <div class="label">Oczekujące na dane</div>
-      <div class="value" style="color:#d97706">${missing}</div>
+      <div class="value" style="color:var(--mut)">${missing}</div>
       <div class="foot">gł. wskaźniki roczne, rozliczane po zakończeniu okresu</div>
     </div>
     <div class="stat-card">
@@ -547,16 +563,16 @@ function renderUnitChart(canvasEl, u, meta, compact, yScale){
   const labels = ['I kw.','II kw.','III kw.','IV kw.'];
   const datasets = [{
     label:'Wartość', data: u.q.map(q=> (q.empty? null : q.value)),
-    backgroundColor: meta.color, borderRadius:4, maxBarThickness: compact?20:28, order:2
+    backgroundColor: statusInk(u.status), borderRadius:4, maxBarThickness: compact?20:28, order:2
   }];
-  // target reference: prefer "planowana", fall back to "oczekiwana" when only
+  // target reference: prefer "oczekiwana", fall back to "planowana" when only
   // that column was filled in for this row (data entry isn't always consistent)
-  const planVal = (!u.plan.empty && u.plan.value!=null) ? u.plan.value
-                 : (!u.exp.empty && u.exp.value!=null) ? u.exp.value : null;
+  const planVal = (!u.exp.empty && u.exp.value!=null) ? u.exp.value
+                 : (!u.plan.empty && u.plan.value!=null) ? u.plan.value : null;
   if(planVal!=null){
     datasets.push({
       type:'line', label:'Cel roczny', data:[planVal,planVal,planVal,planVal],
-      borderColor:'#111827', borderDash:[5,4], pointRadius:0, borderWidth:1.5, order:1, fill:false
+      borderColor:BRAND.navy, borderDash:[5,4], pointRadius:0, borderWidth:1.5, order:1, fill:false
     });
   }
   const yAxis = {grid:{color:'#eef1f6'}, ticks:{font:{size:compact?9:10}}, beginAtZero:true};
@@ -589,13 +605,13 @@ function renderUnitAnnualChart(canvasEl, u, meta, compact, yScale){
   const targetVal = target ? target.value : null;
   const percent = (value && value.percent) || (target && target.percent);
   const datasets = [{
-    label:'Wartość', data:[val], backgroundColor: meta.color,
+    label:'Wartość', data:[val], backgroundColor: statusInk(u.status),
     borderRadius:4, maxBarThickness: compact?36:48, order:2
   }];
   if(targetVal!=null){
     datasets.push({
       type:'line', label:'Cel roczny', data:[targetVal],
-      borderColor:'#111827', borderDash:[5,4], pointRadius:0, borderWidth:1.5, order:1, fill:false
+      borderColor:BRAND.navy, borderDash:[5,4], pointRadius:0, borderWidth:1.5, order:1, fill:false
     });
   }
   const yAxis = {grid:{color:'#eef1f6'}, ticks:{font:{size:compact?9:10}, callback:(v)=>fmtNum(v,percent)}, beginAtZero:true};
@@ -619,13 +635,13 @@ function renderUnitAnnualChart(canvasEl, u, meta, compact, yScale){
 }
 
 // same "value could be in either column" ambiguity applies to qualitative
-// (grade/text) cells too — pick whichever column actually has content.
+// (grade/text) cells too — same mapping as annualValueTarget: oczekiwana=cel.
 function qualitativeValueTarget(u){
   const hasExp = !u.exp.empty;
   const hasPlan = !u.plan.empty;
-  if(hasExp && hasPlan) return {value:u.exp, target:u.plan};
-  if(hasExp) return {value:u.exp, target:null};
+  if(hasExp && hasPlan) return {value:u.plan, target:u.exp};
   if(hasPlan) return {value:u.plan, target:null};
+  if(hasExp) return {value:u.exp, target:null};
   return {value:null, target:null};
 }
 function badgeHtml(u, meta){
