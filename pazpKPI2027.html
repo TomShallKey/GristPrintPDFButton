@@ -523,6 +523,12 @@ function populateObszarFilter(){
 let cardIdSeq = 0;
 function cellText(cell){
   if(cell.empty) return cell.na? 'x' : '—';
+  // when a cell was rescaled after parsing (e.g. bare "1" recognised as 100%
+  // because the target on that row is written as a percentage), cell.raw
+  // still holds the ORIGINAL text ("1") — showing that verbatim would look
+  // like "1%" instead of "100%", so percent-scaled cells always go through
+  // fmtNum against the corrected value instead of trusting raw.
+  if(cell.percent && cell.value!=null) return fmtNum(cell.value, true);
   return cell.raw!==undefined? cell.raw : fmtNum(cell.value, cell.percent);
 }
 function planExpText(u){
@@ -570,8 +576,8 @@ function renderUnitChart(canvasEl, u, meta, compact, yScale, freq){
       borderColor:BRAND.navy, borderDash:[5,4], pointRadius:0, borderWidth:1.5, order:1, fill:false
     });
   }
-  const yAxis = {grid:{color:'#eef1f6'}, ticks:{font:{size:compact?9:10}}, beginAtZero:true};
   const percent = qCells.some(q=>q.percent) || (!u.exp.empty && u.exp.percent) || (!u.plan.empty && u.plan.percent);
+  const yAxis = {grid:{color:'#eef1f6'}, ticks:{font:{size:compact?9:10}, callback:(v)=>fmtNum(v,percent)}, beginAtZero:true};
   if(yScale){ yAxis.min = yScale.min; yAxis.max = yScale.max; }
   else {
     const localMax = Math.max(0, ...qCells.map(q=> q.empty? 0 : (q.value||0)), planVal||0);
@@ -585,7 +591,7 @@ function renderUnitChart(canvasEl, u, meta, compact, yScale, freq){
       interaction:{mode:'index', intersect:false},
       plugins:{
         legend:{display:false},
-        tooltip:{callbacks:{label:(c)=> `${c.dataset.label}: ${c.formattedValue}`}}
+        tooltip:{callbacks:{label:(c)=> `${c.dataset.label}: ${fmtNum(c.parsed.y, percent)}`}}
       },
       scales:{
         x:{grid:{display:false}, ticks:{font:{size:compact?9:10}}},
