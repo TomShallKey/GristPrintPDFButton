@@ -581,7 +581,7 @@ function renderUnitChart(canvasEl, u, meta, compact, yScale, freq){
   if(yScale){ yAxis.min = yScale.min; yAxis.max = yScale.max; }
   else {
     const localMax = Math.max(0, ...qCells.map(q=> q.empty? 0 : (q.value||0)), planVal||0);
-    if(localMax>0) yAxis.max = niceAxisMax(localMax*1.1, percent);
+    if(localMax>0) yAxis.max = niceAxisMax(localMax, percent);
   }
   charts.push(new Chart(canvasEl,{
     type:'bar',
@@ -624,7 +624,7 @@ function renderUnitAnnualChart(canvasEl, u, meta, compact, yScale){
   if(yScale){ yAxis.min = yScale.min; yAxis.max = yScale.max; }
   else {
     const localMax = Math.max(val||0, targetVal||0);
-    if(localMax>0) yAxis.max = niceAxisMax(localMax*1.1, percent);
+    if(localMax>0) yAxis.max = niceAxisMax(localMax, percent);
   }
   charts.push(new Chart(canvasEl,{
     type:'bar',
@@ -730,9 +730,13 @@ function niceRoundUp(v){
   const magnitude = Math.pow(10, Math.max(0, digits-2));
   return Math.ceil(v/magnitude)*magnitude;
 }
-function niceAxisMax(rawMax, percent){
-  if(percent && rawMax<=100) return 100;
-  return niceRoundUp(rawMax);
+function niceAxisMax(dataMax, percent){
+  // Percentage metrics are conceptually bounded at 100% — pin the axis there
+  // unconditionally so every %-based card in the board reads on the same
+  // scale, even when a reported value slightly overshoots 100 (rounding /
+  // measurement noise in the source data, not a real >100% result).
+  if(percent) return 100;
+  return niceRoundUp(dataMax*1.1);
 }
 
 // A panel splits one indicator across several locations/units — so all of its
@@ -750,7 +754,7 @@ function computeGroupYScale(g){
     if(!u.exp.empty && u.exp.value!=null){ any=true; if(u.exp.value>max) max=u.exp.value; if(u.exp.value<min) min=u.exp.value; if(u.exp.percent) percent=true; }
   });
   if(!any || max<=0) return null;
-  return {min, max: niceAxisMax(max*1.1, percent)};
+  return {min, max: niceAxisMax(max, percent)};
 }
 
 // multiple locations for the same indicator — split into one compact sub-card per
