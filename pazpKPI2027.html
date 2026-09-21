@@ -1380,24 +1380,31 @@ function buildPRUChartData(g){
 }
 function renderPRUStaffingChart(canvasEl, g, compact){
   const {labels, fullLabels, targets, h1Values, h2Values, hasQFlags} = buildPRUChartData(g);
-  const localMax = Math.max(0, ...h1Values.filter(v=>v!=null), ...h2Values.filter(v=>v!=null), ...targets.filter(v=>v!=null));
-  // per request: planned-headcount bars stay neutral blue even when a role's
-  // reported figure sits below its own target — this indicator reads as a
-  // staffing LEVEL, not a pass/fail target, so no red/green judging here.
-  const neutralColors = arr=> arr.map(v=> v==null ? 'transparent' : BRAND.blue);
+  // per request: planned-headcount bars stay neutral pastel blue (same tone
+  // as every other "no red/green verdict" chart) even when a role's reported
+  // figure sits below its own target — this indicator reads as a staffing
+  // LEVEL, not a pass/fail target, so no red/green judging here.
+  const neutralColors = arr=> arr.map(v=> v==null ? 'transparent' : statusInk('good'));
+  // fixed 0-700 FTE axis: covers every PRU role's target/value with one
+  // stable scale (per request), instead of auto-fitting to whichever role
+  // happens to be tallest.
+  const barThickness = compact?18:24;
   charts.push(new Chart(canvasEl,{
     data:{
       labels,
       datasets:[
-        { type:'bar', label:'I półr.', data:h1Values, backgroundColor:neutralColors(h1Values), borderRadius:4, maxBarThickness: compact?18:24, order:2 },
-        { type:'bar', label:'II półr.', data:h2Values, backgroundColor:neutralColors(h2Values), borderRadius:4, maxBarThickness: compact?18:24, order:2 },
+        { type:'bar', label:'I półr.', data:h1Values, backgroundColor:neutralColors(h1Values), borderRadius:4, maxBarThickness: barThickness, order:2 },
+        { type:'bar', label:'II półr.', data:h2Values, backgroundColor:neutralColors(h2Values), borderRadius:4, maxBarThickness: barThickness, order:2 },
         {
           // one target marker per PRU role, spanning the whole category
           // (both half-year sub-columns) instead of a separate tick per half
-          // — a role has exactly one annual target, not two.
+          // — a role has exactly one annual target, not two. Radius is sized
+          // to the combined width of both bar slots so the dash visibly
+          // covers both columns instead of reading as a short tick over just
+          // one of them.
           type:'line', label:'Cel', data:targets,
           showLine:false, pointStyle:'line', rotation:0,
-          pointRadius: compact?9:12, pointBorderWidth:2.5, borderColor:BRAND.navy,
+          pointRadius: barThickness, pointBorderWidth:2.5, borderColor:BRAND.navy,
           order:1
         }
       ]
@@ -1421,7 +1428,7 @@ function renderPRUStaffingChart(canvasEl, g, compact){
       },
       scales:{
         x:{grid:{display:false}, ticks:{font:{size:compact?9:10}, autoSkip:false, maxRotation:0, minRotation:0}},
-        y:{grid:{color:'#eef1f6'}, ticks:{font:{size:compact?9:10}, callback:(v)=>fmtNum(v)}, beginAtZero:true, max: localMax>0? niceAxisMax(localMax,false):undefined}
+        y:{grid:{color:'#eef1f6'}, ticks:{font:{size:compact?9:10}, callback:(v)=>fmtNum(v)}, beginAtZero:true, min:0, max:700}
       },
       animation:{duration:300}
     }
