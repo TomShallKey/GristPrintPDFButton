@@ -1542,15 +1542,23 @@ function niceRoundUp(v){
 // then can't evenly divide into round gridlines, producing a lopsided axis like
 // "0 / 100 / 200 / 300 / 450 mln". This picks a clean step (1/2/5 × a power of
 // ten) AND a max that's an exact multiple of it, so every gridline lines up
-// (e.g. step 100 mln → 0/100/200/300/400/500).
+// (e.g. step 100 mln → 0/100/200/300/400/500). No extra proportional headroom
+// is added on top — rounding UP to the next clean step already gives enough
+// breathing room, and a fixed 10% padding was pushing the ceiling a whole
+// extra step past the highest real target/value (e.g. 1200 mln rounding all
+// the way up to 1500 instead of stopping at a tight, still-clean 1200/1400).
 function niceMillionsScale(dataMax){
   if(!(dataMax>0)) return {max:0, step:1};
-  const rawStep = (dataMax*1.1)/5;
+  const rawStep = dataMax/5;
   const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
   const residual = rawStep/magnitude;
-  const niceResidual = residual>5 ? 10 : residual>2 ? 5 : residual>1 ? 2 : 1;
+  // geometric-mean breakpoints between the allowed 1/2/5/10 step multipliers
+  // (sqrt(2), sqrt(10), sqrt(50)) — picks whichever is numerically CLOSEST on
+  // a log scale, instead of the old skewed cutoffs that rounded e.g. a 2.4-2.6
+  // residual all the way up to 5 (a full step too coarse).
+  const niceResidual = residual>7.07 ? 10 : residual>3.162 ? 5 : residual>1.414 ? 2 : 1;
   const step = niceResidual*magnitude;
-  return {max: Math.ceil((dataMax*1.1)/step)*step, step};
+  return {max: Math.ceil(dataMax/step)*step, step};
 }
 // Percent axes normally run a fixed 0-100% ladder (five 20%-spaced
 // gridlines) — but a metric that's genuinely allowed to overshoot 100% (e.g.
@@ -1607,7 +1615,12 @@ function computeGroupYScale(g){
 // groups (not locations within one) — used to align the Y axis of a small set
 // of closely-related standalone cards (see RUNWAY_SAFETY_METRICS below) so
 // their bar heights stay visually comparable at a glance.
-function computeSharedYScale(groups){
+// `millions` picks the tighter, clean-step money-scale rounding
+// (niceMillionsScale) instead of the generic niceAxisMax/niceRoundUp — used
+// for the KP-INWEST investment clusters, whose PLN targets are big enough
+// that the generic half-order-of-magnitude rounding overshoots by a whole
+// extra step (e.g. 1200 mln rounding all the way up to 1500).
+function computeSharedYScale(groups, millions){
   let max = -Infinity, min = 0, any = false, percent = false;
   groups.forEach(g=> g.units.forEach(u=>{
     u.q.forEach(q=>{ if(!q.empty && q.value!=null){ any=true; if(q.value>max) max=q.value; if(q.value<min) min=q.value; if(q.percent) percent=true; } });
@@ -1615,6 +1628,7 @@ function computeSharedYScale(groups){
     if(!u.exp.empty && u.exp.value!=null){ any=true; if(u.exp.value>max) max=u.exp.value; if(u.exp.value<min) min=u.exp.value; if(u.exp.percent) percent=true; }
   }));
   if(!any || max<=0) return null;
+  if(millions){ const sc = niceMillionsScale(max); return {min, max: sc.max, step: sc.step, percent}; }
   return {min, max: niceAxisMax(max, percent), percent};
 }
 // Runway-safety trio (KP-TWR): reported side by side, all incident counts, all
@@ -1657,8 +1671,14 @@ function buildPanelCard(g, compact){
   const panel = document.createElement('div');
   // the panel itself is never tinted red/yellow for a single breaching
   // location — see per-unit-box and per-bar colouring above; only the
-  // "no data at all" grey state applies at the panel level.
-  panel.className = 'card panel' + (g.vizType==='empty' ? ' empty':'');
+  // "no data at all" grey state applies at the panel level. That grey state
+  // must fire whenever EVERY location is empty (g.status==='empty', the
+  // worst-case rank), not just when the whole group's vizType is structurally
+  // empty — a panel can be vizType 'annual'/'quarterly' (it has a target) yet
+  // still have zero locations with an actual reported result, and the title
+  // needs to read as inactive in that case too (e.g. KP-TR-ATS training-rate
+  // panels with cel-only sub-boxes).
+  panel.className = 'card panel' + ((g.vizType==='empty' || g.status==='empty') ? ' empty':'');
   panel.style.borderLeftColor = meta.color;
 
   panel.innerHTML = `
@@ -1765,9 +1785,17 @@ function renderContent(){
         const rank = n=> /PAŻP\b/i.test(n) ? 0 : /Biura OZ\b/i.test(n) ? 1 : /Biura MA\b/i.test(n) ? 2 : 3;
         return rank(a.name)-rank(b.name);
       });
-    const investSmall = groups.filter(g=> isBudgetInvestmentMetric(g) && !isBigInvestmentMetric(g.name));
-    const investBigShared = computeSharedYScale(investBig);
-    const investSmallShared = computeSharedYScale(investSmall);
+    const investSmall = groups.filter(g=> isBudgetInvestmentMetric(g) && !isBigInvestmentMetric(g.name))
+      .sort((a,b)=>{
+        // requested display order for the "rest" (smaller-budget) offices —
+        // AO/AY/MF/MZ/OP/OR — rather than the raw sheet order.
+        const SMALL_INVEST_ORDER = ['AO','OP','OR','AY','MF','MZ'];
+        const codeOf = n=>{ const m=/\b(AO|AY|MF|MZ|OP|OR)\b/i.exec(n||''); return m? m[1].toUpperCase() : ''; };
+        const rank = n=>{ const i = SMALL_INVEST_ORDER.indexOf(codeOf(n)); return i<0? 99 : i; };
+        return rank(a.name)-rank(b.name);
+      });
+    const investBigShared = computeSharedYScale(investBig, true);
+    const investSmallShared = computeSharedYScale(investSmall, true);
     // KP-TR-ATS: "podstawowego" (1 chart), "w zakresie uprawnienia" (4
     // charts: ACS/APS/ADC/APP) and the merged simulator-availability panel (3
     // charts: P_21/BEST-Warszawa/BEST-Poznań) all read as one connected row —
