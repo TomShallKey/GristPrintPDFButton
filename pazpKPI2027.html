@@ -879,6 +879,21 @@ function buildGroups(records){
         if(noQ && !u.plan.empty && u.exp.empty){ u.exp = u.plan; u.plan = {empty:true, na:true}; }
       });
     }
+    // OB. "Integracja środowiska UTM z systemami TWR (do 2030 r.)" and "Pełna
+    // wymiana danych pomiędzy systemami ATM i UTM (do 2034 r.)": both are
+    // long-horizon annual targets — "planowana" (15%/25%) is just next
+    // milestone's forecast, not a real reported result (nothing has actually
+    // been done yet), "oczekiwana" (10%/20%) is the real target/cel. Without
+    // this override annualValueTarget() would draw "planowana" as an achieved
+    // bar; force target-only (grey) rendering instead, using "oczekiwana" as
+    // the cel line — same lone-column pattern as the other annual overrides.
+    const OB_TARGET_ONLY_NAMES = ['Integracja środowiska UTM z systemami TWR (do 2030 r.)', 'Pełna wymiana danych pomiędzy systemami ATM i UTM (do 2034 r.)'];
+    if(normText(first.Obszar)==='OB.' && OB_TARGET_ONLY_NAMES.some(n=>looseKey(n)===looseKey(first.Mierniki_2026))){
+      units.forEach(u=>{
+        const noQ = u.q.every(q=>q.empty || q.value==null);
+        if(noQ && !u.plan.empty){ u.plan = {empty:true, na:true}; }
+      });
+    }
     const hasQuarterData = units.some(u=>u.q.some(q=>!q.empty && q.value!=null));
     // any unit with a real number in either column counts as "annual" viz —
     // even when "planowana" is explicitly "x" (nothing measured, target-only).
@@ -1057,7 +1072,6 @@ function renderUnitChart(canvasEl, u, meta, compact, yScale, freq, direction, ne
   // a red Q2 bar *and* a red background (see request).
   const barColors = qCells.map(q=>{
     if(q.empty || q.value==null) return 'transparent';
-    if(millions && q.value===0) return statusInk('bad'); // 0 execution reported — flag it even on an otherwise-neutral investment chart
     if(neutral || planVal==null) return statusInk('good');
     if(planRange) return isOutOfRange(q.value, planRange) ? statusInk('bad') : statusInk('good');
     return isBreach(q.value, planVal, directionFromOp(targetCell.op) || direction) ? statusInk('bad') : statusInk('good');
@@ -1065,7 +1079,7 @@ function renderUnitChart(canvasEl, u, meta, compact, yScale, freq, direction, ne
   const datasets = [{
     label:'Wartość', data: qCells.map(q=> (q.empty? null : q.value)),
     backgroundColor: barColors, borderRadius:4, maxBarThickness: compact?20:28, order:2,
-    minBarLength: millions? 2 : undefined // keep a real 0 visible as a thin red sliver instead of nothing
+    minBarLength: millions? 2 : undefined // keep a real 0 visible as a thin sliver instead of nothing
   }];
   if(planRange){
     // draw the whole "lo-hi" band as a shaded region (two flat dashed lines
@@ -1212,7 +1226,7 @@ function renderUnitAnnualChart(canvasEl, u, meta, compact, yScale, millions, noV
     label:'Wartość', data:[val],
     backgroundColor: (millions && val===0) ? statusInk('bad') : statusInk(u.status),
     borderRadius:4, maxBarThickness: compact?36:48, order:2,
-    minBarLength: millions? 2 : undefined // keep a real 0 visible as a thin red sliver instead of nothing
+    minBarLength: millions? 2 : undefined // keep a real 0 visible as a thin sliver instead of nothing
   }];
   if(targetVal!=null){
     const ds = {
