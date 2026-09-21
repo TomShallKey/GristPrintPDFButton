@@ -537,6 +537,12 @@ function statusDot(status){
 // the fields used for matching before grouping.
 function normText(s){ return String(s==null? '' : s).trim().replace(/\s+/g,' '); }
 function normCel(s){ return normText(s).replace(/,(?=\d)/g, '.'); }
+// diacritics-insensitive comparison key for hardcoded metric-name matches
+// below (e.g. "Wydajność"/"Obciążenie") — the sheet/Grist source spelling of
+// Polish special characters (ą/ć/ę/ł/ń/ó/ś/ż/ź) isn't always 100% consistent
+// with what got typed into these overrides, so matching drops accents on
+// both sides instead of requiring an exact byte-for-byte string match.
+function normKey(s){ return normText(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ł/g,'l'); }
 // Some sheet columns mix scales for the *same* metric: the annual target is
 // entered as a 0–1 ratio ("0,82") while the quarterly figures are entered as
 // bare percentage points ("62", "88", no "%" sign) — comparing them raw would
@@ -639,7 +645,7 @@ function buildGroups(records){
     // location with no quarterly data and a 0/0 annual pair is treated the
     // same as truly empty (matches how the other "no data at all" locations
     // already render, e.g. same panel's "Kompletność usługi" row).
-    if(normText(first.Mierniki_2026)==='Bezpieczeństwo świadczonej usługi osłony meteorologicznej'){
+    if(normKey(first.Mierniki_2026)===normKey('Bezpieczeństwo świadczonej usługi osłony meteorologicznej')){
       units.forEach(u=>{
         const noQ = u.q.every(q=>q.empty || q.value==null);
         const zeroPlan = !u.plan.empty && u.plan.value===0;
@@ -692,7 +698,7 @@ function buildGroups(records){
       'Odsetek Kontrolerów ruchu lotniczego (ATCI in OPS) w ogólnej liczbie zatrudnionych',
       'Poziom zaangażowania pracowników'
     ]);
-    if(normText(first.Obszar)==='KP-HRM' && KP_HRM_TARGET_ONLY_NAMES.has(normText(first.Mierniki_2026))){
+    if(normText(first.Obszar)==='KP-HRM' && [...KP_HRM_TARGET_ONLY_NAMES].some(n=>normKey(n)===normKey(first.Mierniki_2026))){
       units.forEach(u=>{
         const noQ = u.q.every(q=>q.empty || q.value==null);
         if(noQ && !u.plan.empty) u.plan = {empty:true, na:true};
@@ -704,7 +710,7 @@ function buildGroups(records){
     // filled — so, like the SZCD/KP-TR-ATS rows above, this must render as
     // target-only (grey card, dashed cel line) rather than a fake "100%
     // achieved" bar with nothing actually measured behind it.
-    if(normText(first.Obszar)==='MA' && normText(first.Mierniki_2026)==='Zgodność gaśnic'){
+    if(normText(first.Obszar)==='MA' && normKey(first.Mierniki_2026)===normKey('Zgodność gaśnic')){
       units.forEach(u=>{
         const noQ = u.q.every(q=>q.empty || q.value==null);
         if(noQ && !u.plan.empty && !u.exp.empty && u.plan.value===u.exp.value){ u.plan = {empty:true, na:true}; }
@@ -717,7 +723,7 @@ function buildGroups(records){
     // would otherwise draw "planowana" as if it were the achieved bar; force
     // it to target-only (only "oczekiwana" as the dashed cel line) since no
     // real traffic count has come in yet.
-    if(normText(first.Obszar)==='KP-FIS' && normText(first.Mierniki_2026)==='Obciażenie ruchem lotniczym'){
+    if(normText(first.Obszar)==='KP-FIS' && normKey(first.Mierniki_2026)===normKey('Obciążenie ruchem lotniczym')){
       units.forEach(u=>{
         const noQ = u.q.every(q=>q.empty || q.value==null);
         if(noQ && !u.plan.empty && !u.exp.empty) u.plan = {empty:true, na:true};
@@ -731,7 +737,7 @@ function buildGroups(records){
     // normal annual chart, not the previous whole-metric "force empty" (which
     // wrongly drew a blank QUARTERLY axis for an annual indicator and hid the
     // known target entirely).
-    if(normText(first.Obszar)==='KP-FIS' && ['Wydajnoś FISO na godzinę pracy','Zatrudnienie w ośrodku FIS'].includes(normText(first.Mierniki_2026))){
+    if(normText(first.Obszar)==='KP-FIS' && ['Wydajność FISO na godzinę pracy','Zatrudnienie w ośrodku FIS'].some(n=>normKey(n)===normKey(first.Mierniki_2026))){
       units.forEach(u=>{
         const noQ = u.q.every(q=>q.empty || q.value==null);
         if(noQ && !u.plan.empty && !u.exp.empty && cellsMatch(u.plan,u.exp)) u.plan = {empty:true, na:true};
@@ -743,7 +749,7 @@ function buildGroups(records){
     // actually reported/measured result (no quarter ever filled) — like the
     // KP-FIS traffic-load rows above, force target-only (98% cel line) rather
     // than drawing "planowana" as if it were a real achieved 95%.
-    if(normText(first.Obszar)==='KP-ASM1' && normText(first.Mierniki_2026)==='Dokładność danych zmian struktur przestrzeni powietrznej przekazanych do publikacji AIS'){
+    if(normText(first.Obszar)==='KP-ASM1' && normKey(first.Mierniki_2026)===normKey('Dokładność danych zmian struktur przestrzeni powietrznej przekazanych do publikacji AIS')){
       units.forEach(u=>{
         const noQ = u.q.every(q=>q.empty || q.value==null);
         if(noQ && !u.plan.empty && !u.exp.empty) u.plan = {empty:true, na:true};
@@ -780,7 +786,7 @@ function buildGroups(records){
     // 10-5" planowana / "<5" oczekiwana): annual, no quarterly data ever —
     // "planowana" is just a forecast, not a real reported count/result. Force
     // target-only (grey card) using "oczekiwana" as the cel line.
-    if((normText(first.Obszar)==='BHP' && normText(first.Mierniki_2026)==='Wypadki w pracy') ||
+    if((normText(first.Obszar)==='BHP' && normKey(first.Mierniki_2026)===normKey('Wypadki w pracy')) ||
        normText(first.Obszar)==='KP-FPL'){
       units.forEach(u=>{
         const noQ = u.q.every(q=>q.empty || q.value==null);
@@ -794,7 +800,7 @@ function buildGroups(records){
     // axis onto a 0-100% scale — squashing both the value and the "<3"/">1,2"
     // covenant targets into an unreadable sliver near zero. Strip that
     // mistaken percent flag here so the chart uses its real ratio scale.
-    if(normText(first.Obszar)==='MF' && normText(first.Mierniki_2026)==='Monitorowanie kowenantów na potrzeby umów kredytowych'){
+    if(normText(first.Obszar)==='MF' && normKey(first.Mierniki_2026)===normKey('Monitorowanie kowenantów na potrzeby umów kredytowych')){
       units.forEach(u=> u.q.forEach(q=>{ if(!q.empty) q.percent = false; }));
     }
     const hasQuarterData = units.some(u=>u.q.some(q=>!q.empty && q.value!=null));
@@ -839,7 +845,7 @@ function buildGroups(records){
     // above) — so the cadence dots must show it as annual (only the last
     // checkpoint lit), not as if it reports every quarter.
     const FREQ_OVERRIDE_ANNUAL = new Set(['Zgodność gaśnic']);
-    const effectiveFreq = FREQ_OVERRIDE_ANNUAL.has(normText(first.Mierniki_2026)) ? 'r.' : (first.czest_ || '');
+    const effectiveFreq = [...FREQ_OVERRIDE_ANNUAL].some(n=>normKey(n)===normKey(first.Mierniki_2026)) ? 'r.' : (first.czest_ || '');
 
     groups.push({
       key: [normText(first.Obszar), normText(first.KPA), normText(first.Mierniki_2026)].join('§'),
@@ -1703,7 +1709,8 @@ function renderContent(){
     // for the whole area — pin it first, ahead of the per-office traffic-load
     // and staffing cards that follow it in the raw sheet order.
     if(obszar==='KP-FIS'){
-      groups.sort((a,b)=> (a.name==='Wydajnoś FISO na godzinę pracy'?0:1) - (b.name==='Wydajnoś FISO na godzinę pracy'?0:1));
+      const isFisoEfficiency = n=> normKey(n)===normKey('Wydajność FISO na godzinę pracy');
+      groups.sort((a,b)=> (isFisoEfficiency(a.name)?0:1) - (isFisoEfficiency(b.name)?0:1));
     }
     const kpaSet = new Set(groups.map(g=>g.kpa));
     const primaryMeta = kpaMeta(kpaSet.size===1 ? groups[0].kpa : null);
@@ -1900,12 +1907,15 @@ function wireControls(){
 
 (async function init(){
   wireControls();
+  // no fixed timer anymore (per request) — only refreshes once on open and
+  // whenever Grist reports the underlying table actually changed
+  // (onRecords), so it doesn't silently reset filters/collapsed sections
+  // every 60s with nothing new to show.
   if(window.grist && window.parent !== window){
     try{ grist.ready({requiredAccess:'read table'}); }catch(e){}
     try{ grist.onRecords(()=> refreshAndRender()); }catch(e){}
   }
   await refreshAndRender();
-  setInterval(()=>{ if(!document.hidden) refreshAndRender(); }, 60000);
 })();
 
 </script>
