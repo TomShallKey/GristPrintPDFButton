@@ -442,7 +442,7 @@ function inferDirection(name){
 // metrics (unclear which side of the target is favourable), and "Wykonanie
 // budżetu szkoleń" (below the 95% plan mid-year is just normal spending pace,
 // not a problem — no red/green verdict makes sense here), stay neutral.
-const NEUTRAL_METRIC_PATTERNS = [/wydłużenie tras (sid|star)/i, /wykonanie budżetu/i];
+const NEUTRAL_METRIC_PATTERNS = [/wydłużenie tras (sid|star)/i, /wykonanie budżetu/i, /^Planowany stan zatrudnienia w etatach \(PRU\)/i];
 function isNeutralMetric(name){
   // KP-INWEST investment-realization metrics are informational (spend vs.
   // budget over the year) — there's no "good/bad" breach direction to judge
@@ -1343,15 +1343,15 @@ function buildPRUChartData(g){
   // filed at year-end) cells are ever used — same H1/H2-from-quarter-slots
   // convention as renderUnitChart, so PRU roles don't show two empty
   // quarterly gaps per half.
-  const labels = [], fullLabels = [], targets = [];
-  const values = [];             // single-bar path (no role has real half-year data yet)
-  const h1Values = [], h2Values = []; // grouped path — one shared "PRUn" label, two bars side by side
-  // once ANY role starts reporting real half-year figures, every role
-  // switches to the two-bars-per-label layout (so the axis stays consistent
-  // across the whole chart) — until then, everyone keeps the original single
-  // full-width bar per role.
-  let anyHasQ = false;
-  const perUnit = g.units.map(u=>{
+  const labels = [], fullLabels = [], targets = [], hasQFlags = [];
+  const h1Values = [], h2Values = []; // room for both half-year sub-columns is
+  // ALWAYS reserved (even before a role ever reports its 2nd half) so the
+  // layout never has to reshuffle/shift once real half-year data starts
+  // coming in — a role with only one known figure just duplicates it into
+  // both slots (renders as one solid full-width bar) instead of only
+  // occupying the left slot, which kept the target tick (always centred on
+  // the whole category) visually misaligned from a half-width bar.
+  g.units.forEach(u=>{
     const short = pruShortLabel(u.loc);
     // real reported figures land directly in whichever "I kw."/"II kw."/...
     // cell was actually filled in — the row's official cadence label ("pół
@@ -1362,7 +1362,6 @@ function buildPRUChartData(g){
     const h1 = qCells[0] && !qCells[0].empty && qCells[0].value!=null ? qCells[0].value : null;
     const h2 = qCells[1] && !qCells[1].empty && qCells[1].value!=null ? qCells[1].value : null;
     const hasQ = h1!=null || h2!=null;
-    if(hasQ) anyHasQ = true;
     // same "value could be in either column, oczekiwana=cel" mapping used
     // everywhere else — here plan/exp are normally identical (a planned
     // staffing LEVEL, not a separately measured "achieved" figure), so the
@@ -1370,46 +1369,32 @@ function buildPRUChartData(g){
     // headcounts start coming in.
     const target = (!u.exp.empty && u.exp.value!=null) ? u.exp.value : ((!u.plan.empty && u.plan.value!=null) ? u.plan.value : null);
     const annualValue = (!u.plan.empty && u.plan.value!=null) ? u.plan.value : target;
-    return {short, loc:u.loc, target, annualValue, h1, h2, hasQ};
-  });
-  perUnit.forEach(({short, loc, target, annualValue, h1, h2, hasQ})=>{
     labels.push(short); // one shared label per PRU role — never split into per-half sub-labels
-    fullLabels.push(loc||short);
+    fullLabels.push(u.loc||short);
     targets.push(target);
-    values.push(annualValue);
-    h1Values.push(hasQ ? h1 : annualValue); // roles without real half data yet just show their planned figure as a single (left) bar
-    h2Values.push(hasQ ? h2 : null);
+    hasQFlags.push(hasQ);
+    h1Values.push(hasQ ? h1 : annualValue);
+    h2Values.push(hasQ ? h2 : annualValue);
   });
-  return anyHasQ
-    ? {labels, fullLabels, targets, grouped:true, h1Values, h2Values}
-    : {labels, fullLabels, targets, grouped:false, values};
+  return {labels, fullLabels, targets, h1Values, h2Values, hasQFlags};
 }
 function renderPRUStaffingChart(canvasEl, g, compact){
-  const d = buildPRUChartData(g);
-  const {labels, fullLabels, targets} = d;
-  const allValues = d.grouped ? [...d.h1Values, ...d.h2Values] : d.values;
-  const localMax = Math.max(0, ...allValues.filter(v=>v!=null), ...targets.filter(v=>v!=null));
+  const {labels, fullLabels, targets, h1Values, h2Values, hasQFlags} = buildPRUChartData(g);
+  const localMax = Math.max(0, ...h1Values.filter(v=>v!=null), ...h2Values.filter(v=>v!=null), ...targets.filter(v=>v!=null));
   // per request: planned-headcount bars stay neutral blue even when a role's
   // reported figure sits below its own target — this indicator reads as a
   // staffing LEVEL, not a pass/fail target, so no red/green judging here.
   const neutralColors = arr=> arr.map(v=> v==null ? 'transparent' : BRAND.blue);
-  const barDatasets = d.grouped
-    ? [
-        { type:'bar', label:'I półr.', data:d.h1Values, backgroundColor:neutralColors(d.h1Values), borderRadius:4, maxBarThickness: compact?18:24, order:2 },
-        { type:'bar', label:'II półr.', data:d.h2Values, backgroundColor:neutralColors(d.h2Values), borderRadius:4, maxBarThickness: compact?18:24, order:2 }
-      ]
-    : [
-        { type:'bar', label:'Wartość', data:d.values, backgroundColor:neutralColors(d.values), borderRadius:4, maxBarThickness: compact?22:30, order:2 }
-      ];
   charts.push(new Chart(canvasEl,{
     data:{
       labels,
       datasets:[
-        ...barDatasets,
+        { type:'bar', label:'I półr.', data:h1Values, backgroundColor:neutralColors(h1Values), borderRadius:4, maxBarThickness: compact?18:24, order:2 },
+        { type:'bar', label:'II półr.', data:h2Values, backgroundColor:neutralColors(h2Values), borderRadius:4, maxBarThickness: compact?18:24, order:2 },
         {
           // one target marker per PRU role, spanning the whole category
-          // (both half-year bars when present) instead of a separate tick
-          // per half — a role has exactly one annual target, not two.
+          // (both half-year sub-columns) instead of a separate tick per half
+          // — a role has exactly one annual target, not two.
           type:'line', label:'Cel', data:targets,
           showLine:false, pointStyle:'line', rotation:0,
           pointRadius: compact?9:12, pointBorderWidth:2.5, borderColor:BRAND.navy,
@@ -1425,13 +1410,17 @@ function renderPRUStaffingChart(canvasEl, g, compact){
         tooltip:{
           callbacks:{
             title:(items)=> fullLabels[items[0].dataIndex],
-            label:(c)=> `${c.dataset.label}: ${fmtNum(c.parsed.y)}`
+            // roles that only have one (annual) figure duplicate it into both
+            // half-year slots purely so the bar visually spans the full
+            // category width — the tooltip should still read as one plain
+            // "Wartość" line for those, not two identical "I/II półr." rows.
+            label:(c)=> hasQFlags[c.dataIndex] ? `${c.dataset.label}: ${fmtNum(c.parsed.y)}` : `Wartość: ${fmtNum(c.parsed.y)}`
           },
-          filter:(c)=> c.parsed.y!=null
+          filter:(c)=> c.parsed.y!=null && (hasQFlags[c.dataIndex] || c.datasetIndex===0)
         }
       },
       scales:{
-        x:{grid:{display:false}, ticks:{font:{size:compact?9:10}, autoSkip:false, maxRotation:60, minRotation: labels.length>10?45:0}},
+        x:{grid:{display:false}, ticks:{font:{size:compact?9:10}, autoSkip:false, maxRotation:0, minRotation:0}},
         y:{grid:{color:'#eef1f6'}, ticks:{font:{size:compact?9:10}, callback:(v)=>fmtNum(v)}, beginAtZero:true, max: localMax>0? niceAxisMax(localMax,false):undefined}
       },
       animation:{duration:300}
