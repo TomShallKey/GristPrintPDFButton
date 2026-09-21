@@ -84,6 +84,15 @@ main{flex:1;padding:14px 22px 60px}
    investment rows above, just a plain 3-column layout. */
 .invest-row-3{grid-template-columns:repeat(3,1fr)}
 @media (max-width:900px){.invest-row-3{grid-template-columns:repeat(1,1fr)}}
+/* KP-AIM: 12 near-identical metrics split into 4 fixed rows (2/4/3/3) instead
+   of the default auto-fill wrap, per requested layout: Terminowość/Jakość
+   publikacji pair on top, the 4 "danych" metrics, then NOTAM trio, then PIB
+   trio. */
+.invest-row-2{grid-template-columns:repeat(2,1fr)}
+.invest-row-4{grid-template-columns:repeat(4,1fr)}
+@media (max-width:900px){.invest-row-2{grid-template-columns:repeat(1,1fr)}}
+@media (max-width:1100px){.invest-row-4{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:700px){.invest-row-4{grid-template-columns:repeat(1,1fr)}}
 /* "Skuteczność szkolenia podstawowego" (1 chart) + "...w zakresie uprawnienia"
    (4-location panel) + the merged simulator-availability panel (3 locations)
    all read as one connected row — columns sized 1/4/3 so each individual
@@ -1764,7 +1773,22 @@ function renderContent(){
     const jednostkaFollowUp = groups.filter(g=> /w odniesieniu do jednego naboru/i.test(g.name) || /^Skuteczność szkolenia uzupełniającego personelu ATS$/i.test(g.name))
       .sort((a,b)=> (/jednego naboru/i.test(a.name)?0:1) - (/jednego naboru/i.test(b.name)?0:1));
     const jednostkaRow = [jednostkaCard, ...jednostkaFollowUp].filter(Boolean);
-    const investSet = new Set([...investBig, ...investSmall, ...ospaRow, ...jednostkaRow]);
+    // KP-AIM: 12 data-quality metrics laid out in 4 fixed-width rows instead
+    // of the default auto-fill wrap — publication timeliness/quality pair
+    // (1-2), the "danych" quartet (3-6), NOTAM trio (7-9), PIB trio (10-12).
+    // Uses the group's OWN order (already the sheet/GROUPS order) rather than
+    // name-matching, so it still degrades gracefully if a filter drops some
+    // cards (rows just get shorter, no family mis-match risk).
+    const aimRows = [];
+    if(obszar==='KP-AIM'){
+      let idx = 0;
+      [2,4,3,3].forEach(sz=>{
+        const chunk = groups.slice(idx, idx+sz);
+        idx += sz;
+        if(chunk.length) aimRows.push(chunk);
+      });
+    }
+    const investSet = new Set([...investBig, ...investSmall, ...ospaRow, ...jednostkaRow, ...aimRows.flat()]);
     if(ospaRow.length){
       const row = document.createElement('div');
       row.className = 'invest-row invest-row-ospa';
@@ -1774,6 +1798,14 @@ function renderContent(){
       ospaRow.forEach(g=> row.appendChild(buildCard(g, null, false)));
       grid.appendChild(row);
     }
+    aimRows.forEach(chunk=>{
+      const row = document.createElement('div');
+      const cls = chunk.length===2 ? 'invest-row-2' : chunk.length===4 ? 'invest-row-4' : 'invest-row-3';
+      row.className = 'invest-row ' + cls;
+      if(chunk.length!==2 && chunk.length!==3 && chunk.length!==4) row.style.gridTemplateColumns = `repeat(${chunk.length},1fr)`;
+      chunk.forEach(g=> row.appendChild(buildCard(g)));
+      grid.appendChild(row);
+    });
     // Investment cards get their own full-width rows (one for the ~500 mln
     // PAŻP/MA/OZ trio, one for the ~20 mln rest) instead of being interleaved
     // into the regular auto-flow grid — that's the only way to guarantee they
