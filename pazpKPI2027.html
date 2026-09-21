@@ -35,25 +35,8 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);
 ::-webkit-scrollbar-thumb{background:#cdd3dd;border-radius:8px}
 ::-webkit-scrollbar-thumb:hover{background:#b7bece}
 
-/* ---------- top bar ---------- */
-.topbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:16px;
-  padding:14px 22px;background:linear-gradient(135deg,#111827 0%,#1f2937 55%,#111827 100%);
-  color:#fff;box-shadow:0 2px 14px rgba(0,0,0,.18)}
-.topbar h1{font-size:17px;font-weight:700;margin:0;letter-spacing:.2px;display:flex;align-items:center;gap:10px}
-.topbar h1 .logo{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);
-  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex:none}
-.topbar .sub{font-size:12px;color:#c7cdd8;font-weight:500;margin-top:1px}
-.topbar .spacer{flex:1}
-.topbar .meta{display:flex;align-items:center;gap:10px;font-size:12px;color:#c7cdd8}
-.topbar .dot{width:8px;height:8px;border-radius:50%;background:#34d399;box-shadow:0 0 0 3px rgba(52,211,153,.25)}
-.btn{appearance:none;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;
-  padding:7px 13px;border-radius:10px;font-size:12.5px;font-weight:600;cursor:pointer;display:flex;gap:6px;align-items:center;
-  transition:.15s}
-.btn:hover{background:rgba(255,255,255,.18)}
-.btn:active{transform:translateY(1px)}
-
 /* ---------- controls ---------- */
-.controls{position:sticky;top:60px;z-index:30;background:var(--bg);padding:10px 22px 12px;
+.controls{position:sticky;top:0;z-index:30;background:var(--bg);padding:14px 22px 12px;
   display:flex;flex-wrap:wrap;gap:10px;align-items:center;border-bottom:1px solid var(--line2)}
 .search{position:relative;flex:1;min-width:220px;max-width:340px}
 .search input{width:100%;padding:9px 12px 9px 32px;border-radius:10px;border:1px solid var(--line);
@@ -65,13 +48,11 @@ select,.chip-select{padding:8px 10px;border-radius:10px;border:1px solid var(--l
 .toggle{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--mut);cursor:pointer;
   user-select:none;background:var(--card);border:1px solid var(--line);padding:8px 12px;border-radius:10px}
 .toggle input{accent-color:var(--brand-blue)}
-.tabs{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
-.tab{padding:8px 14px;border-radius:10px;font-size:12.5px;font-weight:700;cursor:pointer;border:1px solid transparent;
-  color:var(--mut);background:transparent;display:flex;align-items:center;gap:7px;transition:.15s}
-.tab .n{background:var(--line2);color:var(--mut);border-radius:20px;padding:1px 7px;font-size:11px}
-.tab:hover{background:var(--line2)}
-.tab.active{background:var(--navy);color:#fff;box-shadow:var(--shadow)}
-.tab.active .n{background:rgba(255,255,255,.22);color:#fff}
+.collapse-all-btn{display:flex;align-items:center;justify-content:center;width:34px;height:34px;
+  border-radius:10px;border:1px solid var(--line);background:var(--card);cursor:pointer;padding:0}
+.collapse-all-btn:hover{background:var(--line2)}
+.collapse-all-btn .chev{transition:.2s;font-size:13px;color:var(--mut)}
+.collapse-all-btn.all-collapsed .chev{transform:rotate(-90deg)}
 
 /* ---------- content ---------- */
 main{flex:1;padding:14px 22px 60px}
@@ -89,27 +70,85 @@ main{flex:1;padding:14px 22px 60px}
    indicator cards ever share one line (e.g. 15 cards -> 8 + 7), while still
    wrapping down to fewer columns on narrower viewports. */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(max(300px,calc(100%/9)),1fr));gap:14px;padding:16px}
+/* investment rows (KP-INWEST): each spans the full grid width on its own
+   line and lays its own cards out with a fixed column count, so the "big"
+   (PAŻP/MA/OZ) trio and the "small" (rest) group never wrap into each
+   other's row regardless of how many other cards are in the section. */
+.invest-row{grid-column:1 / -1;display:grid;gap:14px;min-width:0}
+.invest-row-big{grid-template-columns:repeat(3,1fr)}
+.invest-row-small{grid-template-columns:repeat(6,1fr)}
+@media (max-width:1100px){.invest-row-small{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:700px){.invest-row-big,.invest-row-small,.invest-row-3{grid-template-columns:repeat(1,1fr)}}
+/* generic "own full-width row" for any other group of cards that should never
+   wrap alongside the rest of a section's cards — same mechanism as the
+   investment rows above, just a plain 3-column layout. */
+.invest-row-3{grid-template-columns:repeat(3,1fr)}
+@media (max-width:900px){.invest-row-3{grid-template-columns:repeat(1,1fr)}}
+/* "Skuteczność szkolenia podstawowego" (1 chart) + "...w zakresie uprawnienia"
+   (4-location panel) + the merged simulator-availability panel (3 locations)
+   all read as one connected row — columns sized 1/4/3 so each individual
+   chart stays roughly the same width whichever panel it belongs to, instead
+   of the single-chart card claiming as much width as a whole 4- or 3-chart
+   panel. */
+.invest-row-ospa{grid-template-columns:minmax(210px,1fr) minmax(420px,4fr) minmax(320px,3fr)}
+.invest-row-ospa .card.panel{grid-column:auto}
+/* "w jednostce" panel (3 locations) + its two close relatives (single-intake
+   variant + "uzupełniające" refresher, 1 chart each) — same idea as the OSPA
+   row above, columns sized 3/1/1. */
+.invest-row-jednostka{grid-template-columns:minmax(320px,3fr) minmax(210px,1fr) minmax(210px,1fr)}
+.invest-row-jednostka .card.panel{grid-column:auto}
+@media (max-width:900px){.invest-row-ospa{grid-template-columns:repeat(1,1fr)}}
+@media (max-width:900px){.invest-row-jednostka{grid-template-columns:repeat(1,1fr)}}
+/* a panel's per-location box has its OWN bottom padding around the mini
+   chart, on top of the outer card's bottom padding — so once the row's
+   bottom-alignment rule (.card-top ~ *:last-child{margin-top:auto}, below)
+   flushes the box against the card's bottom edge, the chart itself still
+   sits noticeably higher than a plain single-metric card's chart in the same
+   row (which only has ONE layer of bottom padding). Drop the box's own
+   bottom padding here so both card types end up with exactly one bottom
+   padding layer below the chart. */
+.invest-row-ospa .card.panel .unit-box,.invest-row-jednostka .card.panel .unit-box{padding-bottom:0}
 
 /* ---------- kpi card ---------- */
 .card{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--line);border-radius:10px;padding:13px 14px 11px;
-  box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;transition:.15s;position:relative}
+  box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;transition:.15s;position:relative;min-width:0}
 .card:hover{border-color:#d3d8e0}
 .card.empty{background:var(--card2);border-style:dashed;border-left-style:dashed;opacity:.55;filter:grayscale(.5)}
 .card.empty:hover{border-color:var(--line);opacity:.85;filter:none}
+/* the small-scale investment row (Biura other than PAŻP/MA/OZ) gets a
+   visually lighter/more compact card so its much smaller budget scale
+   reads as "smaller" at a glance, not just a narrower column. */
+.card-compact{padding:9px 10px 8px;gap:5px}
+.card-compact .card-title{font-size:11px}
 .card-top{display:flex;justify-content:space-between;gap:8px}
+/* GLOBAL: whichever card sits in the same CSS-grid row as others (the grid
+   stretches every card to match the tallest one in that row) should have its
+   actual chart bottom-aligned rather than top-aligned — otherwise a card
+   with a longer, more-wrapped title pushes its whole chart down while a
+   shorter-titled neighbour's chart stays higher, so the same 0%/100% axis
+   lines never line up horizontally. Bottom-anchoring whatever comes after
+   the title (subline+chart, or the unit-grid in a panel) fixes this for any
+   row of cards, not just one specific section. */
+.card-top ~ *:last-child{margin-top:auto}
+.unit-box-label ~ *:last-child{margin-top:auto}
 .card-title{font-size:12.8px;font-weight:700;line-height:1.3;color:var(--txt);max-width:100%}
+/* only the investment rows mix cards with visibly different title lengths
+   side by side in the same row — reserve 2-line title height there so a
+   longer office name doesn't push just that one card's chart lower than its
+   row-mates. Everywhere else (most titles are one line) this would just
+   leave an ugly gap above the chart, so it's scoped, not global. */
+.invest-row-big .card-title,.invest-row-small .card-title{min-height:2.6em}
 .freq-dots{display:flex;align-items:center;gap:4px;flex:none}
 .freq-dots .dot{width:6px;height:6px;border-radius:50%;border:1.4px solid var(--mut2);background:transparent}
 .freq-dots .dot.on{background:var(--mut2);border-color:var(--mut2)}
 .subline{font-size:11px;color:var(--mut);font-weight:500}
 .tag{font-size:10px;font-weight:700;color:var(--mut);background:var(--line2);padding:2px 7px;border-radius:6px}
-.chart-wrap{position:relative;height:150px;width:100%}
+.chart-wrap{position:relative;height:150px;width:100%;min-width:0}
 .chart-wrap.small{height:96px}
+.chart-wrap canvas{display:block;width:100%!important;height:100%!important;max-width:100%}
 .card-foot{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--mut);gap:6px}
 .kv{display:flex;gap:10px}
 .kv b{color:var(--txt);font-weight:800}
-.empty-msg{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--mut2);font-style:italic;
-  background:var(--line2);border-radius:8px;padding:8px 10px}
 .progress-line{height:8px;border-radius:5px;background:var(--line2);overflow:hidden;position:relative}
 .progress-line .fill{display:block;height:100%;border-radius:5px;transition:width .4s}
 .progress-line .target{position:absolute;top:-3px;width:2px;height:15px;background:var(--txt);opacity:.55}
@@ -126,9 +165,11 @@ main{flex:1;padding:14px 22px 60px}
 
 /* ---------- multi-location panel: one indicator split into per-location boxes ---------- */
 .card.panel{grid-column:1 / -1}
-.unit-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px;margin-top:2px}
-.unit-box{background:var(--card2);border:1px solid var(--line2);border-radius:9px;padding:9px 10px;display:flex;flex-direction:column;gap:4px}
-.unit-box-label{font-size:10.5px;font-weight:800;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.unit-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:2px}
+@media (max-width:900px){.unit-grid{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:600px){.unit-grid{grid-template-columns:repeat(2,1fr)}}
+.unit-box{background:var(--card2);border:1px solid var(--line2);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.unit-box-label{font-size:12px;font-weight:800;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .badge-wrap{display:flex;flex-direction:column;gap:3px;align-items:flex-start}
 .mini-note{font-size:9.5px;color:var(--warn);margin-top:2px}
 
@@ -136,11 +177,9 @@ main{flex:1;padding:14px 22px 60px}
 .status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:middle}
 .card.status-bad{background:var(--bad-b);border-color:var(--bad-line)}
 .card.status-bad:hover{border-color:rgba(211,47,47,.6)}
-.card.status-warn{background:var(--warn-b);border-color:var(--warn-line)}
 .card.status-empty{opacity:.55;filter:grayscale(.5)}
 .card.status-empty:hover{opacity:.85;filter:none}
 .unit-box.status-bad{background:var(--bad-b);border-color:var(--bad-line)}
-.unit-box.status-warn{background:var(--warn-b);border-color:var(--warn-line)}
 .unit-box.status-empty{opacity:.55;filter:grayscale(.5)}
 
 .empty-state{padding:60px 20px;text-align:center;color:var(--mut)}
@@ -150,38 +189,27 @@ main{flex:1;padding:14px 22px 60px}
 <body>
 <div id="app">
 
-  <header class="topbar">
-    <h1><span class="logo">P</span> Dashboard KPI 2027 <span class="sub" style="font-weight:500;color:#9aa3b2;margin-left:4px">/ PAŻP</span></h1>
-    <div class="spacer"></div>
-    <div class="meta" id="lastUpdate"><span class="dot"></span> synchronizacja…</div>
-    <button class="btn" id="refreshBtn">⟳ Odśwież</button>
-  </header>
-
   <section class="controls">
+    <button class="collapse-all-btn" id="toggleAllBtn" type="button" title="Zwiń/rozwiń wszystkie obszary"><span class="chev">▾</span></button>
+    <select id="obszarFilter"><option value="">Wszystkie obszary</option></select>
+    <select id="celFilter"><option value="">Wszystkie cele</option></select>
+    <select id="kpaFilter"><option value="">Wszystkie KPA</option></select>
     <div class="search">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.3-4.3M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z" stroke="#666" stroke-width="2" stroke-linecap="round"/></svg>
       <input id="searchInput" placeholder="Szukaj miernika, obszaru, celu…"/>
     </div>
-    <select id="obszarFilter"><option value="">Wszystkie obszary</option></select>
-    <select id="freqFilter">
-      <option value="">Wszystkie częstotliwości</option>
-      <option value="kw.">Kwartalne</option>
-      <option value="pół r.">Półroczne</option>
-      <option value="r.">Roczne</option>
-      <option value="mies.">Miesięczne</option>
+    <select id="dataFilter">
+      <option value="">Wszystkie</option>
+      <option value="nonempty">Niepuste</option>
+      <option value="empty">Puste</option>
     </select>
-    <label class="toggle"><input type="checkbox" id="onlyMissing"/> tylko braki danych</label>
     <label class="toggle"><input type="checkbox" id="onlyProblems"/> <span style="color:#dc2626">●</span> tylko poza celem</label>
-    <div class="tabs" id="kpaTabs"></div>
   </section>
 
   <main id="content"></main>
 
 </div>
 
-<script type="application/json" id="demo-data">
-{"Obszar": ["AOL", "AOL", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-RAD", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-TWR", "KP-FIS", "KP-FIS", "KP-FIS", "KP-FIS", "KP-FIS", "KP-FIS", "KP-FIS", "KP-FIS", "KP-FIS", "KP-AIM", "KP-AIM", "KP-AIM", "KP-AIM", "KP-AIM", "KP-AIM", "KP-AIM", "KP-AIM", "KP-AIM", "KP-AIM", "KP-AIM", "KP-AIM", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-AMC", "KP-ASM1", "KP-ASM2", "KP-FPL", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-IFPD", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-MET", "KP-TECH", "KP-TECH", "KP-TECH", "KP-TECH", "KP-TECH", "SMS", "SMS", "SMS", "SMS", "SMS", "SZBI", "SZBI", "KP-TR-ATS", "KP-TR-ATS", "KP-TR-ATS", "KP-TR-ATS", "KP-TR-ATS", "KP-TR-ATS", "KP-TR-ATS", "KP-TR-ATS", "KP-TR-ATS", "KP-TR-ATS", "KP-TR-ATS", "KP-TR-ATS", "KP-TR-ATS", "SZCD", "SZCD", "SZCD", "SZCD", "SZCD", "SZCD", "KP-ZAK", "KP-ZAK", "KP-INWEST", "KP-INWEST", "KP-INWEST", "KP-INWEST", "KP-INWEST", "KP-INWEST", "KP-INWEST", "KP-INWEST", "KP-INWEST", "AX", "AX", "KP-HRM", "KP-HRM", "KP-HRM", "KP-HRM", "KP-HRM", "KP-HRM", "KP-HRM", "KP-HRM", "KP-HRM", "KP-HRM", "KP-HRM", "KP-HRM", "KP-HRM", "KP-HRM", "KP-HRM", "KP-HRM", "KP-HRM", "MA", "MA", "MA", "MF", "MF", "MF", "MF", "MF", "OB.", "OB.", "BHP", "BHP"], "Cel_strategiczny": ["S.02", "S.02", "S.03", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.03", "S,03", "S.04", "S,04", "S.05", "S,05", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.03", "S.03", "S.03", "S.03", "S.02", "S.03", "S.04", "S.05", "S.06", "S.08", "S.08", "S.08", "S.08", "S.08", "S.08", "S.08", "S.08", "S.08", "S.08", "S.08", "S.08", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.05", "S.05", "S.05", "S.05", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.04", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.05", "S.05", "S.05", "S.05", "S.03", "S.03", "S.03", "S.03", "S.01", "S.01", "S.01", "S.01", "S.01", "S.03", "S.01", "S.01", "S.06", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.01", "S.06", "S.06", "S.06", "S.01", "S.01", "S.01", "S.01", "S.01", "S.01", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.02", "S.05", "S.05", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.03", "S.02", "S.01", "S.10", "S.01", "S.06", "S.01", "S.02", "S.02", "S.02", "S.02", "S.02", "S.09", "S.09", "S.01", "S.01"], "KPA": ["Capacity", "Capacity", "Capacity", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Safety", "Safety", "Safety", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Environment", "Safety", "Safety", "Safety", "Safety", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Environment", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Capacity", "Cost-Efficiency", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Safety", "Capacity", "Capacity", "Capacity", "Safety", "Safety", "Safety", "Safety", "Safety", "Safety", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Safety", "Safety", "Safety", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Cost-Efficiency", "Safety", "Safety", "Safety", "Cost-Efficiency"], "Mierniki_2026": ["Liczba wyłączeń urządzeń spowodowanych brakiem oblotów", "Uśredniony czas  wyłączeń urządzeń z pracy operacyjnej spowodowany brakiem oblotów", "Maksymalna wartość średnia opóźnień", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik zatrudnienia w organie", "Wskaźnik zatrudnienia w organie", "Wskaźnik zatrudnienia w organie", "Wskaźnik zatrudnienia w organie", "Wskaźnik zatrudnienia w organie", "Wskaźnik zatrudnienia w organie", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Liczba wtargnięć na drogę startową w wyniku decyzji ATC", "Liczba wszystkich wtargnięć na drogę startową", "Liczba przerwanych startów decyzją ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik wykorzystania ATCO na stanowiskach operacyjnych w organie ATC", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik liczby godzin nadliczbowych ATCO", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik zatrudnienia w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik liczby godzin nadliczbowych przypadających na liczbę zatrudnionych ATCO w organie ATC", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik absencji ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów operacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik liczby dyżurów nieoperacyjnych ATCO", "Wskaźnik obciażenia ruchem lotniczym", "Wskaźnik obciażenia ruchem lotniczym", "Wskaźnik obciażenia ruchem lotniczym", "Wskaźnik obciażenia ruchem lotniczym", "Wskaźnik wydajności FISO na godzinę pracy", "Wskaźnik zatrudnienia w ośrodku FIS", "Wskaźnik zatrudnienia w ośrodku FIS", "Wskaźnik zatrudnienia w ośrodku FIS", "Wskaźnik zatrudnienia w ośrodku FIS", "Terminowość publikacji AIS", "Jakość publikacji", "Terminowość dostarczania danych", "Format danych", "Jakość danych", "Kompletność danych", "Jakość zgłoszeń NOTAM", "Jakość publikacji NOTAM", "Czas publikacji NOTAM", "Jakość danych PIB", "Terminowość danych w PIB", "Zakres danych w PIB", "Efektywność wykorzystania struktur przestrzeni powietrznej powyżej FL095 ujętych w AUP.", "Efektywność wykorzystania dodatkowych struktur przestrzeni powietrznej powyżej FL095 nieujętych w AUP.", "Efektywność wykorzystania struktur przestrzeni powietrznej powyżej FL095 ujętych w AUP, niezwolnionych z 3-godzinnym wyprzedzeniem przed czasem planowanego rozpoczęcia.", "Efektywność wykorzystania struktur przestrzeni powietrznej powyżej FL315", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Efektywność wykorzystania struktur przestrzeni powietrznej kolizyjnych1 z dolotami/odlotami z poszczególnych lotnisk kontrolowanych", "Dostępność przestrzeni powietrznej dla ruchu tranzytowego GAT w oparciu o rzeczywistą aktywność struktur przestrzeni powietrznej powyżej FL315.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Dostępność przestrzeni powietrznej dla ruchu dolotowego/odlotowego GAT z poszczególnych lotnisk kontrolowanych w oparciu o rzeczywistą aktywność kolizyjnych1 z nimi struktur przestrzeni powietrznej.", "Optymalizacja trajektorii lotu (rozwój sieci tras lotniczych)", "Dokładność danych zmian struktur przestrzeni powietrznej przekazanych do publikacji AIS", "Skuteczność weryfikacji poprawności, kompletności oraz aktualnych danych lotniczych zawartych w planach lotów wprowadzonych do systemu ATM", "Poziom pewności zastosowanych zabezpieczeń przed niepowołana modyfikacją lub zniekształceniem danych na jakimkolwiek etapie realizacji procesu", "Poziom jakości wdrażanych procedur lotu", "Projektowe wydłużenie tras SID (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras SID (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras SID (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras SID (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras SID (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras SID (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras SID (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras SID (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras SID (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras SID (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras SID (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras SID (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras SID (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras SID (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Projektowe wydłużenie tras STAR (RNAV1 lub RNP1) dla lotniska kontrolowanego", "Sprawdzalność", "Sprawdzalność", "Sprawdzalność", "Sprawdzalność", "Terminowość", "Terminowość", "Terminowość", "Terminowość", "Kompletność usługi", "Kompletność usługi", "Kompletność usługi", "Kompletność usługi", "Poprawność formalna", "Poprawność formalna", "Poprawność formalna", "Poprawność formalna", "Dostępność", "Dostępność", "Dostępność", "Dostępność", "Bezpieczeństwo świadczonej usługi osłony meteorologicznej", "Bezpieczeństwo świadczonej usługi osłony meteorologicznej", "Bezpieczeństwo świadczonej usługi osłony meteorologicznej", "Bezpieczeństwo świadczonej usługi osłony meteorologicznej", "Stopień realizacji planowanych przeglądów (urządzeń/systemów CNS/ATM)", "Opóźnienia w ruchu lotniczym z powodów awarii systemów zabezpieczenia ruchu lotniczego", "Stopień realizacji zleceń dot. bezpośredniego wsparcia użytkownika (HELPDESK/IT)", "Liczba incydentów poważnych mogących spowodować poważne obniżenie lub przerwania ciągłości świadczenia usługi kluczowej", "Zapewnienie usług: COM,NAV,SUR,MET,DP(systemy),DP(sieć), IT (back off- służby operacyjne)", "Polityka w zakresie bezpieczeństwa", "zarzadzanie ryzykiem w zakresie bezpieczeństwa", "zapewnienie bezpieczeństwa", "promowanie bezpieczeństwa", "kultura bezpieczeństwa", "Liczba incydentów związanych z nieuprawnionym wejściem do stref bezpieczeństwa - cała organizacja", "Liczba wykrytych niezgodności przy przeglądzie bezpieczeństwa informacji", "Skuteczność szkolenia podstawowego (etap szkolenia wstępnego) personelu ATS w OSPA", "Skuteczność szkolenia w zakresie uprawnienia (etap szkolenia wstępnego) personelu ATS w OSPA", "Skuteczność szkolenia w zakresie uprawnienia (etap szkolenia wstępnego) personelu ATS w OSPA", "Skuteczność szkolenia w zakresie uprawnienia (etap szkolenia wstępnego) personelu ATS w OSPA", "Skuteczność szkolenia w zakresie uprawnienia (etap szkolenia wstępnego) personelu ATS w OSPA", "Skuteczność szkolenia personelu ATS w jednostce", "Skuteczność szkolenia personelu ATS w jednostce", "Skuteczność szkolenia personelu ATS w jednostce", "Skuteczność szkolenia personelu ATS w jednostce w odniesieniu do jednego naboru", "Skuteczność szkolenia uzupełniającego personelu ATS", "Dostępność techniczna symulatora (P_21)", "Dostępność techniczna symulatora (BEST-Warszawa)", "Dostępność techniczna symulatorów (BEST-Poznań)", "Testy czasu RTO w scenariuszach PA 6/ PA7 służb operacyjnych PAŻP", "Pokrycie zidentyfikowanych nieakceptowalnych ryzyk utraty ciagłości działania planami postępowania z ryzykiem", "Liczba zrealizowanych testów względem liczby zaplanowanych testów ujętych w harmonogramie na dany rok", "Opracowanie strategii ciągłości działania dla procesów krytycznych zidentyfikowanych w ramach analizy BIA", "Skuteczność realizacji rekomendacji wynikajacych z testów w ramach BCMS", "Procent przeszkolonych pracowników BCMS", "Wskaźnik terminowego inicjowania procesu zakupowego", "Wskaźnik terminowego zawierania umów zakupowych", "Wskaźnik realizacji inwestycji dla PAŻP", "Wskaźnik realizacji inwestycji dla komórek bezpośrednio podległych AO", "Wskaźnik realizacji inwestycji dla Biura OP", "Wskaźnik realizacji inwestycji dla Biura AY", "Wskaźnik realizacji inwestycji dla Biura MZ", "Wskaźnik realizacji inwestycji dla Biura MA", "Wskaźnik realizacji inwestycji dla Biura MF", "Wskaźnik realizacji inwestycji dla Biura OR", "Wskaźnik realizacji inwestycji dla Biura OZ", "Stopień wdrożonych przez PAŻP celów ATM MP w roku sprawozdawczym", "Stopień wdrożonych przez PAŻP celów ATM MP ogółem", "Planowany stan zatrudnienia w etatach (PRU)", "Planowany stan zatrudnienia w etatach (PRU)", "Planowany stan zatrudnienia w etatach (PRU)", "Planowany stan zatrudnienia w etatach (PRU)", "Planowany stan zatrudnienia w etatach (PRU)", "Planowany stan zatrudnienia w etatach (PRU)", "Planowany stan zatrudnienia w etatach (PRU)", "Planowany stan zatrudnienia w etatach (PRU)", "Planowany stan zatrudnienia w etatach (PRU)", "Planowany stan zatrudnienia w etatach (PRU)", "Planowany stan zatrudnienia w etatach (PRU)", "Planowana liczba ATCO w podziale na służby", "Planowana liczba ATCO w podziale na służby", "Planowana liczba ATCO w podziale na służby", "Odsetek Kontrolerów ruchu lotniczego (ATCI in OPS) w ogólnej liczbie zatrudnionych", "Wykonanie budżetu szkoleń", "Poziom zaangażowania pracowników", "Realizacja wymaganych przeglądów", "Uśredniony czas wyłaczeń urządzeń CNS spowodowany awarią energetyczną", "Wskaźnik zgodności gaśnic", "Zabezpieczenie płynności", "Terminowa realizacja sprawozdań związanych z bieżącym monitoringiem realizacji planu finansowego na dany rok", "Terminowa realizacja sprawozdań związanych z bieżącym monitoringiem realizacji planu finansowego na dany rok", "Monitorowanie kowenantów na potrzeby umów kredytowych", "Monitorowanie kowenantów na potrzeby umów kredytowych", "Integracja środowiska UTM z systemami TWR (do 2030 r.)", "Pełna wymiana danych pomiędzy systemami ATM i UTM (do 2034 r.)", "Wypadki w pracy", "Wysokość stopy procentowej na ubezpieczenie wypadkowe"], "Lokalizacja": ["", "", "", "ACC GAT", "ACC OAT", "APP GD", "APP KK", "APP PO", "APP WA", "ACC GAT", "ACC OAT", "APP GD", "APP KK", "APP PO", "APP WA", "ACC GAT", "ACC OAT", "APP GD", "APP KK", "APP PO", "APP WA", "ACC GAT", "ACC OAT", "APP GD", "APP KK", "APP PO", "APP WA", "ACC GAT", "ACC OAT", "APP GD", "APP KK", "APP PO", "APP WA", "ACC GAT", "ACC OAT", "APP GD", "APP KK", "APP PO", "APP WA", "ACC GAT", "ACC OAT", "APP GD", "APP KK", "APP PO", "APP WA", "", "", "", "BY", "GD", "KK", "KT", "LB", "LL", "MO", "PO", "RA", "RZ", "SC", "SY", "WA", "WR", "ZG", "BY", "GD", "KK", "KT", "LB", "LL", "MO", "PO", "RA", "RZ", "SC", "SY", "WA", "WR", "ZG", "BY", "GD", "KK", "KT", "LB", "LL", "MO", "PO", "RA", "RZ", "SC", "SY", "WA", "WR", "ZG", "BY", "GD", "KK", "KT", "LB", "LL", "MO", "PO", "RA", "RZ", "SC", "SY", "WA", "WR", "ZG", "BY", "GD", "KK", "KT", "LB", "LL", "MO", "PO", "RA", "RZ", "SC", "SY", "WA", "WR", "ZG", "BY", "GD", "KK", "KT", "LB", "LL", "MO", "PO", "RA", "RZ", "SC", "SY", "WA", "WR", "ZG", "BY", "GD", "KK", "KT", "LB", "LL", "MO", "PO", "RA", "RZ", "SC", "SY", "WA", "WR", "ZG", "FIS Warszawa", "FIS Kraków", "FIS Poznań", "FIS Gdańsk", "", "FIS Warszawa", "FIS Kraków", "FIS Poznań", "FIS Gdańsk", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "BY", "GD", "KK", "KT", "LB", "LL", "MO", "PO", "RA", "RZ", "SC", "SY", "WA", "WR", "ZG", "", "BY", "GD", "KK", "KT", "LB", "LL", "MO", "PO", "RA", "RZ", "SC", "SY", "WA", "WR", "ZG", "", "", "", "", "", "EPGD", "EPKK", "EPKT", "EPLL", "EPMO", "EPRA", "EPSY", "EPWA", "EPWR", "EPBY", "EPLB", "EPRZ", "EPPO", "EPSC", "EPGD", "EPKK", "EPKT", "EPLL", "EPMO", "EPRA", "EPSY", "EPWA", "EPWR", "EPBY", "EPLB", "EPRZ", "EPPO", "EPZG", "EPSC", "IMGW - PIB", "Airport Meteo", "Port Lotniczy Bydgoszcz S.A.", "Warmia i Mazury Sp. z o.o.", "IMGW - PIB", "Airport Meteo", "Port Lotniczy Bydgoszcz S.A.", "Warmia i Mazury Sp. z o.o.", "IMGW - PIB", "Airport Meteo", "Port Lotniczy Bydgoszcz S.A.", "Warmia i Mazury Sp. z o.o.", "IMGW - PIB", "Airport Meteo", "Port Lotniczy Bydgoszcz S.A.", "Warmia i Mazury Sp. z o.o.", "IMGW - PIB", "Airport Meteo", "Port Lotniczy Bydgoszcz S.A.", "Warmia i Mazury Sp. z o.o.", "IMGW - PIB", "Airport Meteo", "Port Lotniczy Bydgoszcz S.A.", "Warmia i Mazury Sp. z o.o.", "", "", "", "", "", "", "", "", "", "", "", "", "", "ACS", "APS", "ADC", "APP", "ACC", "APP", "TWR", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "Kontrolerzy ruchu lotniczego (PRU1)", "Kontrolerzy ruchu lotniczego oddelegowani do innych zadań (PRU2)", "Praktykanci ruchu lotniczego (PRU3)", "praktykanci-kontrolerzy ruchu lotniczego (PRU 4)", "Asystenci ATC (PRU5)", "Pracownicy wsparcia operacyjnego nie będący ATCO (PRU6)", "Pracownicy wsparcia technicznego systemów CNS/ATM, monitoringu i kontroli (PRU7A)", "Pracownicy wsparcia technicznego ds.. Rozwoju i wdrożeń systemów CNS/ATM (PRU 7B)", "Pracownicy administracyjni (PRU8)", "Pracownicy służb pomocniczych (PRU9)", "Pozostali pracownicy (PRU10)", "ACC", "APP", "TWR", "", "", "", "", "", "", "", "miernik 1", "miernik 2", "dług netto/EBITDA", "DSCR (wskaźnik pokrycia obsługi długu)", "", "", "", ""], "czest_": ["kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "r.", "r.", "r.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "r.", "r.", "r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "n.ż.", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "", "", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "r.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "kw.", "r.", "", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "pół r.", "r.", "r.", "r.", "r.", "kw.", "r.", "kw.", "kw.", "kw.", "mies.", "mies.", "mies.", "mies.", "mies.", "r.", "r.", "r.", "r."], "Roczna_wartosc_planowana": ["0", "0", "0.18", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "x", "x", "x", "x", "x", "x", "173", "19", "24.7", "50", "36.8", "54.5", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "9", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "12", "23", "35.2", "24.7", "10.5", "17.8", "21.3", "23.7", "6.8", "25", "14.7", "5", "51.2", "21.3", "4", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "119698", "73332", "57618", "53350", "7/9", "35.25", "19", "18", "19.5", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "0.95", "<1,0 x 10-5", ">=98%", ">=90%", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "0", "0", "0", "0", "1", "x", "0.95", "0", "0.95", "x", "C", "x", "x", "x", "0", "0", "0.8", "0.65", "0.6", "0.7", "0.9", "0.6", "0.65", "0.7", "0.7", ">=95%", ">=75%", ">=85%", ">=60%", "x", "70%-80%", "80%-90%", "1", "x", "x", "0.9", "0.9", "425073998", "7122586", "1173000", "6670130", "1318400", "128655516", "11000000", "1500000", "267634367", "1", "0.45", "654.03", "24.45", "96", "63", "54", "385", "412.4", "157.83", "365.2", "63.75", "29", "204", "173", "314", "0.284", "13521694", "0.6", "1", "0", "1", "348359424", "0", "0", "<3", ">1,2", "0.15", "0.25", "0", "0.0096"], "Roczna_wartosc_oczekiwana": ["0", "0", "0.18", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "2828", "3391", "1973", "602", "6045", "712", "173", "19", "24.7", "50", "36.8", "54.5", "16.4", "178.5", "79.9", "12", "164.5", "13.1", "0.24", "0.2", "0.2", "0.21", "0.22", "0.23", "0.6", "0.64", "0.68", "0.67", "0.72", "0.61", "0.16", "0.16", "0.12", "0.12", "0.06", "0.16", "0", "0", "9", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "0.82", "59", "2919", "3357", "1378", "853", "465", "1921", "4540", "422", "1946", "974", "876", "1508", "2034", "106", "12", "23", "35.2", "24.7", "10.5", "17.8", "21.3", "23.7", "6.8", "25", "14.7", "5", "51.2", "21.3", "4", "4.9", "126.9", "95.5", "55.8", "81.3", "26.1", "90.4", "191.6", "62.5", "77.9", "66.3", "175.2", "29.5", "95.3", "26.5", "0.2", "0.2", "0.2", "0.2", "0.2", "0.2", "0.2", "0.2", "0.2", "0.2", "0.2", "0.2", "0.2", "0.2", "0.2", "0.7", "0.7", "0.7", "0.7", "0.7", "0.7", "0.7", "0.7", "0.7", "0.7", "0.7", "0.7", "0.7", "0.7", "0.7", "0.1", "0.1", "0.1", "0.1", "0.1", "0.1", "0.1", "0.1", "0.1", "0.1", "0.1", "0.1", "0.1", "0.1", "0.1", "123400", "75600", "59400", "55000", "7/9", "35.25", "19", "18", "19.5", ">=95%", ">=95%", ">=95%", ">=95%", "1", "1", ">=95%", ">=95%", ">=95%", ">=99%", ">=99%", ">=99%", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "0.98", "<5", ">=98%", ">=90%", "<=2,6000926732006", "<=2,44402761795167", "<=2,45704663262637", "<=2,79159803890153", "<=4,0097869641458", "<=3,02493825124899", "<=3,11539434619853", "<=2,40097137305318", "<=2,89229475264355", "<=2,7272455413439", "<=2,89180146932018", "<=2,42280016775005", "<=2,82011590893364", "<=2,55740671775406", "<=2,9566422815207", "<=3,06337646789939", "<=2,74156234988952", "<=2,81316816816817", "<=2,9722829021238", "<=2,48282931305716", "<=2,94178303480906", "<=3,35286453758581", "<=2,77975095022625", "<=2,11002207505519", "<=2,21885627639987", "<=2,21195033192034", "<=3,00975184269995", "<=4,4259571023877", "<=2,29507991505533", "0.8", "0.8", "0.8", "0.8", "0.98", "0.98", "0.98", "0.98", "0.98", "x", "x", "x", "0.98", "0.98", "0.98", "0.98", "0.98", "0.98", "0.98", "0.98", "0", "0", "0", "0", "1", "0.05", "x", "0", "x", "C", "C", "C", "C", "B", "0", "0", "x", "0.65", "0.6", "0.7", "0.9", "0.6", "0.65", "0.7", "0.7", ">=95%", ">=75%", ">=85%", ">=60%", "0.8", "70%-80%", "80%-90%", "1", "0.8", "0.8", "0.9", "0.9", "425073998", "7122586", "1173000", "6670130", "1318400", "128655516", "11000000", "1500000", "267634367", "1", "0.45", "654.03", "24.45", "96", "63", "54", "385", "412.4", "157.83", "365.2", "63.75", "29", "204", "173", "314", "0.284", "0.95", "55%-60%", "1", "0", "1", "x", "0", "0", "<3", ">1,2", "0.1", "0.2", "2", "0.0096"], "I_kw_": [0, 0, 0.02, 0.62, 0.87, 0.88, 0.86, 0.61, 0.75, 266, 584, 1204, 1320.5, 1385.5, 248, 163.9167, 17, 23.5, 48, 34.75, 48.75, 1.6228, 34.3529, 51.234, 27.5104, 39.8705, 5.0872, 0.2258, 0.1993, 0.1517, 0.1851, 0.2131, 0.2157, 0.5348, 0.6022, 0.6692, 0.6139, 0.6942, 0.5978, 0.2394, 0.1985, 0.1791, 0.201, 0.0927, 0.1865, 2, 7, 6, 0.63, 0.74, 0.82, 0.76, 0.87, 0.87, 0.73, 1.01, 0.74, 0.67, 0.9, 0.87, 0.88, 0.79, 0.69, 65.75, 410, 1101, 447.5, 90, 94.5, 255.5, 936.5, 66, 515, 358, 88, 447.5, 584.5, 36.5, 10, 23, 35.1667, 27, 10.5, 16.25, 23.25, 26.5, 4.75, 22, 12.5, 5, 47.625, 22.3333, 2, 6.575, 17.8261, 31.308, 16.5741, 8.5714, 5.8154, 10.9892, 35.3396, 13.8947, 23.4091, 28.64, 17.6, 9.3963, 26.1717, 18.25, 0.1596, 0.1817, 0.2123, 0.1584, 0.162, 0.2297, 0.2405, 0.2253, 0.2102, 0.168, 0.1697, 0.1649, 0.2569, 0.181, 0.147, 0.6967, 0.7055, 0.6255, 0.7076, 0.6234, 0.6103, 0.6391, 0.6394, 0.4806, 0.6038, 0.7672, 0.6781, 0.6356, 0.6865, 0.6974, 0.1437, 0.1127, 0.1622, 0.134, 0.2147, 0.16, 0.1204, 0.1353, 0.3093, 0.2283, 0.0631, 0.157, 0.1075, 0.1325, 0.1556, "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", 0.4748, 0, 0.8558, 0.4618, 0.1702, 0.1911, 0.1701, 0.1701, 0.2556, 0.2428, 0.2335, 0.1704, 0.3047, 0.1134, 0.2047, 0.3153, 0.2925, 0.1728, 0.1412, 0.8685, 0.9573, 0.9341, 0.968, 0.968, 0.9384, 0.9484, 0.9442, 0.9516, 0.8835, 0.9783, 0.9253, 0.929, 0.9244, 0.968, 0.9663, "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", 0.9, 0.91, 0.92, 0.92, 1, 0.99, 1, 1, 1, "x", "x", "x", 0.99, 1, 0.99, 1, 1, 1, 1, 1, 5, "-", "-", "-", 0.9995, 0.0201, 0.98, 0, "x", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", 1.25, 0.73, 11899542.86, 0, 0, 0, 0, 7621468.66, 0, 0, 3567519.2, "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", 0.12, "", 1, "", "", 408291794, 0, 13, 1.68, 1.95, "", "", "", ""], "II_kw_": ["", "", 0.15, 0.75, 0.89, 0.89, 0.92, 0.78, 0.8, 1892.5, 801, 1242.5, 1162.5, 1118.5, 481, 163.6667, 17, 23.5, 47, 34.75, 51.75, 11.5631, 47.1176, 52.8723, 24.734, 32.1871, 9.2947, 0.2549, 0.2766, 0.1857, 0.1881, 0.2278, 0.2015, 0.5971, 0.6124, 0.6698, 0.6386, 0.6465, 0.5769, 0.148, 0.111, 0.1446, 0.1733, 0.1258, 0.2216, 5, 7, 5, 0.63, 0.74, 0.81, 0.79, 0.86, 0.92, 0.74, 0.77, 0.84, 0.69, 0.58, 0.91, 0.88, 0.8, 0.73, 122.25, 609, 527, 512.5, 369.5, 329, 199.5, 1164.5, 170, 321, 556, 277.5, 421.5, 705.5, 59.5, 10, 23, 37.6667, 27, 10.5, 16.5, 22.25, 26.5, 4.75, 22, 12.5, 5, 48.625, 22.8333, 2, 12.225, 26.4783, 13.9911, 18.9815, 35.1905, 19.9394, 8.9663, 43.9434, 35.7895, 14.5909, 44.48, 55.5, 8.6684, 30.8979, 29.75, 0.2032, 0.2326, 0.2368, 0.2082, 0.1982, 0.2287, 0.2201, 0.2045, 0.171, 0.2354, 0.209, 0.1915, 0.23, 0.2381, 0.0874, 0.7264, 0.7008, 0.6432, 0.7098, 0.7035, 0.6283, 0.6635, 0.6221, 0.7466, 0.627, 0.7549, 0.6532, 0.6476, 0.6572, 0.8378, 0.0704, 0.0666, 0.1201, 0.0821, 0.0982, 0.143, 0.1164, 0.1735, 0.0824, 0.1376, 0.036, 0.1553, 0.1224, 0.1048, 0.0749, "", "", "", "", "", "", "", "", "", 1, 0.99, 1, 1, 0.99, 0.98, 0.9997, 0.9981, 0.9999, "", "", "", 0.4638, 0, 0.9352, 0.6388, 0.209, 0.2463, 0.2184, 0.2184, 0.3636, 0.2417, 0.2316, 0.2279, 0.4215, 0.2748, 0.2664, 0.5844, 0.3339, 0.2093, 0.1879, 0.7157, 0.9417, 0.8993, 0.9498, 0.9498, 0.9081, 0.9395, 0.9382, 0.9226, 0.807, 0.9518, 0.8726, 0.9341, 0.9036, 0.9533, 0.951, "", "", "", 1, 1, 1, 1, 1, 1, 1.002, 1, 1, 1.0601, 1, 1.1645, 1, 1, 1, 1, 1, 1, 1, 1, 1.409, 1, 1, 1, 1, 0.9995, 1, 1, 1, 1, 1, 0.96, 0.95, 0.97, 0.89, 1, 0.99, 1, 0.99, 1, "x", "x", "x", 0.99, 1, 1, 0.99, 1, 1, 1, 1, 4, "-", 2, "-", 1, 0.0239, 0.96, 0, "x", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", 0.29, "", "", "", "", "", "", "", "", "", "", "", "", ""], "III_kw_": ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""], "IV_kw_": ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""], "TSz_Komentarz": ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""], "id": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340]}
-</script>
 
 <script>
 /* ===================== CONFIG ===================== */
@@ -229,7 +257,7 @@ function statusInk(status){ return STATUS_COLOR[status] || STATUS_COLOR.good; }
 /* ===================== STATE ===================== */
 let RAW = [];          // flat records straight from grist/demo
 let GROUPS = [];        // one entry per indicator (grouped across Lokalizacja)
-let activeKpa = 'ALL';
+let OBSZAR_ORDER = [];   // fixed section order, recomputed only when GROUPS reloads — see computeObszarOrder
 let charts = [];         // chart.js instances currently on screen, so we can destroy on re-render
 let chartQueue = [];     // chart-creation callbacks, run only after the DOM grid has settled
                           // (creating Chart.js instances while CSS grid columns are still being
@@ -241,6 +269,12 @@ function parseCell(raw){
   let s = String(raw).trim();
   if(s==='') return {empty:true};
   if(/^x$/i.test(s)) return {empty:true, na:true};
+  // currency amounts (e.g. "425 073 998,00 zł") — strip the "zł" suffix and
+  // the thousands-separator spaces (incl. non-breaking spaces from Excel)
+  // between digit groups so the numeric regexes below still match; without
+  // this, every investment plan/expected value would fall through to the
+  // "qualitative text" branch and be treated as an unparseable string.
+  s = s.replace(/\u00a0/g, ' ').replace(/\s*zł\.?\s*$/i, '').replace(/(\d)\s+(?=\d)/g, '$1').trim();
   const percent = s.includes('%');
   let op = null;
   const opM = s.match(/^(>=|<=|>|<)\s*/);
@@ -271,7 +305,7 @@ function parseCell(raw){
     return {value:v, percent, raw:s, empty:false, op};
   }
   // qualitative text / grade letter / status word
-  return {text:s, qualitative:true, empty:false, op};
+  return {text:s, qualitative:true, empty:false, op, raw:s};
 }
 
 function colToRecs(data){
@@ -282,28 +316,82 @@ function colToRecs(data){
   });
 }
 
-function fmtNum(v, percent){
+function fmtNum(v, percent, millions){
   if(v===null||v===undefined||Number.isNaN(v)) return '—';
+  if(millions){
+    const scaled = Math.round((v/1e6)*10)/10;
+    return scaled.toString().replace('.', ',') + ' mln';
+  }
   const rounded = Math.abs(v)>=100 ? Math.round(v*10)/10 : Math.round(v*100)/100;
-  return rounded + (percent? '%':'');
+  // European-style thousands grouping with spaces (e.g. 120000 -> "120 000")
+  // for large plain-number axes (traffic counts, headcounts, etc.) — percent
+  // values never need it (always <=100) and millions-scaled ones already get
+  // their own compact "mln" formatting above.
+  const [intPart, decPart] = rounded.toString().split('.');
+  const grouped = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  const withDec = decPart ? grouped + ',' + decPart : grouped;
+  return withDec + (percent? '%':'');
+}
+// Full-precision value (e.g. "118 995 428,60 zł") for tooltips on millions-scaled
+// investment charts — the axis/bar labels stay compact ("119,0 mln") but on
+// hover the user should be able to see the exact reported amount.
+function fmtDetailed(v){
+  if(v===null||v===undefined||Number.isNaN(v)) return '—';
+  const fixed = v.toFixed(2);
+  const [intPart, decPart] = fixed.split('.');
+  const withThousands = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return withThousands + ',' + decPart + ' zł';
+}
+// Some targets are written as a threshold, not a plain number ("<3", ">=99%")
+// — the tooltip should echo that operator (e.g. "Cel roczny: <3") instead of
+// silently dropping it and showing just the bare number, which reads as an
+// exact target rather than a ceiling/floor.
+function fmtTooltipValue(c, percent, millions){
+  const op = c.dataset.targetOp || '';
+  const num = fmtNum(c.parsed.y, percent, millions);
+  const detail = millions ? ` (${fmtDetailed(c.parsed.y)})` : '';
+  return `${c.dataset.label}: ${op}${num}${detail}`;
 }
 
 /* ===================== STATUS (RAG) =====================
-   New rule set (history-aware, not just a magnitude threshold):
+   Simplified rule set — only two live judgements plus "no data":
    - 'empty'  → nothing reported yet at all (e.g. annual indicator only settled
      at year-end) → card is greyed out / de-emphasised, no RAG judgement made.
    - 'bad'    → the LATEST reported data point currently breaches the target.
-   - 'warn'   → it breached the target at some point earlier this year but the
-     latest reported point is back within target (a "used to be a problem" flag).
-   - 'good'   → never breached the target (or no target is known to compare
-     against, in which case we simply don't accuse it of anything).
+   - 'good'   → the latest data point is within target (an earlier breach, if
+     any, is still visible as a red bar for that specific quarter — see
+     renderUnitChart — but no longer promotes the whole card/box to a warning
+     colour; there is no intermediate "warn" state).
    Direction (higher-is-better vs lower-is-better) is inferred from the name,
    and drives what "breach" even means for a given indicator. */
 const LOWER_IS_BETTER_KEYWORDS = ['opóźni','wypadk','incydent','niezgod','wyłącz','nadliczbow',
   'absencj','awari','skarg','błęd','reklamacj','ryzyk','brak','naruszen','wtargnię','przerwan'];
+// "Wykorzystanie ATCO na stanowiskach operacyjnych" is a ceiling target (max
+// ~82%) — going above it is the problem (overworked controllers), so it needs
+// the "lower is better" reading even though its name doesn't match any of the
+// generic keywords above (and unlike the "Efektywność wykorzystania struktur
+// ..." metrics, where higher is genuinely better, so this is name-specific,
+// not a blanket "wykorzystanie" rule).
 function inferDirection(name){
   const n = (name||'').toLowerCase();
+  if(/wykorzystanie atco/.test(n)) return 'lower';
+  if(/dyżurów nieoperacyjnych/.test(n)) return 'lower'; // below target = fewer non-operational duties = good
+  if(/dyżurów operacyjnych/.test(n)) return 'lower'; // above target = too many operational duties = bad
   return LOWER_IS_BETTER_KEYWORDS.some(k=>n.includes(k)) ? 'lower' : 'higher';
+}
+// Some indicators don't have a well-established "good direction" (or we simply
+// don't yet know it) — for those we never want a red/green verdict, only a
+// neutral bar. "Zatrudnienie w organie"/"...ATC" now DO get judged (below
+// target = understaffed = red, on request) — only the SID/STAR route-length
+// metrics (unclear which side of the target is favourable), and "Wykonanie
+// budżetu szkoleń" (below the 95% plan mid-year is just normal spending pace,
+// not a problem — no red/green verdict makes sense here), stay neutral.
+const NEUTRAL_METRIC_PATTERNS = [/wydłużenie tras (sid|star)/i, /wykonanie budżetu/i];
+function isNeutralMetric(name){
+  // KP-INWEST investment-realization metrics are informational (spend vs.
+  // budget over the year) — there's no "good/bad" breach direction to judge
+  // mid-year, so they're never colored red/blue.
+  return NEUTRAL_METRIC_PATTERNS.some(re=> re.test(name||'')) || isInvestmentMetric(name);
 }
 // The sheet doesn't always fill in the two annual columns consistently. Confirmed
 // mapping: "Roczna_wartosc_oczekiwana" is the CEL/target (limit to compare
@@ -313,48 +401,133 @@ function inferDirection(name){
 function annualValueTarget(u){
   const hasExp = !u.exp.empty && u.exp.value!=null;
   const hasPlan = !u.plan.empty && u.plan.value!=null;
-  if(hasExp && hasPlan) return {value:u.plan, target:u.exp};
+  if(hasExp && hasPlan){
+    // a "70%-80%" (or any other) range repeated IDENTICALLY in both columns
+    // is just the target written twice, never an actually achieved figure —
+    // same idea as the lone-"oczekiwana" case below, just for ranges instead
+    // of plain numbers. Without this, the range's own midpoint would get
+    // drawn as a fake "achieved" bar sitting exactly inside its own target band.
+    if(u.plan.range && u.exp.range && u.plan.range[0]===u.exp.range[0] && u.plan.range[1]===u.exp.range[1]){
+      return {value:null, target:u.exp};
+    }
+    return {value:u.plan, target:u.exp};
+  }
   if(hasPlan) return {value:u.plan, target:null};
-  if(hasExp) return {value:u.exp, target:null};
+  if(hasExp){
+    // "Roczna_wartosc_planowana" explicitly marked "x" means nothing was ever
+    // planned/reported for this row — the lone number in "oczekiwana" is only
+    // the target/cel, not an achieved result, so it must not be shown as if
+    // it were one (see KP-AIM "...w PIB" rows: target ">=99%", zero data).
+    if(u.plan.na) return {value:null, target:u.exp};
+    return {value:u.exp, target:null};
+  }
   return {value:null, target:null};
 }
 // true when `actual` is on the wrong side of `target` for the given direction
-// (small 0.5% tolerance so float/rounding noise doesn't flip the verdict)
+// (tiny epsilon only to absorb float/rounding noise, e.g. 69.9999999999 vs 70
+// after the *100 percent scaling — a real shortfall like 69.67% vs a 70%
+// target must still count as a breach, so this is NOT a "close enough" band)
 function isBreach(actual, target, direction){
   const ratio = (actual - target) / (Math.abs(target) || 1);
   const signed = direction==='lower' ? ratio : -ratio; // >0 means "worse than target"
-  return signed > 0.005;
+  return signed > 1e-6;
 }
-function computeStatus(u, direction){
+// target as a "70%-80%" style range means BOTH ends matter — the reported
+// value must fall inside the band, so out-of-range in either direction (too
+// low OR too high) counts as a breach, unlike a plain single-number target.
+function isOutOfRange(actual, range){
+  const [lo, hi] = range;
+  return actual < lo - 1e-6 || actual > hi + 1e-6;
+}
+// A target written as "<3" or ">=99%" already states its own direction
+// explicitly, per unit — this must win over the group-level inferDirection()
+// guess whenever present, since a single indicator group can mix opposite-
+// direction units (e.g. "Monitorowanie kowenantów": dług netto/EBITDA "<3" is
+// a ceiling, but DSCR ">1,2" in the very same group is a floor).
+function directionFromOp(op){
+  if(op==='<' || op==='<=') return 'lower';
+  if(op==='>' || op==='>=') return 'higher';
+  return null;
+}
+// Compares two parsed cells for equality — used to detect "planowana"/
+// "oczekiwana" columns that just repeat the same target twice (qualitative
+// grades compare by text, numeric cells by value).
+function cellsMatch(a,b){
+  return (a.qualitative||b.qualitative)
+    ? String(a.text||a.raw).trim().toLowerCase() === String(b.text||b.raw).trim().toLowerCase()
+    : a.value === b.value;
+}
+// pick the target cell to judge/chart against: "oczekiwana" wins, "planowana"
+// is the fallback when only that column was filled in for this row. Returns
+// the whole parsed cell (not just .value) so callers can also read .range
+// for band-style targets like "70%-80%" instead of only the averaged midpoint.
+function pickTargetCell(u){
+  if(!u.exp.empty && u.exp.value!=null) return u.exp;
+  if(!u.plan.empty && u.plan.value!=null) return u.plan;
+  return null;
+}
+function computeStatus(u, direction, neutral){
   const uViz = computeUnitViz(u);
   if(uViz==='empty') return 'empty';
-  if(uViz==='badge') return 'good'; // qualitative grades aren't judged numerically
+  if(neutral) return 'good'; // direction/good-side unknown or not meaningful — never flag red/green
+  if(uViz==='badge'){
+    // qualitative grades aren't judged red/bad (no numeric direction), but a
+    // target-only row (no reported grade yet) should still read as "empty"
+    // (grey) just like every other not-yet-measured annual indicator.
+    const {value} = qualitativeValueTarget(u);
+    return value ? 'good' : 'empty';
+  }
   if(uViz==='quarterly'){
     // target: prefer "oczekiwana" (cel), fall back to "planowana" if that's the
     // only column filled in for this row
-    const target = (!u.exp.empty && u.exp.value!=null) ? u.exp.value
-                 : (!u.plan.empty && u.plan.value!=null) ? u.plan.value : null;
+    const targetCell = pickTargetCell(u);
+    const target = targetCell ? targetCell.value : null;
     const reported = u.q.filter(q=>!q.empty && q.value!=null).map(q=>q.value);
     if(reported.length===0) return 'empty';
     if(target==null) return 'good';
-    const breaches = reported.map(v=> isBreach(v, target, direction));
-    if(breaches[breaches.length-1]) return 'bad';           // currently over the limit
-    return breaches.some(Boolean) ? 'warn' : 'good';         // was over it earlier, now clear
+    const latest = reported[reported.length-1];
+    if(targetCell.range) return isOutOfRange(latest, targetCell.range) ? 'bad' : 'good';
+    return isBreach(latest, target, directionFromOp(targetCell.op) || direction) ? 'bad' : 'good'; // only the latest point matters
   }
   // annual-only indicators (single reported value per year)
   const {value, target} = annualValueTarget(u);
   if(!value || value.value==null) return 'empty';
   if(!target || target.value==null) return 'good';
-  return isBreach(value.value, target.value, direction) ? 'bad' : 'good';
+  if(target.range) return isOutOfRange(value.value, target.range) ? 'bad' : 'good';
+  return isBreach(value.value, target.value, directionFromOp(target.op) || direction) ? 'bad' : 'good';
 }
 function worstStatus(statuses){
-  const rank = {bad:3, warn:2, good:1, empty:0};
+  const rank = {bad:2, good:1, empty:0};
   return statuses.reduce((a,b)=> rank[b]>rank[a] ? b : a, 'empty');
 }
-const STATUS_LABEL = {bad:'przekracza cel', warn:'przekraczał wcześniej, teraz w celu', good:'w celu', empty:'brak danych'};
+// Card-level status only ever judges the LATEST data point (see comment
+// above) — but the "poza celem" filter needs to also catch indicators that
+// breached target earlier this year even if the most recent quarter is back
+// on track (pastel-yellow bars), so this walks every reported point instead
+// of just the last one.
+function computeEverBad(u, direction, neutral){
+  const uViz = computeUnitViz(u);
+  if(neutral || uViz==='empty' || uViz==='badge') return false;
+  if(uViz==='quarterly'){
+    const targetCell = pickTargetCell(u);
+    if(!targetCell || targetCell.value==null) return false;
+    const dir = directionFromOp(targetCell.op) || direction;
+    return u.q.some(q=>{
+      if(q.empty || q.value==null) return false;
+      return targetCell.range ? isOutOfRange(q.value, targetCell.range) : isBreach(q.value, targetCell.value, dir);
+    });
+  }
+  // annual indicators only ever have one reported point, so "ever bad" is
+  // identical to the current status.
+  const {value, target} = annualValueTarget(u);
+  if(!value || value.value==null || !target || target.value==null) return false;
+  const dir = directionFromOp(target.op) || direction;
+  return target.range ? isOutOfRange(value.value, target.range) : isBreach(value.value, target.value, dir);
+}
+const STATUS_LABEL = {bad:'przekracza cel', good:'w celu', empty:'brak danych'};
 function statusDot(status){
   if(!status || status==='empty') return '';
-  const color = status==='bad'? 'var(--bad)' : status==='warn'? 'var(--warn)' : 'var(--ok)';
+  const color = status==='bad'? 'var(--bad)' : 'var(--ok)';
   return `<span class="status-dot" style="background:${color}" title="${STATUS_LABEL[status]}"></span>`;
 }
 
@@ -372,6 +545,22 @@ function normCel(s){ return normText(s).replace(/,(?=\d)/g, '.'); }
 // numeric guess, so it doesn't touch unrelated counts/minutes-style metrics
 // that happen to also have small targets (e.g. delay or incident counts).
 function isUtilizationMetric(name){ return /wykorzystani/i.test(name||''); }
+// "Absencja ATCO" and "Liczba dyżurów (nie)operacyjnych ATCO" (KP-RAD/KP-TWR)
+// are likewise reported as bare 0-1 fractions (target "0.2" etc.) even though
+// they're conceptually rates in %.
+function isAbsenceMetric(name){ return /absencj|dyżur/i.test(name||''); }
+// KP-AMC reports all of its "Efektywność"/"Dostępność ... struktur" indicators
+// as bare 0–1 fractions with no "%" anywhere on the row (plan/exp are both "x"),
+// so there's no per-name hint like the utilization case — the whole obszar
+// uses this convention, so it's keyed on Obszar instead of the metric name.
+// KP-AIM's data-quality family (Jakość/Kompletność/Terminowość/Format danych)
+// has the same issue for a subset of its rows: the target is sometimes a bare
+// "1" (not "1%"), which `alignPercentScale` below can't recognise as a percent
+// hint on its own, so those rows (e.g. "Jakość danych" exp=1, quarter=0.99)
+// never got rescaled and their axis topped out around "2" instead of "100%".
+function isFractionPercentMetric(name, obszar){
+  return isUtilizationMetric(name) || isAbsenceMetric(name) || obszar==='KP-AMC' || obszar==='KP-AIM';
+}
 function alignUtilizationScale(u){
   [u.plan, u.exp].forEach(cell=>{
     if(!cell.empty && cell.value!=null && cell.value>0 && cell.value<=1.5 && !cell.percent){
@@ -379,6 +568,13 @@ function alignUtilizationScale(u){
     }
   });
   u.q.forEach(cell=>{
+    // bug fix: this used to only flag the cell as `percent` without actually
+    // rescaling the number, so a reported "0.62" stayed 0.62 instead of
+    // becoming 62 — it rendered as "0.62%" sitting essentially at zero next
+    // to an already-rescaled ~82% target line.
+    if(!cell.empty && cell.value!=null && cell.value>0 && cell.value<=1.5 && !cell.percent){
+      cell.value = cell.value*100;
+    }
     if(!cell.empty && cell.value!=null){ cell.percent = true; }
   });
 }
@@ -401,6 +597,13 @@ function alignPercentScale(u){
   scaleCell(u.plan); scaleCell(u.exp);
   u.q.forEach(scaleCell);
 }
+// Whole indicator groups/names with no real reported result at all (target
+// repeated but never measured) — forced to render fully blank/grey rather
+// than as if the target were an achieved value. KP-TR-ATS/SZCD/SMS used to be
+// forced this way too, but they're now handled per-unit (see below) so their
+// target line/band/grade-scale still shows instead of a blank axis.
+const FORCE_EMPTY_OBSZAR = new Set([]);
+const FORCE_EMPTY_NAMES = new Set([]);
 function buildGroups(records){
   const map = new Map();
   records.forEach(r=>{
@@ -425,9 +628,187 @@ function buildGroups(records){
       comment: r.TSz_Komentarz ? String(r.TSz_Komentarz).trim() : ''
     }));
     units.forEach(alignPercentScale);
-    if(isUtilizationMetric(first.Mierniki_2026)) units.forEach(alignUtilizationScale);
+    if(isFractionPercentMetric(first.Mierniki_2026, first.Obszar)) units.forEach(alignUtilizationScale);
+    // "Bezpieczeństwo świadczonej usługi osłony meteorologicznej" fills plan/exp
+    // with a bare "0" (not "x") for locations that never reported anything at
+    // all this year — a flat 0-vs-0 bar+target line looks like a rendering
+    // glitch, not "zero incidents achieved", so for THIS metric specifically a
+    // location with no quarterly data and a 0/0 annual pair is treated the
+    // same as truly empty (matches how the other "no data at all" locations
+    // already render, e.g. same panel's "Kompletność usługi" row).
+    if(normText(first.Mierniki_2026)==='Bezpieczeństwo świadczonej usługi osłony meteorologicznej'){
+      units.forEach(u=>{
+        const noQ = u.q.every(q=>q.empty || q.value==null);
+        const zeroPlan = !u.plan.empty && u.plan.value===0;
+        const zeroExp = !u.exp.empty && u.exp.value===0;
+        if(noQ && zeroPlan && zeroExp){ u.plan = {empty:true}; u.exp = {empty:true}; }
+      });
+    }
+    // SZCD (BCMS), KP-TR-ATS (training-effectiveness) and SMS (maturity grade)
+    // indicators: every row in these obszars is annual-only, no quarterly
+    // reporting at all, and "planowana"/"oczekiwana" are either "x" (nothing
+    // measured) or the SAME number/range/grade repeated in both columns —
+    // i.e. the target written twice, never an actually achieved result (see
+    // "Pokrycie ryzyk"/"Liczba zrealizowanych testów" ranges, "Opracowanie
+    // strategii..." 100%=100%, KP-TR-ATS "...w OSPA"/"...w jednostce"/
+    // "Dostępność techniczna symulatora...", and SMS "Zarządzanie ryzykiem
+    // w zakresie bezpieczeństwa" C=C). Marking "planowana" as explicitly n/a
+    // here reuses the existing target-only rendering path (dashed line/band/
+    // grade-scale marker, NO bar/chip, and no bogus "I-IV kw." axis) instead
+    // of drawing a value nobody actually reported.
+    if(['SZCD','KP-TR-ATS','SMS'].includes(normText(first.Obszar))){
+      const cellsMatch = (a,b)=> (a.qualitative||b.qualitative)
+        ? String(a.text||a.raw||'').trim()===String(b.text||b.raw||'').trim()
+        : a.value===b.value;
+      units.forEach(u=>{
+        const noQ = u.q.every(q=>q.empty || q.value==null);
+        if(!noQ) return;
+        if(!u.plan.empty && !u.exp.empty && cellsMatch(u.plan, u.exp)){ u.plan = {empty:true, na:true}; }
+        // KP-TR-ATS specifically: even a LONE number, whichever column it's
+        // in, is still just a training-effectiveness target that hasn't been
+        // measured yet (see "Skuteczność szkolenia podstawowego...w OSPA":
+        // 80% sits in "planowana" with "oczekiwana" left as "x") — not a real
+        // reported result, so it must be read as the CEL either way, not
+        // drawn as an achieved bar.
+        else if(normText(first.Obszar)==='KP-TR-ATS' && !u.plan.empty && u.exp.empty){
+          u.exp = u.plan; u.plan = {empty:true, na:true};
+        }
+      });
+    }
+    // KP-HRM annual-only planning figures with no separate achieved result:
+    // "planowana"/"oczekiwana" both just restate the SAME staffing/engagement
+    // plan (e.g. "Planowana liczba ATCO" ACC 204=204, "Odsetek Kontrolerów...
+    // ATCI in OPS" 28,40%=28,40%, "Poziom zaangażowania pracowników" 60% vs.
+    // "55%-60%" target band) — nothing has actually been measured against
+    // them yet, so (unlike the PRU staffing-breakdown chart, which shows the
+    // planned COUNT itself as the meaningful figure) these must render as
+    // target-only (dashed line/band), not a bar that looks like a reported
+    // result.
+    const KP_HRM_TARGET_ONLY_NAMES = new Set([
+      'Planowana liczba ATCO w podziale na służby',
+      'Odsetek Kontrolerów ruchu lotniczego (ATCI in OPS) w ogólnej liczbie zatrudnionych',
+      'Poziom zaangażowania pracowników'
+    ]);
+    if(normText(first.Obszar)==='KP-HRM' && KP_HRM_TARGET_ONLY_NAMES.has(normText(first.Mierniki_2026))){
+      units.forEach(u=>{
+        const noQ = u.q.every(q=>q.empty || q.value==null);
+        if(noQ && !u.plan.empty) u.plan = {empty:true, na:true};
+      });
+    }
+    // MA "Zgodność gaśnic": sheet marks it "kw." (quarterly) but it's actually
+    // only ever checked/reported once a year, with "planowana"/"oczekiwana"
+    // both just the same 100% target repeated and no quarterly cell EVER
+    // filled — so, like the SZCD/KP-TR-ATS rows above, this must render as
+    // target-only (grey card, dashed cel line) rather than a fake "100%
+    // achieved" bar with nothing actually measured behind it.
+    if(normText(first.Obszar)==='MA' && normText(first.Mierniki_2026)==='Zgodność gaśnic'){
+      units.forEach(u=>{
+        const noQ = u.q.every(q=>q.empty || q.value==null);
+        if(noQ && !u.plan.empty && !u.exp.empty && u.plan.value===u.exp.value){ u.plan = {empty:true, na:true}; }
+      });
+    }
+    // KP-FIS "Obciążenie ruchem lotniczym": "planowana" and "oczekiwana" are
+    // two DIFFERENT traffic-load estimates (e.g. 119 698 vs 123 400) — but
+    // neither is an actually reported/measured result, they're both just
+    // forecast figures for the year. The generic annualValueTarget() pairing
+    // would otherwise draw "planowana" as if it were the achieved bar; force
+    // it to target-only (only "oczekiwana" as the dashed cel line) since no
+    // real traffic count has come in yet.
+    if(normText(first.Obszar)==='KP-FIS' && normText(first.Mierniki_2026)==='Obciażenie ruchem lotniczym'){
+      units.forEach(u=>{
+        const noQ = u.q.every(q=>q.empty || q.value==null);
+        if(noQ && !u.plan.empty && !u.exp.empty) u.plan = {empty:true, na:true};
+      });
+    }
+    // "Wydajnoś FISO na godzinę pracy" and "Zatrudnienie w ośrodku FIS"
+    // (KP-FIS) are both annual ("r.") figures where "planowana"/"oczekiwana"
+    // are the SAME number repeated (a target, e.g. "7/9" ≈ 78%, or a plain
+    // headcount) — nothing has actually been reported/measured yet. These
+    // must render as target-only (dashed cel line, greyed card) via the
+    // normal annual chart, not the previous whole-metric "force empty" (which
+    // wrongly drew a blank QUARTERLY axis for an annual indicator and hid the
+    // known target entirely).
+    if(normText(first.Obszar)==='KP-FIS' && ['Wydajnoś FISO na godzinę pracy','Zatrudnienie w ośrodku FIS'].includes(normText(first.Mierniki_2026))){
+      units.forEach(u=>{
+        const noQ = u.q.every(q=>q.empty || q.value==null);
+        if(noQ && !u.plan.empty && !u.exp.empty && cellsMatch(u.plan,u.exp)) u.plan = {empty:true, na:true};
+      });
+    }
+    // KP-ASM1 "Dokładność danych zmian struktur przestrzeni powietrznej
+    // przekazanych do publikacji AIS": annual, "planowana" 95% and
+    // "oczekiwana" 98% are two DIFFERENT planning figures, but neither is an
+    // actually reported/measured result (no quarter ever filled) — like the
+    // KP-FIS traffic-load rows above, force target-only (98% cel line) rather
+    // than drawing "planowana" as if it were a real achieved 95%.
+    if(normText(first.Obszar)==='KP-ASM1' && normText(first.Mierniki_2026)==='Dokładność danych zmian struktur przestrzeni powietrznej przekazanych do publikacji AIS'){
+      units.forEach(u=>{
+        const noQ = u.q.every(q=>q.empty || q.value==null);
+        if(noQ && !u.plan.empty && !u.exp.empty) u.plan = {empty:true, na:true};
+      });
+    }
+    // OB. (both indicators, "Integracja środowiska UTM z systemami TWR" and
+    // "Pełna wymiana danych pomiędzy systemami ATM i UTM"): annual,
+    // "planowana"/"oczekiwana" are two DIFFERENT forecast figures (15%/10%,
+    // 25%/20%) but neither is an actually reported result — force target-only
+    // using "oczekiwana" as the cel line (ignore "planowana" entirely).
+    if(normText(first.Obszar)==='OB.'){
+      units.forEach(u=>{
+        const noQ = u.q.every(q=>q.empty || q.value==null);
+        if(noQ && !u.plan.empty && !u.exp.empty) u.plan = {empty:true, na:true};
+      });
+    }
+    // SZBI (both indicators), AX ("Stopień wdrożonych przez PAŻP celów ATM
+    // MP w roku sprawozdawczym"/"...ogółem") and BHP "Wysokość stopy
+    // procentowej na ubezpieczenie wypadkowe" are annual with "planowana" ===
+    // "oczekiwana" (0/0, 100%/100%, 45%/45%, or 0,96%/0,96%) — just the target
+    // repeated, nothing has actually been measured/reported this year. Force
+    // target-only (grey card, dashed cel line) instead of drawing a fake
+    // "achieved" bar that reads as a real, good result. (cellsMatch guards
+    // this so BHP's other row, "Wypadki w pracy" — plan 0 vs exp 2, genuinely
+    // different — is untouched.)
+    if(normText(first.Obszar)==='SZBI' || normText(first.Obszar)==='AX' || normText(first.Obszar)==='BHP'){
+      units.forEach(u=>{
+        const noQ = u.q.every(q=>q.empty || q.value==null);
+        if(noQ && !u.plan.empty && !u.exp.empty && cellsMatch(u.plan,u.exp)) u.plan = {empty:true, na:true};
+      });
+    }
+    // BHP "Wypadki w pracy" (0 planowana / 2 oczekiwana) and KP-FPL
+    // "Skuteczność weryfikacji poprawności..." (target thresholds "<1,0 x
+    // 10-5" planowana / "<5" oczekiwana): annual, no quarterly data ever —
+    // "planowana" is just a forecast, not a real reported count/result. Force
+    // target-only (grey card) using "oczekiwana" as the cel line.
+    if((normText(first.Obszar)==='BHP' && normText(first.Mierniki_2026)==='Wypadki w pracy') ||
+       normText(first.Obszar)==='KP-FPL'){
+      units.forEach(u=>{
+        const noQ = u.q.every(q=>q.empty || q.value==null);
+        if(noQ && !u.plan.empty && !u.exp.empty) u.plan = {empty:true, na:true};
+      });
+    }
+    // "Monitorowanie kowenantów na potrzeby umów kredytowych" (MF): the
+    // reported ratios (dług netto/EBITDA, DSCR) are plain multiples ("1,68",
+    // "1,95") but the source sheet's quarterly cells carry a stray "%" suffix
+    // ("1.68%"), which parseCell reads as a genuine percentage and forces the
+    // axis onto a 0-100% scale — squashing both the value and the "<3"/">1,2"
+    // covenant targets into an unreadable sliver near zero. Strip that
+    // mistaken percent flag here so the chart uses its real ratio scale.
+    if(normText(first.Obszar)==='MF' && normText(first.Mierniki_2026)==='Monitorowanie kowenantów na potrzeby umów kredytowych'){
+      units.forEach(u=> u.q.forEach(q=>{ if(!q.empty) q.percent = false; }));
+    }
     const hasQuarterData = units.some(u=>u.q.some(q=>!q.empty && q.value!=null));
-    const anyAnnualNumeric = units.some(u=> (!u.exp.empty && u.exp.value!=null) || (!u.plan.empty && u.plan.value!=null));
+    // any unit with a real number in either column counts as "annual" viz —
+    // even when "planowana" is explicitly "x" (nothing measured, target-only).
+    // That "value vs. target" distinction is already handled per-unit by
+    // annualValueTarget() (val stays null there, only the target line/band is
+    // drawn) — this group-level flag only decides QUARTERLY vs ANNUAL vs
+    // BADGE vs fully-EMPTY layout, so a target-only row must still count as
+    // "annual" here, not collapse to the blank axis-only empty state (that
+    // would silently drop the one useful piece of info these rows have: the
+    // target itself, e.g. SZCD/KP-AIM "brak wyniku, cel 80%/>=99%").
+    const anyAnnualNumeric = units.some(u=>{
+      const hasExp = !u.exp.empty && u.exp.value!=null;
+      const hasPlan = !u.plan.empty && u.plan.value!=null;
+      return hasPlan || hasExp;
+    });
     const anyQualitative = units.some(u=> (u.exp.qualitative) || (u.exp.range && !u.exp.value) || (u.plan.qualitative));
     const allEmpty = units.every(u=> u.q.every(q=>q.empty) && u.exp.empty && u.plan.empty);
 
@@ -437,9 +818,25 @@ function buildGroups(records){
     else if(anyAnnualNumeric) vizType = 'annual';
     else vizType = 'empty';
 
+    // whole-obszar / whole-indicator overrides: no real result was ever
+    // reported for these, so never let them fall back to showing the target
+    // number as if it were achieved data.
+    const forceEmpty = FORCE_EMPTY_OBSZAR.has(normText(first.Obszar)) || FORCE_EMPTY_NAMES.has(normText(first.Mierniki_2026));
+    if(forceEmpty) vizType = 'empty';
+
     const direction = inferDirection(first.Mierniki_2026);
-    units.forEach(u=> u.status = computeStatus(u, direction));
+    const neutral = isNeutralMetric(first.Mierniki_2026);
+    units.forEach(u=> u.status = forceEmpty ? 'empty' : computeStatus(u, direction, neutral));
     const status = worstStatus(units.map(u=>u.status));
+    units.forEach(u=> u.everBad = forceEmpty ? false : computeEverBad(u, direction, neutral));
+    const everBad = units.some(u=>u.everBad);
+
+    // "Zgodność gaśnic" is labelled "kw." in the sheet but is only ever
+    // actually checked/reported once a year (see the target-only override
+    // above) — so the cadence dots must show it as annual (only the last
+    // checkpoint lit), not as if it reports every quarter.
+    const FREQ_OVERRIDE_ANNUAL = new Set(['Zgodność gaśnic']);
+    const effectiveFreq = FREQ_OVERRIDE_ANNUAL.has(normText(first.Mierniki_2026)) ? 'r.' : (first.czest_ || '');
 
     groups.push({
       key: [normText(first.Obszar), normText(first.KPA), normText(first.Mierniki_2026)].join('§'),
@@ -447,10 +844,10 @@ function buildGroups(records){
       kpa: first.KPA || 'Inne',
       cel: celRow ? normCel(celRow.Cel_strategiczny) : '',
       name: normText(first.Mierniki_2026) || '(brak nazwy)',
-      freq: first.czest_ || '',
+      freq: effectiveFreq,
       units,
       multiUnit: units.length>1,
-      vizType, direction, status,
+      vizType, direction, status, everBad,
       hasQuarterData, anyAnnualNumeric, allEmpty
     });
   });
@@ -461,15 +858,19 @@ function buildGroups(records){
 function getFiltered(){
   const search = document.getElementById('searchInput').value.trim().toLowerCase();
   const obszar = document.getElementById('obszarFilter').value;
-  const freq = document.getElementById('freqFilter').value;
-  const onlyMissing = document.getElementById('onlyMissing').checked;
+  const cel = document.getElementById('celFilter').value;
+  const kpa = document.getElementById('kpaFilter').value;
+  const dataFilter = document.getElementById('dataFilter').value; // '' | 'nonempty' | 'empty'
   const onlyProblems = document.getElementById('onlyProblems').checked;
   return GROUPS.filter(g=>{
-    if(activeKpa!=='ALL' && g.kpa!==activeKpa) return false;
+    if(kpa && g.kpa!==kpa) return false;
     if(obszar && g.obszar!==obszar) return false;
-    if(freq && g.freq!==freq) return false;
-    if(onlyMissing && !(g.allEmpty || (g.vizType==='quarterly' && g.units.some(u=>u.q.some(q=>q.empty))))) return false;
-    if(onlyProblems && !(g.status==='bad' || g.status==='warn')) return false;
+    if(cel && g.cel!==cel) return false;
+    if(dataFilter==='empty' && g.status!=='empty') return false;
+    if(dataFilter==='nonempty' && g.status==='empty') return false;
+    // "poza celem": currently breaching OR breached at some earlier point
+    // this year (even if the latest reported value is back on track).
+    if(onlyProblems && g.status!=='bad' && !g.everBad) return false;
     if(search){
       const hay = (g.name+' '+g.obszar+' '+g.cel+' '+g.kpa).toLowerCase();
       if(!hay.includes(search)) return false;
@@ -478,24 +879,37 @@ function getFiltered(){
   });
 }
 
-/* ===================== RENDER: TABS + OBSZAR FILTER OPTIONS ===================== */
-function renderTabs(){
-  const tabs = document.getElementById('kpaTabs');
-  const counts = {ALL: GROUPS.length};
-  KPA_ORDER.forEach(k=> counts[k] = GROUPS.filter(g=>g.kpa===k).length);
-  const extra = [...new Set(GROUPS.map(g=>g.kpa))].filter(k=>!KPA_ORDER.includes(k));
-  const list = [{k:'ALL', label:'Wszystkie'}, ...KPA_ORDER.map(k=>({k,label:kpaMeta(k).label})), ...extra.map(k=>({k,label:k}))];
-  tabs.innerHTML = list.map(({k,label})=>`<button class="tab ${k===activeKpa?'active':''}" data-kpa="${k}">${label} <span class="n">${counts[k]||0}</span></button>`).join('');
-  tabs.querySelectorAll('.tab').forEach(btn=>{
-    btn.addEventListener('click', ()=>{ activeKpa = btn.dataset.kpa; renderTabs(); renderContent(); });
-  });
+/* ===================== RENDER: FILTER OPTIONS ===================== */
+// fixed section display order — the same order Obszar first appears in the
+// source sheet/RAW rows (not a count-based sort), computed once from the
+// FULL unfiltered GROUPS so filtering never reshuffles which obszar section
+// sits where, only how many/which cards show inside it.
+function computeObszarOrder(){
+  const seen = new Set();
+  OBSZAR_ORDER = [];
+  GROUPS.forEach(g=>{ if(!seen.has(g.obszar)){ seen.add(g.obszar); OBSZAR_ORDER.push(g.obszar); } });
 }
-
 function populateObszarFilter(){
   const sel = document.getElementById('obszarFilter');
   const cur = sel.value;
   const areas = [...new Set(GROUPS.map(g=>g.obszar))].sort();
   sel.innerHTML = '<option value="">Wszystkie obszary</option>' + areas.map(a=>`<option value="${a}">${a}</option>`).join('');
+  sel.value = cur;
+}
+function populateCelFilter(){
+  const sel = document.getElementById('celFilter');
+  const cur = sel.value;
+  const cele = [...new Set(GROUPS.map(g=>g.cel).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">Wszystkie cele</option>' + cele.map(c=>`<option value="${c}">${c}</option>`).join('');
+  sel.value = cur;
+}
+function populateKpaFilter(){
+  const sel = document.getElementById('kpaFilter');
+  const cur = sel.value;
+  const present = [...new Set(GROUPS.map(g=>g.kpa))];
+  const list = [...KPA_ORDER.filter(k=>present.includes(k)).map(k=>({k,label:kpaMeta(k).label})),
+    ...present.filter(k=>!KPA_ORDER.includes(k)).map(k=>({k,label:k}))];
+  sel.innerHTML = '<option value="">Wszystkie KPA</option>' + list.map(({k,label})=>`<option value="${k}">${label}</option>`).join('');
   sel.value = cur;
 }
 
@@ -538,30 +952,74 @@ function computeUnitViz(u){
 // one vertical axis — otherwise Chart.js auto-scales each chart independently and
 // bars for very different magnitudes (e.g. small vs. large units) look deceptively
 // similar in height.
-function renderUnitChart(canvasEl, u, meta, compact, yScale, freq){
+function renderUnitChart(canvasEl, u, meta, compact, yScale, freq, direction, neutral, millions){
   const isHalfYear = freq==='pół r.';
   const labels = isHalfYear ? ['I półr.','II półr.'] : ['I kw.','II kw.','III kw.','IV kw.'];
   const qCells = isHalfYear ? [u.q[1], u.q[3]] : u.q;
+  // target reference: prefer "oczekiwana", fall back to "planowana" when only
+  // that column was filled in for this row (data entry isn't always consistent).
+  // A "70%-80%" style cell parses to BOTH an averaged .value (legacy single-line
+  // use) and a .range [lo,hi] — the range, when present, is the real target band
+  // and must be drawn/judged as such instead of collapsing it to the midpoint.
+  const targetCell = pickTargetCell(u);
+  const planVal = targetCell ? targetCell.value : null;
+  const planRange = targetCell ? targetCell.range : null;
+  // Each bar is judged against the target on its own merits — a quarter that
+  // breached earlier in the year stays red even if a later quarter recovered.
+  // Only the card/box BACKGROUND tint (see computeStatus/buildPanelCard) looks
+  // solely at the latest reported quarter — so "Q1 over, Q2 back in target"
+  // shows a red Q1 bar with no red background, while "Q1 fine, Q2 over" shows
+  // a red Q2 bar *and* a red background (see request).
+  const barColors = qCells.map(q=>{
+    if(q.empty || q.value==null) return 'transparent';
+    if(millions && q.value===0) return statusInk('bad'); // 0 execution reported — flag it even on an otherwise-neutral investment chart
+    if(neutral || planVal==null) return statusInk('good');
+    if(planRange) return isOutOfRange(q.value, planRange) ? statusInk('bad') : statusInk('good');
+    return isBreach(q.value, planVal, directionFromOp(targetCell.op) || direction) ? statusInk('bad') : statusInk('good');
+  });
   const datasets = [{
     label:'Wartość', data: qCells.map(q=> (q.empty? null : q.value)),
-    backgroundColor: statusInk(u.status), borderRadius:4, maxBarThickness: compact?20:28, order:2
+    backgroundColor: barColors, borderRadius:4, maxBarThickness: compact?20:28, order:2,
+    minBarLength: millions? 2 : undefined // keep a real 0 visible as a thin red sliver instead of nothing
   }];
-  // target reference: prefer "oczekiwana", fall back to "planowana" when only
-  // that column was filled in for this row (data entry isn't always consistent)
-  const planVal = (!u.exp.empty && u.exp.value!=null) ? u.exp.value
-                 : (!u.plan.empty && u.plan.value!=null) ? u.plan.value : null;
-  if(planVal!=null){
+  if(planRange){
+    // draw the whole "lo-hi" band as a shaded region (two flat dashed lines
+    // with the area between them filled) instead of averaging it into one
+    // single target line — the midpoint isn't the actual target, the WHOLE
+    // range is.
+    datasets.push({
+      type:'line', label:'Cel (min)', data: labels.map(()=>planRange[0]),
+      borderColor:BRAND.navy, borderDash:[5,4], pointRadius:0, borderWidth:1.5, order:1, fill:false
+    });
+    datasets.push({
+      type:'line', label:'Cel (maks)', data: labels.map(()=>planRange[1]),
+      borderColor:BRAND.navy, borderDash:[5,4], pointRadius:0, borderWidth:1.5, order:1,
+      fill:'-1', backgroundColor:'rgba(15,48,77,0.12)'
+    });
+  } else if(planVal!=null){
     datasets.push({
       type:'line', label:'Cel roczny', data: labels.map(()=>planVal),
-      borderColor:BRAND.navy, borderDash:[5,4], pointRadius:0, borderWidth:1.5, order:1, fill:false
+      borderColor:BRAND.navy, borderDash:[5,4], pointRadius:0, borderWidth:1.5, order:1, fill:false,
+      targetOp: targetCell ? targetCell.op : null
     });
   }
   const percent = qCells.some(q=>q.percent) || (!u.exp.empty && u.exp.percent) || (!u.plan.empty && u.plan.percent);
-  const yAxis = {grid:{color:'#eef1f6'}, ticks:{font:{size:compact?9:10}, callback:(v)=>fmtNum(v,percent)}, beginAtZero:true};
+  const yAxis = {grid:{color:'#eef1f6'}, ticks:{font:{size:compact?9:10}, callback:(v)=>fmtNum(v,percent,millions)}, beginAtZero:true};
+  const localMax = Math.max(0, ...qCells.map(q=> q.empty? 0 : (q.value||0)), planVal||0);
   if(yScale){ yAxis.min = yScale.min; yAxis.max = yScale.max; }
-  else {
-    const localMax = Math.max(0, ...qCells.map(q=> q.empty? 0 : (q.value||0)), planVal||0);
-    if(localMax>0) yAxis.max = niceAxisMax(localMax, percent);
+  else if(localMax>0){
+    if(millions){ const sc = niceMillionsScale(localMax); yAxis.max = sc.max; yAxis.ticks.stepSize = sc.step; }
+    else yAxis.max = niceAxisMax(localMax, percent);
+  }
+  // percent axes normally run the full 0-100% ladder (20%-spaced gridlines) —
+  // but extend past 100 (see percentAxisMax) when the reported value/shared
+  // scale genuinely goes higher, instead of clipping the bar at the top.
+  if(percent){
+    const axisMax = yScale ? yScale.max : percentAxisMax(localMax);
+    yAxis.min = 0; yAxis.max = axisMax;
+    const ticks = percentAxisTicks(axisMax);
+    yAxis.afterBuildTicks = (axis)=>{ axis.ticks = ticks.map(value=>({value})); };
+    yAxis.ticks.autoSkip = false;
   }
   charts.push(new Chart(canvasEl,{
     type:'bar',
@@ -571,7 +1029,7 @@ function renderUnitChart(canvasEl, u, meta, compact, yScale, freq){
       interaction:{mode:'index', intersect:false},
       plugins:{
         legend:{display:false},
-        tooltip:{callbacks:{label:(c)=> `${c.dataset.label}: ${fmtNum(c.parsed.y, percent)}`}}
+        tooltip:{callbacks:{label:(c)=> fmtTooltipValue(c, percent, millions)}, filter:(c)=> c.parsed.y!=null}
       },
       scales:{
         x:{grid:{display:false}, ticks:{font:{size:compact?9:10}}},
@@ -585,35 +1043,125 @@ function renderUnitChart(canvasEl, u, meta, compact, yScale, freq){
 // vertical bar for the reported value, plus a dashed horizontal line for the
 // annual target — so every chart on the board reads the same way (no mixed
 // horizontal/vertical styles). Same shared-`yScale` rule as renderUnitChart.
-function renderUnitAnnualChart(canvasEl, u, meta, compact, yScale){
-  const {value, target} = annualValueTarget(u);
-  const val = value ? value.value : null;
-  const targetVal = target ? target.value : null;
-  const percent = (value && value.percent) || (target && target.percent);
+// Chart.js can't draw a real "line" from a single data point (an annual
+// chart only has one x-category) — with pointRadius:0 that leaves the target
+// completely invisible, even though the dataset/value are there. This plugin
+// manually draws a full-width dashed line at the target's y-pixel instead of
+// relying on Chart.js's own line renderer, exactly matching how the target
+// line already looks (plain, unlabeled) on the (multi-point, and therefore
+// naturally visible) quarterly charts.
+const annualTargetLinePlugin = {
+  id: 'annualTargetLine',
+  afterDatasetsDraw(chart){
+    const ds = chart.data.datasets.find(d=> d.label==='Cel roczny');
+    if(!ds || ds.data[0]==null) return;
+    const yScale = chart.scales.y;
+    const {left, right} = chart.chartArea;
+    const ctx = chart.ctx;
+    ctx.save();
+    if(ds.range){
+      // "70%-80%" style target: shade the whole band between the two bounds
+      // instead of a single averaged line — the range IS the target, not its
+      // midpoint.
+      const yLo = yScale.getPixelForValue(ds.range[0]);
+      const yHi = yScale.getPixelForValue(ds.range[1]);
+      const top = Math.min(yLo, yHi), bottom = Math.max(yLo, yHi);
+      ctx.fillStyle = 'rgba(15,48,77,0.12)';
+      ctx.fillRect(left, top, right-left, bottom-top);
+      ctx.setLineDash([5,4]);
+      ctx.strokeStyle = ds.borderColor || BRAND.navy;
+      ctx.lineWidth = ds.borderWidth || 1.5;
+      ctx.beginPath(); ctx.moveTo(left, top); ctx.lineTo(right, top); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(left, bottom); ctx.lineTo(right, bottom); ctx.stroke();
+    } else {
+      const y = yScale.getPixelForValue(ds.data[0]);
+      ctx.setLineDash([5,4]);
+      ctx.strokeStyle = ds.borderColor || BRAND.navy;
+      ctx.lineWidth = ds.borderWidth || 1.5;
+      ctx.beginPath();
+      ctx.moveTo(left, y);
+      ctx.lineTo(right, y);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+};
+function renderUnitAnnualChart(canvasEl, u, meta, compact, yScale, millions, noValue){
+  let val, targetVal, targetRange, percent, targetOp;
+  if(millions){
+    // for investment cards, "planowana"/"oczekiwana" are both just the same
+    // annual budget target (never an already-achieved result) — so unlike
+    // the generic annualValueTarget() pairing below, the "value" bar here is
+    // the actual reported execution-to-date from the quarterly cells (often
+    // 0, meaning "nothing spent/reported yet") rather than the plan/exp
+    // number. A 0 value bar draws nothing visible, but the real amount still
+    // shows up correctly on hover instead of being hidden as "no data".
+    const reported = u.q.filter(q=>!q.empty && q.value!=null).map(q=>q.value);
+    val = reported.length ? reported[reported.length-1] : null;
+    const targetCell = pickTargetCell(u);
+    targetVal = targetCell ? targetCell.value : null;
+    targetRange = targetCell ? targetCell.range : null;
+    targetOp = targetCell ? targetCell.op : null;
+    percent = false;
+  } else if(noValue){
+    // some whole-obszar overrides (KP-TR-ATS training-effectiveness targets,
+    // etc.) have "planowana"/"oczekiwana" both filled in with the SAME
+    // number — that's just the target repeated, never an actually reported
+    // result — so, like investment cards, never draw it as if it were an
+    // achieved value: only the dashed target line, greyed card, no bar.
+    val = null;
+    const targetCell = pickTargetCell(u);
+    targetVal = targetCell ? targetCell.value : null;
+    targetRange = targetCell ? targetCell.range : null;
+    targetOp = targetCell ? targetCell.op : null;
+    percent = targetCell ? targetCell.percent : false;
+  } else {
+    const vt = annualValueTarget(u);
+    val = vt.value ? vt.value.value : null;
+    targetVal = vt.target ? vt.target.value : null;
+    targetRange = vt.target ? vt.target.range : null;
+    targetOp = vt.target ? vt.target.op : null;
+    percent = (vt.value && vt.value.percent) || (vt.target && vt.target.percent);
+  }
   const datasets = [{
-    label:'Wartość', data:[val], backgroundColor: statusInk(u.status),
-    borderRadius:4, maxBarThickness: compact?36:48, order:2
+    label:'Wartość', data:[val],
+    backgroundColor: (millions && val===0) ? statusInk('bad') : statusInk(u.status),
+    borderRadius:4, maxBarThickness: compact?36:48, order:2,
+    minBarLength: millions? 2 : undefined // keep a real 0 visible as a thin red sliver instead of nothing
   }];
   if(targetVal!=null){
-    datasets.push({
+    const ds = {
       type:'line', label:'Cel roczny', data:[targetVal],
-      borderColor:BRAND.navy, borderDash:[5,4], pointRadius:0, borderWidth:1.5, order:1, fill:false
-    });
+      borderColor:BRAND.navy, borderDash:[5,4], pointRadius:0, borderWidth:1.5, order:1, fill:false,
+      targetOp
+    };
+    if(targetRange) ds.range = targetRange;
+    datasets.push(ds);
   }
-  const yAxis = {grid:{color:'#eef1f6'}, ticks:{font:{size:compact?9:10}, callback:(v)=>fmtNum(v,percent)}, beginAtZero:true};
+  const yAxis = {grid:{color:'#eef1f6'}, ticks:{font:{size:compact?9:10}, callback:(v)=>fmtNum(v,percent,millions)}, beginAtZero:true};
+  if(yScale && yScale.step) yAxis.ticks.stepSize = yScale.step;
+  const localMax = Math.max(val||0, targetVal||0);
   if(yScale){ yAxis.min = yScale.min; yAxis.max = yScale.max; }
-  else {
-    const localMax = Math.max(val||0, targetVal||0);
-    if(localMax>0) yAxis.max = niceAxisMax(localMax, percent);
+  else if(localMax>0){
+    if(millions){ const sc = niceMillionsScale(localMax); yAxis.max = sc.max; yAxis.ticks.stepSize = sc.step; }
+    else yAxis.max = niceAxisMax(localMax, percent);
+  }
+  if(percent){
+    const axisMax = yScale ? yScale.max : percentAxisMax(localMax);
+    yAxis.min = 0; yAxis.max = axisMax;
+    const ticks = percentAxisTicks(axisMax);
+    yAxis.afterBuildTicks = (axis)=>{ axis.ticks = ticks.map(value=>({value})); };
+    yAxis.ticks.autoSkip = false;
   }
   charts.push(new Chart(canvasEl,{
     type:'bar',
     data:{labels:[''], datasets},
+    plugins:[annualTargetLinePlugin],
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins:{
         legend:{display:false},
-        tooltip:{callbacks:{label:(c)=> `${c.dataset.label}: ${fmtNum(c.parsed.y, percent)}`}}
+        tooltip:{callbacks:{label:(c)=> fmtTooltipValue(c, percent, millions)}, filter:(c)=> c.parsed.y!=null}
       },
       scales:{
         x:{grid:{display:false}, ticks:{display:false}},
@@ -631,7 +1179,13 @@ function qualitativeValueTarget(u){
   const hasPlan = !u.plan.empty;
   if(hasExp && hasPlan) return {value:u.plan, target:u.exp};
   if(hasPlan) return {value:u.plan, target:null};
-  if(hasExp) return {value:u.exp, target:null};
+  if(hasExp){
+    // "planowana" explicitly "x" (u.plan.na) means nothing was ever measured —
+    // the lone letter in "oczekiwana" is only the target grade, not an
+    // achieved one (same convention as annualValueTarget's numeric case).
+    if(u.plan.na) return {value:null, target:u.exp};
+    return {value:u.exp, target:null};
+  }
   return {value:null, target:null};
 }
 function badgeHtml(u, meta){
@@ -640,42 +1194,282 @@ function badgeHtml(u, meta){
   if(target) html.push(`<span style="font-size:10.5px;color:var(--mut)">cel: ${cellText(target)}</span>`);
   return html.join('\n    ');
 }
+// SMS maturity indicators ("Zarządzanie ryzykiem...", "Kultura bezpieczeństwa"
+// etc.) are graded on an A-D ladder (A best, D worst) instead of a number —
+// drawn as a small vertical scale with all 4 letters always visible, the
+// CEL (target) row highlighted as a tinted band, and the reported grade (when
+// one exists) marked as a solid chip on top of it — instead of a plain badge
+// that had no sense of "where on the scale" the letter actually sits.
+const GRADE_SCALE = ['A','B','C','D'];
+function isGradeLetter(cell){ return cell && cell.qualitative && GRADE_SCALE.includes(String(cell.text||cell.raw||'').trim().toUpperCase()); }
+function renderGradeScaleChart(canvasEl, compact, targetLetter, valueLetter){
+  const targetIdx = GRADE_SCALE.indexOf(targetLetter);
+  const valueIdx = valueLetter ? GRADE_SCALE.indexOf(valueLetter) : -1;
+  const datasets = [{
+    label:'Cel', data: GRADE_SCALE.map((g,i)=> i===targetIdx ? 1 : 0),
+    backgroundColor:'rgba(15,48,77,0.14)', borderColor:BRAND.navy, borderWidth:1.5,
+    borderRadius:4, maxBarThickness: compact?22:30, order:2, categoryPercentage:0.9, barPercentage:0.95
+  }];
+  if(valueIdx>=0){
+    datasets.push({
+      label:'Wartość', data: GRADE_SCALE.map((g,i)=> i===valueIdx ? 1 : 0),
+      backgroundColor: statusInk('good'), borderRadius:3,
+      maxBarThickness: compact?10:14, order:1, categoryPercentage:0.9, barPercentage:0.4
+    });
+  }
+  charts.push(new Chart(canvasEl,{
+    type:'bar',
+    data:{labels:GRADE_SCALE, datasets},
+    options:{
+      indexAxis:'y',
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:(c)=> `${c.dataset.label}: ${GRADE_SCALE[c.dataIndex]}`}, filter:(c)=> c.parsed.x>0}
+      },
+      scales:{
+        x:{display:false, min:0, max:1},
+        y:{grid:{color:'#eef1f6'}, ticks:{font:{size:compact?10.5:11.5, weight:'700'}}}
+      },
+      animation:{duration:300}
+    }
+  }));
+}
+
+// KP-HRM "Planowany stan zatrudnienia w etatach (PRU)" used to be a 10-box
+// grid (one tiny chart per PRU role) — much harder to compare at a glance
+// than one combined chart. Now drawn as ONE bar chart: every PRU role on the
+// X axis (short "PRUn" tick, full role name on hover), one shared Y axis (FTE
+// count), and each role's OWN target drawn as a short horizontal tick at its
+// own bar (targets differ a lot per role, so one flat line across all of them
+// would be meaningless). When quarterly reporting eventually starts for this
+// indicator, each role expands into its own PRUn/I kw./II kw./... sub-group
+// (PRU-first, then quarter) instead of just one annual bar.
+function isPRUStaffingPanel(g){
+  return g.obszar==='KP-HRM' && /^Planowany stan zatrudnienia w etatach \(PRU\)/i.test(g.name||'');
+}
+function pruShortLabel(loc){
+  const m = String(loc||'').match(/\(([^)]+)\)\s*$/);
+  return m ? m[1].replace(/\s+/g,'') : String(loc||'');
+}
+function buildPRUChartData(g){
+  const qLabels = ['I kw.','II kw.','III kw.','IV kw.'];
+  const labels = [], fullLabels = [], values = [], targets = [];
+  g.units.forEach(u=>{
+    const short = pruShortLabel(u.loc);
+    // real reported figures land directly in whichever "I kw."/"II kw."/...
+    // cell was actually filled in — the row's official cadence label ("pół
+    // r.") doesn't reliably predict that (e.g. PRU1's first real headcount
+    // check showed up straight in "I kw.", not "II kw."), so all four
+    // quarter cells are checked directly instead of guessing based on freq.
+    const hasQ = u.q.some(q=> q && !q.empty && q.value!=null);
+    // same "value could be in either column, oczekiwana=cel" mapping used
+    // everywhere else — here plan/exp are normally identical (a planned
+    // staffing LEVEL, not a separately measured "achieved" figure), so the
+    // bar and the target tick land on the same height until real quarterly
+    // headcounts start coming in.
+    const target = (!u.exp.empty && u.exp.value!=null) ? u.exp.value : ((!u.plan.empty && u.plan.value!=null) ? u.plan.value : null);
+    const annualValue = (!u.plan.empty && u.plan.value!=null) ? u.plan.value : target;
+    if(hasQ){
+      u.q.forEach((q,i)=>{
+        labels.push([short, qLabels[i]]); // 2-line tick: "PRU1" / "I kw." — keeps the PRU grouping readable once a role has several quarterly bars in a row
+        fullLabels.push(`${u.loc||short} — ${qLabels[i]}`);
+        values.push(q && !q.empty ? q.value : null);
+        targets.push(target);
+      });
+    } else {
+      labels.push(short);
+      fullLabels.push(u.loc||short);
+      values.push(annualValue);
+      targets.push(target);
+    }
+  });
+  return {labels, fullLabels, values, targets};
+}
+function renderPRUStaffingChart(canvasEl, g, compact){
+  const {labels, fullLabels, values, targets} = buildPRUChartData(g);
+  const localMax = Math.max(0, ...values.filter(v=>v!=null), ...targets.filter(v=>v!=null));
+  const direction = inferDirection(g.name);
+  const neutral = isNeutralMetric(g.name);
+  // same red/blue judging every other chart uses: a reported headcount below
+  // its OWN role's target is understaffed (bad), same "direction" convention
+  // already applied to other staffing metrics — a flat, always-blue bar would
+  // hide a real under/over-staffing signal per PRU role.
+  const barColors = values.map((v,i)=>{
+    if(v==null) return 'transparent';
+    if(neutral || targets[i]==null) return BRAND.blue;
+    return isBreach(v, targets[i], direction) ? statusInk('bad') : statusInk('good');
+  });
+  charts.push(new Chart(canvasEl,{
+    data:{
+      labels,
+      datasets:[
+        {
+          type:'bar', label:'Wartość', data:values,
+          backgroundColor:barColors, borderRadius:4,
+          maxBarThickness: compact?22:30, order:2
+        },
+        {
+          type:'line', label:'Cel', data:targets,
+          showLine:false, pointStyle:'line', rotation:0,
+          pointRadius: compact?9:12, pointBorderWidth:2.5, borderColor:BRAND.navy,
+          order:1
+        }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index', intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          callbacks:{
+            title:(items)=> fullLabels[items[0].dataIndex],
+            label:(c)=> `${c.dataset.label}: ${fmtNum(c.parsed.y)}`
+          },
+          filter:(c)=> c.parsed.y!=null
+        }
+      },
+      scales:{
+        x:{grid:{display:false}, ticks:{font:{size:compact?9:10}, autoSkip:false, maxRotation:60, minRotation: labels.length>10?45:0}},
+        y:{grid:{color:'#eef1f6'}, ticks:{font:{size:compact?9:10}, callback:(v)=>fmtNum(v)}, beginAtZero:true, max: localMax>0? niceAxisMax(localMax,false):undefined}
+      },
+      animation:{duration:300}
+    }
+  }));
+}
+// one combined card (title + single wide chart) instead of the standard
+// per-location grid — used for indicators where a per-unit grid of tiny
+// charts is harder to read than one shared-axis chart (currently just the
+// PRU staffing breakdown; see isPRUStaffingPanel).
+function buildCombinedChartCard(g, compact){
+  const meta = kpaMeta(g.kpa);
+  const uid = 'c'+(cardIdSeq++);
+  const card = document.createElement('div');
+  card.className = 'card panel status-'+g.status + (g.vizType==='empty' ? ' empty':'');
+  card.style.borderLeftColor = meta.color;
+  card.innerHTML = `
+    <div class="card-top">
+      <div class="card-title">${g.name}</div>
+      <span class="freq-badge">${freqDotsHtml(g.freq)}</span>
+    </div>
+    <div class="chart-wrap body-${uid}" style="height:${compact?170:220}px"><canvas></canvas></div>
+  `;
+  const canvas = card.querySelector(`.body-${uid} canvas`);
+  chartQueue.push(()=> renderPRUStaffingChart(canvas, g, !!compact));
+  return card;
+}
 
 // renders the body (chart / badge / empty) for a single location into `container` —
 // every numeric case uses a vertical bar chart for consistency. `yScale` (optional)
 // forces a shared min/max so all locations of the same indicator are comparable.
+// Per standing agreement: a location/indicator with no data is left as a plain
+// blank area (consistent with the greyed-out "empty" card/box styling) rather
+// than announcing "Brak danych" — the muted/grey styling already communicates
+// that nothing was reported, no extra text needed.
 function renderUnitBody(container, g, u, meta, compact, yScale){
-  const uViz = computeUnitViz(u);
+  const millions = isInvestmentMetric(g.name);
+  // BHP: "Wypadki w pracy" counts whole incidents (can't have "half an
+  // accident"), and current annual figures sit well under 5 — pin a small
+  // integer-stepped 0-5 scale instead of the generic auto-fit/percent axis.
+  // "Wysokość stopy procentowej na ubezpieczenie wypadkowe" is a small % rate
+  // (~1%) — pin a readable 0-5% scale for the same reason.
+  if(!yScale && g.obszar==='BHP'){
+    if(g.name==='Wypadki w pracy') yScale = {min:0, max:5, percent:false, step:1};
+    else if(g.name==='Wysokość stopy procentowej na ubezpieczenie wypadkowe') yScale = {min:0, max:5, percent:true};
+  }
+  // whole-group "force empty" overrides (KP-TR-ATS etc.) mean there's no real
+  // reported result at all — plan/exp are just the target repeated, so this
+  // must win over whatever computeUnitViz sees in this unit's own quarterly/
+  // annual cells (e.g. a quarter cell that technically has a number still
+  // must not draw a live chart if the whole indicator is flagged as N/A).
+  const noValue = g.vizType==='empty';
+  const uViz = noValue ? 'empty' : computeUnitViz(u);
   if(uViz==='quarterly'){
     const wrap = document.createElement('div'); wrap.className = 'chart-wrap' + (compact? ' small':'');
     wrap.innerHTML = '<canvas></canvas>';
     container.appendChild(wrap);
     const canvas = wrap.querySelector('canvas');
-    chartQueue.push(()=> renderUnitChart(canvas, u, meta, compact, yScale, g.freq));
+    chartQueue.push(()=> renderUnitChart(canvas, u, meta, compact, yScale, g.freq, g.direction, isNeutralMetric(g.name), millions));
   } else if(uViz==='annual'){
     const wrap = document.createElement('div'); wrap.className = 'chart-wrap' + (compact? ' small':'');
     wrap.innerHTML = '<canvas></canvas>';
     container.appendChild(wrap);
     const canvas = wrap.querySelector('canvas');
-    chartQueue.push(()=> renderUnitAnnualChart(canvas, u, meta, compact, yScale));
+    chartQueue.push(()=> renderUnitAnnualChart(canvas, u, meta, compact, yScale, millions, noValue));
   } else if(uViz==='badge'){
-    container.insertAdjacentHTML('beforeend', `<div class="badge-wrap">${badgeHtml(u, meta)}</div>`);
+    const {value, target} = qualitativeValueTarget(u);
+    if(target && isGradeLetter(target)){
+      // A-D graded metric (SMS): vertical ladder with the target band + the
+      // reported grade marker, instead of a flat text chip with no sense of
+      // scale.
+      const wrap = document.createElement('div'); wrap.className = 'chart-wrap' + (compact? ' small':'');
+      wrap.innerHTML = '<canvas></canvas>';
+      container.appendChild(wrap);
+      const canvas = wrap.querySelector('canvas');
+      const targetLetter = String(target.text||target.raw).trim().toUpperCase();
+      const valueLetter = (value && isGradeLetter(value)) ? String(value.text||value.raw).trim().toUpperCase() : null;
+      chartQueue.push(()=> renderGradeScaleChart(canvas, compact, targetLetter, valueLetter));
+    } else {
+      container.insertAdjacentHTML('beforeend', `<div class="badge-wrap">${badgeHtml(u, meta)}</div>`);
+    }
   } else {
-    container.insertAdjacentHTML('beforeend', `<div class="empty-msg">⏳ Brak danych</div>`);
+    // uViz==='empty' -> no bars/message, but the Y axis stays visible (just
+    // muted by the surrounding .status-empty grayscale filter) so the chart
+    // area still reads as "a chart", not a blank hole in the layout.
+    const wrap = document.createElement('div'); wrap.className = 'chart-wrap' + (compact? ' small':'');
+    wrap.innerHTML = '<canvas></canvas>';
+    container.appendChild(wrap);
+    const canvas = wrap.querySelector('canvas');
+    chartQueue.push(()=> renderEmptyAxisChart(canvas, compact, yScale, g.freq));
   }
 }
+// placeholder chart for units with genuinely no data: draws only the Y axis
+// (no bars, no target line) so the layout/scale still lines up with sibling
+// charts in the same panel instead of leaving an empty gap.
+function renderEmptyAxisChart(canvasEl, compact, yScale, freq, percentHint){
+  const isHalfYear = freq==='pół r.';
+  const labels = isHalfYear ? ['I półr.','II półr.'] : ['I kw.','II kw.','III kw.','IV kw.'];
+  // no real data to read a scale/format from, so fall back to the shared
+  // panel yScale's percent flag (or the group's own percent hint) — without
+  // this, an empty box next to %-based siblings would show a bare 0-100
+  // count axis instead of the same 0/20/40/60/80/100% ladder they use.
+  const percent = (yScale && yScale.percent) || !!percentHint;
+  const yAxis = {grid:{color:'#eef1f6'}, ticks:{font:{size:compact?9:10}, callback:(v)=>fmtNum(v,percent)}, beginAtZero:true};
+  if(yScale){ yAxis.min = yScale.min; yAxis.max = yScale.max; }
+  else { yAxis.min = 0; yAxis.max = 100; }
+  if(percent){
+    yAxis.min = 0; yAxis.max = 100;
+    yAxis.afterBuildTicks = (axis)=>{ axis.ticks = [0,20,40,60,80,100].map(value=>({value})); };
+    yAxis.ticks.autoSkip = false;
+  }
+  charts.push(new Chart(canvasEl,{
+    type:'bar',
+    data:{labels, datasets:[{label:'Wartość', data:labels.map(()=>null), backgroundColor:'transparent'}]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{enabled:false} },
+      scales:{
+        x:{grid:{display:false}, ticks:{font:{size:compact?9:10}}},
+        y:yAxis
+      },
+      animation:false
+    }
+  }));
+}
 
-function buildCard(g, yScale){
-  return g.multiUnit ? buildPanelCard(g) : buildSingleCard(g, yScale);
+function buildCard(g, yScale, compact){
+  if(isPRUStaffingPanel(g)) return buildCombinedChartCard(g, compact);
+  return g.multiUnit ? buildPanelCard(g, compact) : buildSingleCard(g, yScale, compact);
 }
 
 // single location per indicator — one focused chart/bullet with its target built in
-function buildSingleCard(g, yScale){
+function buildSingleCard(g, yScale, compact){
   const meta = kpaMeta(g.kpa);
   const uid = 'c'+(cardIdSeq++);
   const u = g.units[0];
   const card = document.createElement('div');
-  card.className = 'card status-'+g.status + (g.vizType==='empty' ? ' empty':'');
+  card.className = 'card status-'+g.status + (g.vizType==='empty' ? ' empty':'') + (compact? ' card-compact':'');
   card.style.borderLeftColor = meta.color;
 
   card.innerHTML = `
@@ -686,28 +1480,78 @@ function buildSingleCard(g, yScale){
     <div class="subline">${u.loc||''}</div>
     <div class="body-${uid}"></div>
   `;
-  renderUnitBody(card.querySelector(`.body-${uid}`), g, u, meta, false, yScale);
+  renderUnitBody(card.querySelector(`.body-${uid}`), g, u, meta, !!compact, yScale);
 
   return card;
 }
 
 // Axis max rounding: raw headroom (max*1.1) often lands on an ugly number like
-// 90.2 or 107.6. Percent-based metrics (utilization, on-time rate, etc.) have a
+// 90.2 or 107.6 (or, for larger 4+ digit values, 6700) that reads as noise
+// rather than a deliberate ceiling. Rounding to one significant digit instead
+// of two gives cleaner steps across the board (e.g. 6045 target -> 7000, not
+// 6700). Percent-based metrics (utilization, on-time rate, etc.) have a
 // natural ceiling of 100, so those just snap straight to 100 unless the data
-// itself already runs past it. Everything else rounds up to the nearest "nice"
-// step for its own magnitude (e.g. 107.6 -> 110, 1240 -> 1300).
+// itself already runs past it.
 function niceRoundUp(v){
   if(!(v>0)) return v;
-  const digits = Math.floor(Math.log10(v))+1;
-  const magnitude = Math.pow(10, Math.max(0, digits-2));
-  return Math.ceil(v/magnitude)*magnitude;
+  const magnitude = Math.pow(10, Math.floor(Math.log10(v)));
+  // single-digit counts (e.g. incident tallies 0-9) only ever look right as
+  // WHOLE numbers on an axis — a ".5" step (5.5, 3.5, ...) reads as a typo,
+  // not a deliberate ceiling, so round straight up to the next integer here.
+  if(magnitude===1) return Math.ceil(v);
+  // for everything bigger, round up to the nearest HALF order-of-magnitude
+  // step (..., 10, 15, 20, ...) instead of jumping straight to the next full
+  // order of magnitude — a max of e.g. 12.1 would otherwise round all the way
+  // up to 20 instead of a tighter, still-round 15.
+  const step = Math.ceil((v/magnitude)*2)/2;
+  return step*magnitude;
+}
+// For "millions" (large PLN amounts) charts, the generic niceRoundUp() half-
+// order-of-magnitude step can land on an awkward max (e.g. 450 mln) that Chart.js
+// then can't evenly divide into round gridlines, producing a lopsided axis like
+// "0 / 100 / 200 / 300 / 450 mln". This picks a clean step (1/2/5 × a power of
+// ten) AND a max that's an exact multiple of it, so every gridline lines up
+// (e.g. step 100 mln → 0/100/200/300/400/500).
+function niceMillionsScale(dataMax){
+  if(!(dataMax>0)) return {max:0, step:1};
+  const rawStep = (dataMax*1.1)/5;
+  const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const residual = rawStep/magnitude;
+  const niceResidual = residual>5 ? 10 : residual>2 ? 5 : residual>1 ? 2 : 1;
+  const step = niceResidual*magnitude;
+  return {max: Math.ceil((dataMax*1.1)/step)*step, step};
+}
+// Percent axes normally run a fixed 0-100% ladder (five 20%-spaced
+// gridlines) — but a metric that's genuinely allowed to overshoot 100% (e.g.
+// "Terminowe inicjowanie procesu zakupowego" hitting 125% one quarter) must
+// extend the scale instead of clipping/cramming that bar right at the top;
+// the 20%-step gridline convention is kept, just extended with headroom.
+function percentAxisMax(dataMax){
+  if(!(dataMax>100)) return 100;
+  let m = Math.ceil(dataMax/10)*10;
+  if(m<=dataMax) m += 10;
+  return m;
+}
+function percentAxisTicks(axisMax){
+  // Pick a step that lands on ~5-8 gridlines: prefer a divisor of axisMax
+  // itself (so the top tick matches the axis ceiling exactly, e.g. 0..5 in
+  // steps of 1 for a pinned 0-5% scale), otherwise fall back to whichever
+  // candidate keeps the tick count reasonable (e.g. 20% steps for a 0-130%
+  // extended axis, matching the original 0/20/40/.../100% ladder).
+  const candidates = [1,2,5,10,20,25,50];
+  const step = candidates.find(c => axisMax/c<=6 && axisMax%c===0)
+    || candidates.find(c => axisMax/c<=8)
+    || 20;
+  const ticks = [];
+  for(let v=0; v<=axisMax; v+=step) ticks.push(v);
+  return ticks;
 }
 function niceAxisMax(dataMax, percent){
   // Percentage metrics are conceptually bounded at 100% — pin the axis there
-  // unconditionally so every %-based card in the board reads on the same
-  // scale, even when a reported value slightly overshoots 100 (rounding /
-  // measurement noise in the source data, not a real >100% result).
-  if(percent) return 100;
+  // unless the reported value genuinely overshoots it (e.g. "Terminowe
+  // inicjowanie procesu zakupowego" 125%), in which case extend instead of
+  // clipping — see percentAxisMax().
+  if(percent) return percentAxisMax(dataMax);
   return niceRoundUp(dataMax*1.1);
 }
 
@@ -726,7 +1570,7 @@ function computeGroupYScale(g){
     if(!u.exp.empty && u.exp.value!=null){ any=true; if(u.exp.value>max) max=u.exp.value; if(u.exp.value<min) min=u.exp.value; if(u.exp.percent) percent=true; }
   });
   if(!any || max<=0) return null;
-  return {min, max: niceAxisMax(max, percent)};
+  return {min, max: niceAxisMax(max, percent), percent};
 }
 // Same idea as computeGroupYScale, but across several DIFFERENT indicator
 // groups (not locations within one) — used to align the Y axis of a small set
@@ -740,20 +1584,50 @@ function computeSharedYScale(groups){
     if(!u.exp.empty && u.exp.value!=null){ any=true; if(u.exp.value>max) max=u.exp.value; if(u.exp.value<min) min=u.exp.value; if(u.exp.percent) percent=true; }
   }));
   if(!any || max<=0) return null;
-  return {min, max: niceAxisMax(max, percent)};
+  return {min, max: niceAxisMax(max, percent), percent};
 }
 // Runway-safety trio (KP-TWR): reported side by side, all incident counts, all
 // lower-is-better — sharing one Y axis makes their relative severity legible
 // instead of three unrelated scales (5 vs 8 vs 10) that look "off" together.
 function isRunwaySafetyMetric(name){ return /wtargnię|przerwanych startów/i.test(name||''); }
+// "Realizacja inwestycji dla ..." (KP-INWEST): nine separate, same-shape cards
+// (one per Biuro) — sharing one axis makes the very different budget sizes
+// comparable, and values are shown in "mln" (millions) instead of raw PLN.
+// The three biggest budgets (PAŻP overall, Biuro MA, Biuro OZ — hundreds of
+// millions) would otherwise dwarf the rest on one shared axis, so they get
+// their OWN shared scale (~500 mln) while the remaining, much smaller offices
+// share a separate ~15 mln scale.
+function isInvestmentMetric(name){ return /^Realizacja inwestycji/i.test(name||'') || /zabezpieczenie płynności/i.test(name||''); }
+function isBigInvestmentMetric(name){ return /^Realizacja inwestycji dla (PAŻP|Biura (MA|OZ))\b/i.test(name||''); }
 
 // multiple locations for the same indicator — split into one compact sub-card per
 // location (each with its own target), rather than merging into one busy chart.
-function buildPanelCard(g){
+// Two specific KP-RAD panels (ACC GAT/ACC OAT/APP GD/KK/PO/WA — "Wykorzystanie
+// ATCO..." and "Liczba godzin nadliczbowych ATCO") read better split into two
+// rows — the ACC (radar) pair on top, the four APP towers below — instead of
+// one grid that awkwardly wraps 6 boxes across 5 columns. Both rows still
+// share the same y-scale/column sizing as a normal panel (no separate axis
+// split, no full-width stretching of the top row).
+function isAccAppRadarPanel(g){
+  return g.obszar==='KP-RAD' && g.units.length===6 && g.units.some(u=>/^ACC/i.test(u.loc||'')) && g.units.some(u=>/^APP/i.test(u.loc||''));
+}
+function buildPanelCard(g, compact){
+  if(compact===undefined) compact = true; // preserve default panel density everywhere else
   const meta = kpaMeta(g.kpa);
   const yScale = computeGroupYScale(g);
+  // "Liczba godzin nadliczbowych ATCO" (KP-RAD) has one target (APP PO) at
+  // 6045h — the generic auto-scale rounds that up to 7000, leaving almost no
+  // headroom above the target line; pin it a bit higher (8000) instead.
+  if(yScale && /^Liczba godzin nadliczbowych ATCO$/i.test(g.name||'') && g.obszar==='KP-RAD') yScale.max = 8000;
+  // "Monitorowanie kowenantów..." (MF) covenant ratios sit well under 5 (targets
+  // "<3", ">1,2") — pin a fixed, easy-to-read 0-5 scale instead of the
+  // generic auto-fit, which would otherwise round to an oddly tight max.
+  if(yScale && /^Monitorowanie kowenantów na potrzeby umów kredytowych$/i.test(g.name||'') && g.obszar==='MF'){ yScale.min = 0; yScale.max = 5; yScale.percent = false; }
   const panel = document.createElement('div');
-  panel.className = 'card panel status-'+g.status + (g.vizType==='empty' ? ' empty':'');
+  // the panel itself is never tinted red/yellow for a single breaching
+  // location — see per-unit-box and per-bar colouring above; only the
+  // "no data at all" grey state applies at the panel level.
+  panel.className = 'card panel' + (g.vizType==='empty' ? ' empty':'');
   panel.style.borderLeftColor = meta.color;
 
   panel.innerHTML = `
@@ -761,17 +1635,38 @@ function buildPanelCard(g){
       <div class="card-title">${g.name}</div>
       <span class="freq-badge">${freqDotsHtml(g.freq)}</span>
     </div>
-    <div class="subline">${g.units.length} lokalizacje / jednostki</div>
-    <div class="unit-grid"></div>
   `;
-  const grid = panel.querySelector('.unit-grid');
-  g.units.forEach(u=>{
-    const box = document.createElement('div');
-    box.className = 'unit-box status-'+u.status;
-    box.innerHTML = `<div class="unit-box-label">${statusDot(u.status)}${u.loc || 'Ogółem'}</div>`;
-    renderUnitBody(box, g, u, meta, true, yScale);
-    grid.appendChild(box);
-  });
+  const addUnitGrid = (units)=>{
+    const grid = document.createElement('div');
+    grid.className = 'unit-grid';
+    // only for these enlarged (non-compact) rows: size columns to the actual
+    // unit count here specifically, instead of touching the shared
+    // .unit-grid CSS rule used by every other panel on the dashboard.
+    // `auto-fit`+`minmax` (not a flat `repeat(n,1fr)`) keeps that "one column
+    // per unit" layout on wide screens while still letting narrow/embedded
+    // widget widths wrap to fewer columns instead of squeezing every chart
+    // down to nothing and spilling off the right edge.
+    if(compact===false) grid.style.gridTemplateColumns = `repeat(auto-fit, minmax(max(130px, calc(100%/${units.length} - 12px)), 1fr))`;
+    panel.appendChild(grid);
+    units.forEach(u=>{
+      const box = document.createElement('div');
+      // each box reflects its OWN unit's status (based only on its latest
+      // reported quarter) — a red box here means this specific location is
+      // currently over target, not "some other location in this group is".
+      box.className = 'unit-box status-'+u.status;
+      box.innerHTML = `<div class="unit-box-label">${statusDot(u.status)}${u.loc || 'Ogółem'}</div>`;
+      renderUnitBody(box, g, u, meta, compact, yScale);
+      grid.appendChild(box);
+    });
+  };
+  if(isAccAppRadarPanel(g)){
+    const accUnits = g.units.filter(u=> /^ACC/i.test(u.loc||''));
+    const appUnits = g.units.filter(u=> !/^ACC/i.test(u.loc||''));
+    addUnitGrid(accUnits);
+    addUnitGrid(appUnits);
+  } else {
+    addUnitGrid(g.units);
+  }
 
   return panel;
 }
@@ -789,12 +1684,24 @@ function renderContent(){
     main.innerHTML = `<div class="empty-state"><b>Brak wyników</b>Zmień kryteria filtrowania lub wyszukiwania.</div>`;
     return;
   }
-  // group by Obszar within current view, ordered by count desc
+  // group by Obszar within current view — ordered using a FIXED order computed
+  // once from the full unfiltered dataset (see computeObszarOrder), so
+  // toggling filters (e.g. "tylko poza celem") never reshuffles which obszar
+  // section appears where; only the set/count of cards inside each changes.
   const byObszar = new Map();
   list.forEach(g=>{ if(!byObszar.has(g.obszar)) byObszar.set(g.obszar, []); byObszar.get(g.obszar).push(g); });
-  const sections = [...byObszar.entries()].sort((a,b)=> b[1].length - a[1].length);
+  const sections = [...byObszar.entries()].sort((a,b)=>{
+    const ia = OBSZAR_ORDER.indexOf(a[0]), ib = OBSZAR_ORDER.indexOf(b[0]);
+    return (ia<0? Infinity:ia) - (ib<0? Infinity:ib);
+  });
 
   sections.forEach(([obszar, groups])=>{
+    // KP-FIS: "Wydajność FISO na godzinę pracy" reads as the headline figure
+    // for the whole area — pin it first, ahead of the per-office traffic-load
+    // and staffing cards that follow it in the raw sheet order.
+    if(obszar==='KP-FIS'){
+      groups.sort((a,b)=> (a.name==='Wydajnoś FISO na godzinę pracy'?0:1) - (b.name==='Wydajnoś FISO na godzinę pracy'?0:1));
+    }
     const kpaSet = new Set(groups.map(g=>g.kpa));
     const primaryMeta = kpaMeta(kpaSet.size===1 ? groups[0].kpa : null);
     const section = document.createElement('div');
@@ -809,8 +1716,80 @@ function renderContent(){
     `;
     section.querySelector('.section-head').addEventListener('click', ()=> section.classList.toggle('collapsed'));
     const grid = section.querySelector('.grid');
-    const sharedYScale = computeSharedYScale(groups.filter(g=> isRunwaySafetyMetric(g.name)));
-    groups.forEach(g=> grid.appendChild(buildCard(g, isRunwaySafetyMetric(g.name) ? sharedYScale : null)));
+    const runwayShared = computeSharedYScale(groups.filter(g=> isRunwaySafetyMetric(g.name)));
+    // KP-ZAK: "Terminowe inicjowanie procesu zakupowego" and "Terminowe
+    // zawieranie umów zakupowych" read side by side — sharing one axis keeps
+    // them visually comparable, and it must stretch past 100% (e.g. a 125%
+    // quarter) instead of clipping the bar at the usual 100% ceiling.
+    const kpZakShared = computeSharedYScale(groups.filter(g=> obszar==='KP-ZAK'));
+    // "Zabezpieczenie płynności" (MF) is millions-scaled like the investment
+    // budget cards (see isInvestmentMetric) but it's a single stand-alone
+    // metric, not part of that PAŻP/OZ/MA/rest investment-progress cluster —
+    // it must stay in its normal top-of-section position, not get pulled into
+    // the low-priority full-width investment rows rendered at the bottom.
+    const isBudgetInvestmentMetric = g=> /^Realizacja inwestycji/i.test(g.name||'');
+    const investBig = groups.filter(g=> isBudgetInvestmentMetric(g) && isBigInvestmentMetric(g.name))
+      .sort((a,b)=>{
+        const rank = n=> /PAŻP\b/i.test(n) ? 0 : /Biura OZ\b/i.test(n) ? 1 : /Biura MA\b/i.test(n) ? 2 : 3;
+        return rank(a.name)-rank(b.name);
+      });
+    const investSmall = groups.filter(g=> isBudgetInvestmentMetric(g) && !isBigInvestmentMetric(g.name));
+    const investBigShared = computeSharedYScale(investBig);
+    const investSmallShared = computeSharedYScale(investSmall);
+    // KP-TR-ATS: "podstawowego" (1 chart), "w zakresie uprawnienia" (4
+    // charts: ACS/APS/ADC/APP) and the merged simulator-availability panel (3
+    // charts: P_21/BEST-Warszawa/BEST-Poznań) all read as one connected row —
+    // same training/readiness cluster — sized so each individual chart column
+    // stays roughly the same width across all three (1 + 4 + 3 = 8 columns).
+    const ospaRow = [
+      groups.find(g=> /^Skuteczność szkolenia podstawowego\b.*OSPA$/i.test(g.name)),
+      groups.find(g=> /^Skuteczność szkolenia w zakresie uprawnienia\b.*OSPA$/i.test(g.name)),
+      groups.find(g=> /^Dostępność techniczna symulatorów$/i.test(g.name))
+    ].filter(Boolean);
+    // The "w jednostce" panel (3 units: ACC/APP/TWR) reads as one connected
+    // row with its two close relatives (single-intake variant + the
+    // "uzupełniające" refresher training) — same proportional-row treatment
+    // as the OSPA trio above (3 + 1 + 1 = 5 columns).
+    const jednostkaCard = groups.find(g=> /^Skuteczność szkolenia personelu ATS w jednostce$/i.test(g.name));
+    const jednostkaFollowUp = groups.filter(g=> /w odniesieniu do jednego naboru/i.test(g.name) || /^Skuteczność szkolenia uzupełniającego personelu ATS$/i.test(g.name))
+      .sort((a,b)=> (/jednego naboru/i.test(a.name)?0:1) - (/jednego naboru/i.test(b.name)?0:1));
+    const jednostkaRow = [jednostkaCard, ...jednostkaFollowUp].filter(Boolean);
+    const investSet = new Set([...investBig, ...investSmall, ...ospaRow, ...jednostkaRow]);
+    if(ospaRow.length){
+      const row = document.createElement('div');
+      row.className = 'invest-row invest-row-ospa';
+      // non-compact (full chart height) so all three cards line up with the
+      // same Y-axis pixel height instead of the panels' mini-charts running
+      // shorter and leaving whitespace under them.
+      ospaRow.forEach(g=> row.appendChild(buildCard(g, null, false)));
+      grid.appendChild(row);
+    }
+    // Investment cards get their own full-width rows (one for the ~500 mln
+    // PAŻP/MA/OZ trio, one for the ~20 mln rest) instead of being interleaved
+    // into the regular auto-flow grid — that's the only way to guarantee they
+    // land on two visually separate lines with their own (very different)
+    // scales, rather than wrapping wherever the grid happens to break.
+    groups.filter(g=> !investSet.has(g)).forEach(g=>{
+      grid.appendChild(buildCard(g, isRunwaySafetyMetric(g.name) ? runwayShared : (obszar==='KP-ZAK' ? kpZakShared : null)));
+    });
+    if(jednostkaRow.length){
+      const row = document.createElement('div');
+      row.className = 'invest-row invest-row-jednostka';
+      jednostkaRow.forEach(g=> row.appendChild(buildCard(g, null, false)));
+      grid.appendChild(row);
+    }
+    if(investBig.length){
+      const row = document.createElement('div');
+      row.className = 'invest-row invest-row-big';
+      investBig.forEach(g=> row.appendChild(buildCard(g, investBigShared)));
+      grid.appendChild(row);
+    }
+    if(investSmall.length){
+      const row = document.createElement('div');
+      row.className = 'invest-row invest-row-small';
+      investSmall.forEach(g=> row.appendChild(buildCard(g, investSmallShared, true)));
+      grid.appendChild(row);
+    }
     main.appendChild(section);
   });
 
@@ -825,45 +1804,75 @@ function renderContent(){
 
 /* ===================== DATA LOADING ===================== */
 function setLastUpdate(ok){
-  const el = document.getElementById('lastUpdate');
-  const t = new Date().toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
-  el.innerHTML = `<span class="dot" style="background:${ok?'#34d399':'#f59e0b'}"></span> ${ok? 'zsynchronizowano':'dane demo'} • ${t}`;
-}
-
-function getDemoData(){
-  const el = document.getElementById('demo-data');
-  return JSON.parse(el.textContent);
+  // the visible "synchronizacja" indicator was removed along with the top
+  // bar — keep this as a console breadcrumb only, so loadData() doesn't need
+  // its own branching for "has a status element or not".
+  console.debug(ok? 'zsynchronizowano z Grist' : 'brak połączenia z Grist');
 }
 
 async function withTimeout(promise, ms){
   return Promise.race([promise, new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')), ms))]);
 }
 
+// no demo/embedded fallback anymore — this widget only ever shows live data
+// straight from the Grist table (see TABLE above). Outside a Grist frame, or
+// if the fetch fails, RAW/GROUPS stay empty and renderContent() shows the
+// normal "brak wyników" empty state instead of a stale baked-in snapshot.
 async function loadData(){
   const inGrist = window.grist && window.parent !== window;
-  let records;
+  let records = [];
   if(inGrist){
     try{
       const data = await withTimeout(grist.docApi.fetchTable(TABLE), 6000);
       records = colToRecs(data);
       setLastUpdate(true);
     }catch(e){
-      console.warn('Grist fetch failed, using demo data', e);
-      records = colToRecs(getDemoData());
+      console.warn('Grist fetch failed', e);
       setLastUpdate(false);
     }
   } else {
-    records = colToRecs(getDemoData());
+    console.warn('Widget nie jest osadzony w Gricie — brak danych.');
     setLastUpdate(false);
   }
   RAW = records;
-  GROUPS = buildGroups(records);
+  GROUPS = mergeSpecialGroups(buildGroups(records));
+}
+
+// FISO efficiency (one org-wide figure) and FIS-office staffing (4 locations)
+// both only carry a target with nothing measured yet — merged into a single
+// 5-box row instead of two separate near-empty cards, per request.
+function mergeSpecialGroups(groups){
+  let out = groups;
+  // "Dostępność techniczna symulatora (P_21)" / "(BEST-Warszawa)" /
+  // "(BEST-Poznań)" (KP-TR-ATS) are 3 separate single-location metrics whose
+  // location lives in the name itself — read far better as one panel with 3
+  // sub-boxes (like the ACS/APS/ADC/APP breakdown above it) than as 3 nearly
+  // identical full cards.
+  const simIdx = out.map((g,i)=>({g,i})).filter(({g})=> /^Dostępność techniczna symulator/i.test(g.name));
+  if(simIdx.length===3){
+    const simGroups = simIdx.map(x=>x.g);
+    const simMerged = {
+      ...simGroups[0],
+      key: simGroups[0].key+'§merged-sim',
+      name: 'Dostępność techniczna symulatorów',
+      units: simGroups.map(g=>{
+        const m = /\(([^)]+)\)/.exec(g.name);
+        return {...g.units[0], loc: m ? m[1] : (g.units[0].loc||'')};
+      }),
+      multiUnit: true
+    };
+    const idxSet = new Set(simIdx.map(x=>x.i));
+    out = out.filter((g,i)=> !idxSet.has(i)).concat([simMerged]);
+  }
+  return out;
 }
 
 async function refreshAndRender(){
   await loadData();
+  computeObszarOrder();
   populateObszarFilter();
-  renderTabs();
+  populateCelFilter();
+  populateKpaFilter();
   renderContent();
 }
 
@@ -871,10 +1880,19 @@ async function refreshAndRender(){
 function wireControls(){
   document.getElementById('searchInput').addEventListener('input', renderContent);
   document.getElementById('obszarFilter').addEventListener('change', renderContent);
-  document.getElementById('freqFilter').addEventListener('change', renderContent);
-  document.getElementById('onlyMissing').addEventListener('change', renderContent);
+  document.getElementById('celFilter').addEventListener('change', renderContent);
+  document.getElementById('kpaFilter').addEventListener('change', renderContent);
+  document.getElementById('dataFilter').addEventListener('change', renderContent);
   document.getElementById('onlyProblems').addEventListener('change', renderContent);
-  document.getElementById('refreshBtn').addEventListener('click', refreshAndRender);
+  // collapse/expand-all: flips every currently rendered .section's own
+  // collapsed state in one click (same class each section-head already
+  // toggles individually) — lives outside #content so it survives re-renders.
+  document.getElementById('toggleAllBtn').addEventListener('click', ()=>{
+    const btn = document.getElementById('toggleAllBtn');
+    const nextCollapsed = !btn.classList.contains('all-collapsed');
+    document.querySelectorAll('.section').forEach(s=> s.classList.toggle('collapsed', nextCollapsed));
+    btn.classList.toggle('all-collapsed', nextCollapsed);
+  });
 }
 
 (async function init(){
