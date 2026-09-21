@@ -271,6 +271,53 @@ let charts = [];         // chart.js instances currently on screen, so we can de
 let chartQueue = [];     // chart-creation callbacks, run only after the DOM grid has settled
                           // (creating Chart.js instances while CSS grid columns are still being
                           // added/resized bakes in wrong tick-label geometry — see mountCharts())
+let collapsedObszars = new Set(); // obszar names currently collapsed — persisted to localStorage
+                                    // so a page refresh doesn't re-expand every section
+
+/* ===================== UI STATE PERSISTENCE ===================== */
+// remembers filter selections + which obszar sections are collapsed across
+// page refreshes (grist widget iframes get fully reloaded on every Grist
+// panel refresh — without this, every filter/collapse choice reset back to
+// defaults each time).
+const UI_STATE_KEY = 'pazpKPI2027.uiState.v1';
+function loadUiState(){
+  try{ const raw = localStorage.getItem(UI_STATE_KEY); return raw ? JSON.parse(raw) : null; }
+  catch(e){ return null; }
+}
+function saveUiState(){
+  try{
+    localStorage.setItem(UI_STATE_KEY, JSON.stringify({
+      obszar: document.getElementById('obszarFilter').value,
+      cel: document.getElementById('celFilter').value,
+      kpa: document.getElementById('kpaFilter').value,
+      search: document.getElementById('searchInput').value,
+      dataFilter: document.getElementById('dataFilter').value,
+      onlyProblems: document.getElementById('onlyProblems').checked,
+      collapsed: [...collapsedObszars]
+    }));
+  }catch(e){ /* localStorage unavailable (private mode, etc.) — ignore */ }
+}
+// applied once, right after the very first data load (once the filter
+// <select> options actually exist to restore a value into) — later
+// onRecords-triggered reloads must NOT re-apply this, or a live in-session
+// filter change would keep getting reset back to whatever was saved earlier.
+let uiStateApplied = false;
+function applyUiState(){
+  const s = loadUiState();
+  if(!s) return;
+  const setIfPresent = (id, val)=>{
+    if(val==null) return;
+    const el = document.getElementById(id);
+    if([...el.options].some(o=>o.value===val)) el.value = val;
+  };
+  setIfPresent('obszarFilter', s.obszar);
+  setIfPresent('celFilter', s.cel);
+  setIfPresent('kpaFilter', s.kpa);
+  if(s.search) document.getElementById('searchInput').value = s.search;
+  if(s.dataFilter!=null) setIfPresent('dataFilter', s.dataFilter);
+  if(s.onlyProblems!=null) document.getElementById('onlyProblems').checked = s.onlyProblems;
+  collapsedObszars = new Set(s.collapsed || []);
+}
 
 /* ===================== PARSING HELPERS ===================== */
 function parseCell(raw){
@@ -1757,7 +1804,8 @@ function renderContent(){
     const kpaSet = new Set(groups.map(g=>g.kpa));
     const primaryMeta = kpaMeta(kpaSet.size===1 ? groups[0].kpa : null);
     const section = document.createElement('div');
-    section.className = 'section';
+    section.className = 'section' + (collapsedObszars.has(obszar) ? ' collapsed' : '');
+    section.dataset.obszar = obszar;
     section.innerHTML = `
       <div class="section-head">
         <span class="accent" style="background:${primaryMeta.color}"></span>
@@ -1766,7 +1814,12 @@ function renderContent(){
       </div>
       <div class="grid"></div>
     `;
-    section.querySelector('.section-head').addEventListener('click', ()=> section.classList.toggle('collapsed'));
+    section.querySelector('.section-head').addEventListener('click', ()=>{
+      section.classList.toggle('collapsed');
+      if(section.classList.contains('collapsed')) collapsedObszars.add(obszar); else collapsedObszars.delete(obszar);
+      saveUiState();
+      syncToggleAllBtn();
+    });
     const grid = section.querySelector('.grid');
     const runwayShared = computeSharedYScale(groups.filter(g=> isRunwaySafetyMetric(g.name)));
     // KP-ZAK: "Terminowe inicjowanie procesu zakupowego" and "Terminowe
@@ -1796,6 +1849,10 @@ function renderContent(){
       });
     const investBigShared = computeSharedYScale(investBig, true);
     const investSmallShared = computeSharedYScale(investSmall, true);
+    // pin the "rest of the offices" investment scale to a fixed, easy-to-read
+    // 0/5/10/15 mln ladder (the highest target among them, Biuro MF at 11
+    // mln, otherwise auto-rounds to an odd 0/2/4/.../12 step ladder).
+    if(investSmallShared){ investSmallShared.min = 0; investSmallShared.max = 15e6; investSmallShared.step = 5e6; }
     // KP-TR-ATS: "podstawowego" (1 chart), "w zakresie uprawnienia" (4
     // charts: ACS/APS/ADC/APP) and the merged simulator-availability panel (3
     // charts: P_21/BEST-Warszawa/BEST-Poznań) all read as one connected row —
@@ -1873,6 +1930,7 @@ function renderContent(){
     }
     main.appendChild(section);
   });
+  syncToggleAllBtn();
 
   // charts are only instantiated once every card/panel is in the DOM and the
   // CSS grid has settled — creating Chart.js instances mid-layout bakes in the
@@ -1881,6 +1939,16 @@ function renderContent(){
   requestAnimationFrame(()=> requestAnimationFrame(()=>{
     queued.forEach(fn=>{ try{ fn(); }catch(e){ console.error(e); } });
   }));
+}
+// keeps the collapse-all button's chevron in sync with whatever the
+// individual per-section collapse state actually is (e.g. after restoring a
+// saved collapsed-set on load, or after a user expands/collapses one section
+// by hand) rather than tracking its own separate on/off flag.
+function syncToggleAllBtn(){
+  const btn = document.getElementById('toggleAllBtn');
+  const sections = [...document.querySelectorAll('.section')];
+  const allCollapsed = sections.length>0 && sections.every(s=>s.classList.contains('collapsed'));
+  btn.classList.toggle('all-collapsed', allCollapsed);
 }
 
 /* ===================== DATA LOADING ===================== */
@@ -1954,27 +2022,38 @@ async function refreshAndRender(){
   populateObszarFilter();
   populateCelFilter();
   populateKpaFilter();
+  if(!uiStateApplied){ applyUiState(); uiStateApplied = true; }
   renderContent();
 }
 
 /* ===================== INIT ===================== */
 function wireControls(){
-  document.getElementById('searchInput').addEventListener('input', renderContent);
-  document.getElementById('obszarFilter').addEventListener('change', renderContent);
-  document.getElementById('celFilter').addEventListener('change', renderContent);
-  document.getElementById('kpaFilter').addEventListener('change', renderContent);
-  document.getElementById('dataFilter').addEventListener('change', renderContent);
-  document.getElementById('onlyProblems').addEventListener('change', renderContent);
+  // every filter/search change also persists to localStorage (see
+  // saveUiState) so it survives the widget being reloaded by Grist.
+  const onChange = ()=>{ saveUiState(); renderContent(); };
+  document.getElementById('searchInput').addEventListener('input', onChange);
+  document.getElementById('obszarFilter').addEventListener('change', onChange);
+  document.getElementById('celFilter').addEventListener('change', onChange);
+  document.getElementById('kpaFilter').addEventListener('change', onChange);
+  document.getElementById('dataFilter').addEventListener('change', onChange);
+  document.getElementById('onlyProblems').addEventListener('change', onChange);
   // collapse/expand-all: flips every currently rendered .section's own
   // collapsed state in one click (same class each section-head already
   // toggles individually) — lives outside #content so it survives re-renders.
   document.getElementById('toggleAllBtn').addEventListener('click', ()=>{
     const btn = document.getElementById('toggleAllBtn');
     const nextCollapsed = !btn.classList.contains('all-collapsed');
-    document.querySelectorAll('.section').forEach(s=> s.classList.toggle('collapsed', nextCollapsed));
+    document.querySelectorAll('.section').forEach(s=>{
+      s.classList.toggle('collapsed', nextCollapsed);
+      const obszar = s.dataset.obszar;
+      if(!obszar) return;
+      if(nextCollapsed) collapsedObszars.add(obszar); else collapsedObszars.delete(obszar);
+    });
     btn.classList.toggle('all-collapsed', nextCollapsed);
+    saveUiState();
   });
 }
+
 
 (async function init(){
   wireControls();
