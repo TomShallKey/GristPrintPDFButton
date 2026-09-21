@@ -1331,7 +1331,12 @@ function pruShortLabel(loc){
   return m ? m[1].replace(/\s+/g,'') : String(loc||'');
 }
 function buildPRUChartData(g){
-  const qLabels = ['I kw.','II kw.','III kw.','IV kw.'];
+  const isHalfYear = g.freq==='pół r.';
+  // half-year cadence: only "II kw." (H1 filed at mid-year) and "IV kw." (H2
+  // filed at year-end) cells are ever used — same H1/H2-from-quarter-slots
+  // convention as renderUnitChart, so PRU roles don't show two empty
+  // quarterly gaps per half.
+  const qLabels = isHalfYear ? ['I półr.','II półr.'] : ['I kw.','II kw.','III kw.','IV kw.'];
   const labels = [], fullLabels = [], values = [], targets = [];
   g.units.forEach(u=>{
     const short = pruShortLabel(u.loc);
@@ -1340,7 +1345,8 @@ function buildPRUChartData(g){
     // r.") doesn't reliably predict that (e.g. PRU1's first real headcount
     // check showed up straight in "I kw.", not "II kw."), so all four
     // quarter cells are checked directly instead of guessing based on freq.
-    const hasQ = u.q.some(q=> q && !q.empty && q.value!=null);
+    const qCells = isHalfYear ? [u.q[1], u.q[3]] : u.q;
+    const hasQ = qCells.some(q=> q && !q.empty && q.value!=null);
     // same "value could be in either column, oczekiwana=cel" mapping used
     // everywhere else — here plan/exp are normally identical (a planned
     // staffing LEVEL, not a separately measured "achieved" figure), so the
@@ -1349,7 +1355,7 @@ function buildPRUChartData(g){
     const target = (!u.exp.empty && u.exp.value!=null) ? u.exp.value : ((!u.plan.empty && u.plan.value!=null) ? u.plan.value : null);
     const annualValue = (!u.plan.empty && u.plan.value!=null) ? u.plan.value : target;
     if(hasQ){
-      u.q.forEach((q,i)=>{
+      qCells.forEach((q,i)=>{
         labels.push([short, qLabels[i]]); // 2-line tick: "PRU1" / "I kw." — keeps the PRU grouping readable once a role has several quarterly bars in a row
         fullLabels.push(`${u.loc||short} — ${qLabels[i]}`);
         values.push(q && !q.empty ? q.value : null);
