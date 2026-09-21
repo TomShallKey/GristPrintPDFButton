@@ -823,7 +823,7 @@ function buildGroups(records){
     // "planowana"/"oczekiwana" are two DIFFERENT forecast figures (15%/10%,
     // 25%/20%) but neither is an actually reported result — force target-only
     // using "oczekiwana" as the cel line (ignore "planowana" entirely).
-    if(normText(first.Obszar)==='OB.'){
+    if(normText(first.Obszar).replace(/\.$/,'')==='OB'){
       units.forEach(u=>{
         const noQ = u.q.every(q=>q.empty || q.value==null);
         if(noQ && !u.plan.empty && !u.exp.empty) u.plan = {empty:true, na:true};
@@ -888,7 +888,7 @@ function buildGroups(records){
     // bar; force target-only (grey) rendering instead, using "oczekiwana" as
     // the cel line — same lone-column pattern as the other annual overrides.
     const OB_TARGET_ONLY_NAMES = ['Integracja środowiska UTM z systemami TWR (do 2030 r.)', 'Pełna wymiana danych pomiędzy systemami ATM i UTM (do 2034 r.)'];
-    if(normText(first.Obszar)==='OB.' && OB_TARGET_ONLY_NAMES.some(n=>looseKey(n)===looseKey(first.Mierniki_2026))){
+    if(normText(first.Obszar).replace(/\.$/,'')==='OB' && OB_TARGET_ONLY_NAMES.some(n=>looseKey(n)===looseKey(first.Mierniki_2026))){
       units.forEach(u=>{
         const noQ = u.q.every(q=>q.empty || q.value==null);
         if(noQ && !u.plan.empty){ u.plan = {empty:true, na:true}; }
