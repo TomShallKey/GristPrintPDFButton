@@ -87,12 +87,12 @@ main{flex:1;padding:14px 22px 60px}
 /* KP-AIM: 12 near-identical metrics split into 4 fixed rows (2/4/3/3) instead
    of the default auto-fill wrap, per requested layout: Terminowość/Jakość
    publikacji pair on top, the 4 "danych" metrics, then NOTAM trio, then PIB
-   trio. */
-.invest-row-2{grid-template-columns:repeat(2,1fr)}
-.invest-row-4{grid-template-columns:repeat(4,1fr)}
-@media (max-width:900px){.invest-row-2{grid-template-columns:repeat(1,1fr)}}
-@media (max-width:1100px){.invest-row-4{grid-template-columns:repeat(2,1fr)}}
-@media (max-width:700px){.invest-row-4{grid-template-columns:repeat(1,1fr)}}
+   trio. Cards keep the SAME width as the normal section grid (not stretched
+   to fill the row) — `auto-fill` (not auto-fit/1fr-only) generates extra
+   empty tracks beyond however many cards are actually in that particular
+   row, so a 2- or 3-card row just leaves blank space on the right instead of
+   each card growing wider, left-aligned like every other section.*/
+.invest-row-aim{grid-template-columns:repeat(auto-fill,minmax(max(300px,calc(100%/9)),1fr))}
 /* "Skuteczność szkolenia podstawowego" (1 chart) + "...w zakresie uprawnienia"
    (4-location panel) + the merged simulator-availability panel (3 locations)
    all read as one connected row — columns sized 1/4/3 so each individual
@@ -1800,9 +1800,7 @@ function renderContent(){
     }
     aimRows.forEach(chunk=>{
       const row = document.createElement('div');
-      const cls = chunk.length===2 ? 'invest-row-2' : chunk.length===4 ? 'invest-row-4' : 'invest-row-3';
-      row.className = 'invest-row ' + cls;
-      if(chunk.length!==2 && chunk.length!==3 && chunk.length!==4) row.style.gridTemplateColumns = `repeat(${chunk.length},1fr)`;
+      row.className = 'invest-row invest-row-aim';
       chunk.forEach(g=> row.appendChild(buildCard(g)));
       grid.appendChild(row);
     });
