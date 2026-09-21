@@ -812,6 +812,19 @@ function buildGroups(records){
     if(normText(first.Obszar)==='MF' && normKey(first.Mierniki_2026)===normKey('Monitorowanie kowenantów na potrzeby umów kredytowych')){
       units.forEach(u=> u.q.forEach(q=>{ if(!q.empty) q.percent = false; }));
     }
+    // KP-TECH "Zapewnienie usług: COM,NAV,SUR,MET,DP(systemy),DP(sieć), IT
+    // (back off- służby operacyjne)": only "planowana" (95%) is filled in —
+    // "oczekiwana" is "x" and no quarter was ever reported. annualValueTarget()
+    // would otherwise draw that lone 95% as if it were an achieved bar; it's
+    // actually just the (secondary, planowana-only) target, so swap it into
+    // the "oczekiwana" slot and force target-only rendering, same as the
+    // other lone-column annual overrides above.
+    if(normText(first.Obszar)==='KP-TECH' && normKey(first.Mierniki_2026)===normKey('Zapewnienie usług: COM,NAV,SUR,MET,DP(systemy),DP(sieć), IT (back off- służby operacyjne)')){
+      units.forEach(u=>{
+        const noQ = u.q.every(q=>q.empty || q.value==null);
+        if(noQ && !u.plan.empty && u.exp.empty){ u.exp = u.plan; u.plan = {empty:true, na:true}; }
+      });
+    }
     const hasQuarterData = units.some(u=>u.q.some(q=>!q.empty && q.value!=null));
     // any unit with a real number in either column counts as "annual" viz —
     // even when "planowana" is explicitly "x" (nothing measured, target-only).
