@@ -442,7 +442,7 @@ function inferDirection(name){
 // metrics (unclear which side of the target is favourable), and "Wykonanie
 // budżetu szkoleń" (below the 95% plan mid-year is just normal spending pace,
 // not a problem — no red/green verdict makes sense here), stay neutral.
-const NEUTRAL_METRIC_PATTERNS = [/wydłużenie tras (sid|star)/i, /wykonanie budżetu/i, /^Planowany stan zatrudnienia w etatach \(PRU\)/i];
+const NEUTRAL_METRIC_PATTERNS = [/wydłużenie tras (sid|star)/i, /wykonanie budżetu/i];
 function isNeutralMetric(name){
   // KP-INWEST investment-realization metrics are informational (spend vs.
   // budget over the year) — there's no "good/bad" breach direction to judge
@@ -1380,31 +1380,56 @@ function buildPRUChartData(g){
 }
 function renderPRUStaffingChart(canvasEl, g, compact){
   const {labels, fullLabels, targets, h1Values, h2Values, hasQFlags} = buildPRUChartData(g);
-  // per request: planned-headcount bars stay neutral pastel blue (same tone
-  // as every other "no red/green verdict" chart) even when a role's reported
-  // figure sits below its own target — this indicator reads as a staffing
-  // LEVEL, not a pass/fail target, so no red/green judging here.
-  const neutralColors = arr=> arr.map(v=> v==null ? 'transparent' : statusInk('good'));
+  const direction = inferDirection(g.name);
+  // per request: a role's reported figure below its own target reads as
+  // understaffed (red) — same "higher is better" judging every other
+  // staffing metric already gets (see inferDirection); on target stays the
+  // usual pastel blue, same tone as every other neutral/good chart.
+  const colorFor = (values)=> values.map((v,i)=> v==null ? 'transparent' : (targets[i]!=null && isBreach(v, targets[i], direction) ? statusInk('bad') : statusInk('good')));
   // fixed 0-700 FTE axis: covers every PRU role's target/value with one
   // stable scale (per request), instead of auto-fitting to whichever role
   // happens to be tallest.
   const barThickness = compact?18:24;
+  // target drawn as a manual dashed line (same "- - -" style as every other
+  // chart's target reference) spanning the full width of BOTH half-year
+  // columns — Chart.js point markers don't support a dash pattern, and its
+  // built-in hover-radius shrinks a point marker on mouseover, which visibly
+  // "narrowed" the old tick — a plugin drawing a plain canvas line sidesteps
+  // both problems.
+  const targetDashPlugin = {
+    id:'pruTargetDash',
+    afterDatasetsDraw(chart){
+      const meta0 = chart.getDatasetMeta(0), meta1 = chart.getDatasetMeta(1);
+      const {ctx, scales:{y}} = chart;
+      ctx.save();
+      ctx.strokeStyle = BRAND.navy;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([5,4]);
+      targets.forEach((t,i)=>{
+        const b0 = meta0.data[i], b1 = meta1.data[i];
+        if(t==null || !b0 || !b1) return;
+        const yPix = y.getPixelForValue(t);
+        ctx.beginPath();
+        ctx.moveTo(b0.x - b0.width/2, yPix);
+        ctx.lineTo(b1.x + b1.width/2, yPix);
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+  };
   charts.push(new Chart(canvasEl,{
+    plugins:[targetDashPlugin],
     data:{
       labels,
       datasets:[
-        { type:'bar', label:'I półr.', data:h1Values, backgroundColor:neutralColors(h1Values), borderRadius:4, maxBarThickness: barThickness, order:2 },
-        { type:'bar', label:'II półr.', data:h2Values, backgroundColor:neutralColors(h2Values), borderRadius:4, maxBarThickness: barThickness, order:2 },
+        { type:'bar', label:'I półr.', data:h1Values, backgroundColor:colorFor(h1Values), borderRadius:4, maxBarThickness: barThickness, order:2 },
+        { type:'bar', label:'II półr.', data:h2Values, backgroundColor:colorFor(h2Values), borderRadius:4, maxBarThickness: barThickness, order:2 },
         {
-          // one target marker per PRU role, spanning the whole category
-          // (both half-year sub-columns) instead of a separate tick per half
-          // — a role has exactly one annual target, not two. Radius is sized
-          // to the combined width of both bar slots so the dash visibly
-          // covers both columns instead of reading as a short tick over just
-          // one of them.
+          // invisible — only here so the shared "index" tooltip can list the
+          // target alongside the bars; the actual dashed line is drawn by
+          // targetDashPlugin above.
           type:'line', label:'Cel', data:targets,
-          showLine:false, pointStyle:'line', rotation:0,
-          pointRadius: barThickness, pointBorderWidth:2.5, borderColor:BRAND.navy,
+          showLine:false, pointRadius:0, pointHoverRadius:0, borderColor:'transparent',
           order:1
         }
       ]
@@ -1421,9 +1446,17 @@ function renderPRUStaffingChart(canvasEl, g, compact){
             // half-year slots purely so the bar visually spans the full
             // category width — the tooltip should still read as one plain
             // "Wartość" line for those, not two identical "I/II półr." rows.
-            label:(c)=> hasQFlags[c.dataIndex] ? `${c.dataset.label}: ${fmtNum(c.parsed.y)}` : `Wartość: ${fmtNum(c.parsed.y)}`
+            label:(c)=>{
+              if(c.datasetIndex===2) return `Cel: ${fmtNum(c.parsed.y)}`;
+              const label = hasQFlags[c.dataIndex] ? c.dataset.label : 'Wartość';
+              return `${label}: ${fmtNum(c.parsed.y)}`;
+            }
           },
-          filter:(c)=> c.parsed.y!=null && (hasQFlags[c.dataIndex] || c.datasetIndex===0)
+          filter:(c)=>{
+            if(c.parsed.y==null) return false;
+            if(c.datasetIndex===1 && !hasQFlags[c.dataIndex]) return false; // duplicate row for annual-only roles
+            return true;
+          }
         }
       },
       scales:{
@@ -1442,7 +1475,11 @@ function buildCombinedChartCard(g, compact){
   const meta = kpaMeta(g.kpa);
   const uid = 'c'+(cardIdSeq++);
   const card = document.createElement('div');
-  card.className = 'card panel status-'+g.status + (g.vizType==='empty' ? ' empty':'');
+  // same rule as buildPanelCard: never tint the whole card red/yellow for one
+  // (or even several) below-target PRU roles — that's what the per-bar
+  // colouring inside the chart is for; the card itself only ever goes grey
+  // when there's truly no data anywhere in it.
+  card.className = 'card panel' + ((g.vizType==='empty' || g.status==='empty') ? ' empty':'');
   card.style.borderLeftColor = meta.color;
   card.innerHTML = `
     <div class="card-top">
