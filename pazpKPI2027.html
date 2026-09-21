@@ -213,7 +213,7 @@ main{flex:1;padding:14px 22px 60px}
 
 <script>
 /* ===================== CONFIG ===================== */
-const TABLE = 'TOTAL';
+const TABLE = 'KPI_PANSA_2026';
 const COLS = ['Obszar','Cel_strategiczny','KPA','Mierniki_2026','Lokalizacja','czest_',
   'Roczna_wartosc_planowana','Roczna_wartosc_oczekiwana','I_kw_','II_kw_','III_kw_','IV_kw_','TSz_Komentarz'];
 
@@ -625,7 +625,10 @@ function buildGroups(records){
       plan: parseCell(r.Roczna_wartosc_planowana),
       exp: parseCell(r.Roczna_wartosc_oczekiwana),
       q: [parseCell(r.I_kw_), parseCell(r.II_kw_), parseCell(r.III_kw_), parseCell(r.IV_kw_)],
-      comment: r.TSz_Komentarz ? String(r.TSz_Komentarz).trim() : ''
+      // TSz_Komentarz is a Reference (row id into "Komentarze"), not plain
+      // text, and isn't shown anywhere in the UI — ignored rather than
+      // stringified (which would otherwise print raw row numbers like "3").
+      comment: ''
     }));
     units.forEach(alignPercentScale);
     if(isFractionPercentMetric(first.Mierniki_2026, first.Obszar)) units.forEach(alignUtilizationScale);
