@@ -106,7 +106,7 @@ const COLS=[
  {key:'dyrpriorytet',def:74,min:56},{key:'dyrakcept',def:86,min:64},{key:'dyrkoment',def:190,min:110},
  {key:'prezesakcept',def:94,min:64},{key:'prezeskoment',def:190,min:110}
 ];
-const state={main:[],groupBy:'none',collapsed:new Set(),sort:null,colFilters:{zg:'',biuro:'',uczestnik:'',szkolenie:''},loaded:false,colWidths:{},groupSortDesc:true,lastMainJson:'',suppressUntil:0,filtDyr:'all',filtPrezes:'all',uzHidden:false};
+const state={main:[],groupBy:'none',collapsed:new Set(),sort:{col:'termin',dir:1},colFilters:{zg:'',biuro:'',uczestnik:'',szkolenie:''},loaded:false,colWidths:{},groupSortDesc:true,lastMainJson:'',suppressUntil:0,filtDyr:'all',filtPrezes:'all',uzHidden:false};
 try{Object.assign(state.colWidths,JSON.parse(localStorage.getItem(LS_WIDTHS)||'{}'))}catch(e){}
 try{state.uzHidden=localStorage.getItem(LS_UZ_HIDDEN)==='1'}catch(e){}
 let reloadTimer=null,colFilterTimer=null;
