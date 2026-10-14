@@ -69,6 +69,12 @@
   .lnk:hover{color:var(--accent);text-decoration:underline}
   .pre{white-space:pre-wrap;overflow-wrap:break-word}
   td.pre{max-width:260px}
+  th{position:relative}
+  th .rz{position:absolute;right:0;top:0;bottom:0;width:7px;cursor:col-resize;user-select:none}
+  th .rz:hover,th .rz.on{background:var(--accent);opacity:.5}
+  table.fixed{table-layout:fixed;min-width:0}
+  table.fixed td,table.fixed th{overflow:hidden;overflow-wrap:anywhere}
+  table.fixed td.pre{max-width:none}
 
   .badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
   .b-blue{background:var(--accent-soft);color:var(--accent)}
@@ -203,6 +209,14 @@
    Model: wpis w Rejestrze = wydanie (Data_wydania) i zwrot (Data_zwrotu) drona wraz z akcesoriami.
    Uprawnienia egzekwuje Grist (reguły dostępu) — widget wysyła tylko zmieniane pola. */
 
+function showFatal(msg){
+  const l = document.getElementById('loading');
+  l.hidden = false; l.style.cssText = 'color:#b91c1c;white-space:pre-wrap;text-align:left';
+  l.textContent = 'Błąd widgetu: ' + msg;
+}
+window.addEventListener('error', e => showFatal(e.message + (e.lineno ? ' (linia ' + e.lineno + ')' : '')));
+window.addEventListener('unhandledrejection', e => showFatal(String(e.reason && e.reason.message || e.reason)));
+
 const TABLES = ['Rejestr','Urzadzenia','Akcesoria','Zestawy','Users','Role'];
 
 const S = {
@@ -316,7 +330,9 @@ async function uploadFiles(fileList){
   const tok = await grist.docApi.getAccessToken({readOnly:false});
   const fd = new FormData();
   files.forEach(f => fd.append('upload', f, f.name));
-  const r = await fetch(`${tok.baseUrl}/attachments?auth=${encodeURIComponent(tok.token)}`, {method:'POST', body:fd});
+  let r;
+  try { r = await fetch(`${tok.baseUrl}/attachments?auth=${encodeURIComponent(tok.token)}`, {method:'POST', body:fd}); }
+  catch(e){ console.error('Upload failed', tok.baseUrl, e); throw new Error('brak połączenia z ' + new URL(tok.baseUrl).origin + ' (CORS/sieć) — szczegóły w konsoli F12'); }
   if(!r.ok) throw new Error('Nie udało się wgrać pliku (' + r.status + ')');
   return await r.json();
 }
@@ -358,6 +374,51 @@ function render(){
   const fn = {rejestr:renderRejestr, urzadzenia:renderUrzadzenia, akcesoria:renderAkcesoria,
               users:renderUsers, role:renderRole, kalendarz:renderKalendarz}[S.view];
   $('#view').innerHTML = fn();
+  enhanceTables();
+}
+
+/* ---------- zmiana szerokości kolumn ---------- */
+let COLW = {};
+try { COLW = JSON.parse(localStorage.getItem('wypodronka.colw') || '{}'); } catch(e){}
+let lastResize = 0;
+function enhanceTables(){
+  const tbl = document.querySelector('#view table');
+  if(!tbl) return;
+  const ths = [...tbl.querySelectorAll('thead th')], view = S.view;
+  const apply = w => {
+    tbl.classList.add('fixed');
+    tbl.style.width = w.reduce((a,b) => a+b, 0) + 'px';
+    tbl.querySelector('colgroup')?.remove();
+    tbl.insertAdjacentHTML('afterbegin', '<colgroup>' + w.map(x => `<col style="width:${x}px">`).join('') + '</colgroup>');
+  };
+  const saved = COLW[view];
+  if(saved && saved.length === ths.length) apply(saved.slice());
+  ths.forEach((th, i) => {
+    const h = document.createElement('span');
+    h.className = 'rz';
+    h.addEventListener('click', e => e.stopPropagation());
+    h.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      const w = ths.map(t => Math.round(t.getBoundingClientRect().width));
+      apply(w);
+      const x0 = e.clientX, w0 = w[i];
+      h.classList.add('on');
+      const move = ev => { w[i] = Math.max(40, w0 + ev.clientX - x0); apply(w); };
+      const up = () => {
+        document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up);
+        h.classList.remove('on'); lastResize = Date.now();
+        COLW[view] = w;
+        try { localStorage.setItem('wypodronka.colw', JSON.stringify(COLW)); } catch(e){}
+      };
+      document.addEventListener('mousemove', move); document.addEventListener('mouseup', up);
+    });
+    h.addEventListener('dblclick', e => {
+      e.stopPropagation(); delete COLW[view];
+      try { localStorage.setItem('wypodronka.colw', JSON.stringify(COLW)); } catch(e){}
+      render();
+    });
+    th.appendChild(h);
+  });
 }
 
 const thSort = (view, k, label, cls='') =>
@@ -425,18 +486,19 @@ function renderRejestr(){
                : st==='wydany' ? `<button class="btn flow flow-zwr" data-act="zwrot" data-id="${r.id}">Zwrot</button>` : '';
     const akc = idList(r.Akcesoria).map(id => S.m.Akcesoria.get(id)).filter(Boolean);
     return `<tr>
+      <td>${esc(r.Numer_Protoko_u)}</td>
       <td><button class="lnk" data-act="fltrDron" data-id="${r.Dron}" title="Historia egzemplarza"><b>${esc(dronId(d))}</b></button>
         ${d && d.Numer_Seryjny ? `<div class="sub mono">${esc(d.Numer_Seryjny)}</div>` : ''}</td>
       <td>${akc.length ? `<div class="akc-pills">${akc.map(a => `<span class="akc-pill" title="${esc(akcId(a))}">${esc(a.Typ||'?')} ${pad2(a.Typ_Lp)}</span>`).join('')}</div>` : '<span class="sub">—</span>'}</td>
-      <td>${u ? `<button class="lnk" data-act="fltrUser" data-id="${u.id}">${esc(userName(u))}</button>` : '—'}
-        ${p ? `<div class="sub">pilot: ${esc(userName(p))}</div>` : ''}</td>
-      <td>${esc(r.Numer_Protoko_u)}</td>
+      <td>${u ? `<button class="lnk" data-act="fltrUser" data-id="${u.id}">${esc(userName(u))}</button>` : '—'}</td>
+      <td>${p ? `<button class="lnk" data-act="fltrUser" data-id="${p.id}">${esc(userName(p))}</button>` : '—'}</td>
       <td>${d2strD(r.Data_wydania)}</td>
       <td>${d2strD(r.Data_zwrotu)}</td>
       <td class="num">${isNum(r.Liczba_Lotow) ? r.Liczba_Lotow : '—'}</td>
       <td class="pre">${esc(r.Cel_Wykorzystania)}${r.Lokalizacja_Operacji ? `<div class="sub">📍 ${esc(r.Lokalizacja_Operacji)}</div>` : ''}</td>
-      <td>${badge}${r.Uwagi_Uszkodzenia ? '<div><span class="badge b-red">Uszkodzenia</span></div>' : ''}
+      <td>${badge}
         ${r.Komentarz ? `<div class="sub pre">${esc(r.Komentarz)}</div>` : ''}</td>
+      <td>${r.Uwagi_Uszkodzenia ? '<span class="badge b-red">Uszkodzenia</span>' : '<span class="sub">—</span>'}</td>
       <td>${filesCell(r.PDF_Wydanie)}</td>
       <td>${filesCell(r.PDF_Zwrot)}</td>
       <td>${flow}</td>
@@ -448,10 +510,10 @@ function renderRejestr(){
     <div class="toolbar">${chips}${filterBar()}<div class="spacer"></div>
       <button class="primary" data-act="nowyRej">+ Nowe wydanie</button></div>
     <div class="card"><table style="min-width:1400px">
-      <thead><tr>${th('dron','Dron')}<th>Akcesoria</th>${th('user','Użytkownik / pilot')}${th('nr','Nr protokołu')}${
+      <thead><tr>${th('nr','Nr protokołu')}${th('dron','Dron')}<th>Akcesoria</th>${th('user','Użytkownik')}${th('pilot','Pilot SBSP')}${
         th('wyd','Data wydania')}${th('zwr','Data zwrotu')}${th('loty','Loty','num')}<th>Cel / lokalizacja</th>${
-        th('status','Status')}<th>PDF wydanie</th><th>PDF zwrot</th><th></th><th></th></tr></thead>
-      <tbody>${rows || `<tr><td colspan="13"><div class="empty">Brak pozycji</div></td></tr>`}</tbody>
+        th('status','Status')}<th>Uszkodzenia</th><th>PDF wydanie</th><th>PDF zwrot</th><th></th><th></th></tr></thead>
+      <tbody>${rows || `<tr><td colspan="15"><div class="empty">Brak pozycji</div></td></tr>`}</tbody>
     </table></div>`;
 }
 const cmpKeyDron = d => d ? [d.Zestaw ? zestawName(d.Zestaw) : '', d.Model_Lp ?? 9e9, d.Model || ''] : ['', 9e9, ''];
@@ -623,6 +685,17 @@ const fSel = (n, l, opts, cur, extra='') => `<div class="field"><label>${l}</lab
   <option value="">—</option>${opts.map(([v,t]) => `<option value="${esc(v)}" ${String(v)===String(cur)?'selected':''}>${esc(t)}</option>`).join('')}</select></div>`;
 const fFile = (n, l, cur) => `<div class="field"><label>${l}</label>${cur ? filesCell(cur) : ''}
   <input name="${n}" type="file" multiple accept="application/pdf,.pdf"></div>`;
+const fUser = (n, l, cur) => `<div class="field"><label>${l}</label>
+  <input name="${n}" list="dl-users" autocomplete="off" placeholder="wybierz z listy lub wpisz nowe nazwisko" value="${esc(cur ? userName(S.m.Users.get(cur)) : '')}"></div>`;
+/* zwraca id osoby; nieznane nazwisko jest dopisywane do tabeli Users */
+async function resolveUser(name){
+  name = (name || '').trim();
+  if(!name) return 0;
+  const ex = S.d.Users.find(u => (u.Nazwisko_Imie || '').trim().toLowerCase() === name.toLowerCase());
+  if(ex) return ex.id;
+  const res = await grist.docApi.applyUserActions([['AddRecord','Users',null,{Nazwisko_Imie: name}]]);
+  return res.retValues[0];
+}
 const userOpts = () => sortedUsers().map(u => [u.id, userName(u)]);
 const zestawOpts = () => S.d.Zestawy.slice().sort((a,b) => cmpVals(a.Zestaw,b.Zestaw)).map(z => [z.id, z.Zestaw]);
 const numOrNull = v => (v === '' || v == null) ? null : Number(v);
@@ -639,7 +712,7 @@ function akcSection(dronRef, rec){
   return `<div class="hint">Zestaw: <b>${esc(zestawName(d.Zestaw))}</b> — wyszarzone = aktualnie w terenie</div>
     <div class="akc-lista">${items.map(a => {
       const busy = !!akcOut(a.id, rec && rec.id);
-      const checked = !busy && (chosen.has(a.id) || (isNew && !rec));
+      const checked = !busy && (chosen.has(a.id));
       return `<label class="akc-item ${busy?'akc-zajete':''}">
         <input type="checkbox" name="akc" value="${a.id}" ${checked?'checked':''} ${busy?'disabled':''}>
         <span class="akc-label"><b>${esc(akcId(a))}</b><span class="sub">${esc(a.Nazwa||'')}${a.SN ? ' · SN ' + esc(a.SN) : ''}</span></span>
@@ -661,14 +734,15 @@ function modalRej(rec, mode){
     <h2>${title}</h2>
     ${mode === 'zwrot' ? `<p style="margin-bottom:12px"><b>${esc(dronId(d0))}</b> — ${esc(userName(S.m.Users.get(v.Uzytkownik)))}<br>
       <span class="sub">wydano ${d2str(v.Data_wydania)}</span></p>` : ''}
+    <datalist id="dl-users">${sortedUsers().map(u => `<option value="${esc(userName(u))}">`).join('')}</datalist>
     ${showW ? `
+      ${fText('nr','Numer protokołu', v.Numer_Protoko_u)}
       ${fSel('dron','Dron', dronOpts, v.Dron, 'required id="f-dron"')}
       <div class="field"><label>Akcesoria</label><div id="f-akc">${akcSection(v.Dron, rec)}</div></div>
       <div class="grid2">
-        ${fSel('uzytkownik','Użytkownik (odbierający)', userOpts(), v.Uzytkownik)}
-        ${fSel('pilot','Pilot SBSP', userOpts(), v.Pilot_SBSP)}
+        ${fUser('uzytkownik','Użytkownik (odbierający)', v.Uzytkownik)}
+        ${fUser('pilot','Pilot SBSP', v.Pilot_SBSP)}
         ${fDate('dwyd','Data wydania', v.Data_wydania || (mode !== 'edit' ? todaySec() : null), 'required')}
-        ${fText('nr','Numer protokołu', v.Numer_Protoko_u)}
       </div>
       ${fText('cel','Cel wykorzystania', v.Cel_Wykorzystania)}
       ${fText('lok','Lokalizacja operacji', v.Lokalizacja_Operacji)}
@@ -693,9 +767,11 @@ function modalRej(rec, mode){
       if(dw && dz && dz < dw) throw new Error('Data zwrotu nie może być przed datą wydania.');
       const busy = dronOut(dron, v.id);
       if(busy && !dz) throw new Error('Ten dron jest już wydany i niezwrócony.');
+      const uid = await resolveUser(fd.get('uzytkownik'));
+      const pid = (fd.get('pilot') || '').trim().toLowerCase() === (fd.get('uzytkownik') || '').trim().toLowerCase() ? uid : await resolveUser(fd.get('pilot'));
       Object.assign(vals, {
         Dron: dron, Akcesoria: ['L', ...[...form.querySelectorAll('input[name=akc]:checked')].map(e => Number(e.value))],
-        Uzytkownik: Number(fd.get('uzytkownik')) || 0, Pilot_SBSP: Number(fd.get('pilot')) || 0,
+        Uzytkownik: uid, Pilot_SBSP: pid,
         Data_wydania: dw, Numer_Protoko_u: fd.get('nr'),
         Cel_Wykorzystania: fd.get('cel'), Lokalizacja_Operacji: fd.get('lok'),
       });
@@ -835,7 +911,7 @@ async function main(){
     grist.ready({ requiredAccess: 'full' });
     await refreshAll();
   } catch(e){
-    $('#loading').textContent = 'Nie udało się połączyć z Gristem: ' + (e && e.message || e);
+    showFatal('Nie udało się połączyć z Gristem: ' + (e && e.message || e));
     return;
   }
   $('#loading').hidden = true;
@@ -849,6 +925,7 @@ async function main(){
   $('#btn-refresh').addEventListener('click', () => refreshAll().then(() => toast('Odświeżono')));
   $('#view').addEventListener('click', e => {
     const s = e.target.closest('[data-sort]');
+    if(s && Date.now() - lastResize < 300) return;
     if(s){
       const t = S.sort[S.view], k = s.dataset.sort;
       if(t.key === k) t.dir *= -1; else { t.key = k; t.dir = 1; }
