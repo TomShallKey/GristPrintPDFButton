@@ -609,6 +609,7 @@ header h1 {
 
 <script>
 const pos = v => Math.max(0, +v || 0);
+const num = v => +v || 0; // dopuszcza wartości ujemne
 const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const pct = (a,b) => b > 0 ? (a/b*100).toFixed(0)+'%' : '—';
 
@@ -996,10 +997,10 @@ function renderDetail() {
       syg:    r.Sygnatura || '',
       sygId:  r.id || 0,
       opis:   r.Opis || '',
-      zaks:   pos(r.Zaks),
-      zaang:  pos(r.Zaang),
-      exp:    pos(r.Expected_Menu),
-      trans:  pos(r.wTransferach),
+      zaks:   num(r.Zaks),
+      zaang:  num(r.Zaang),
+      exp:    num(r.Expected_Menu),
+      trans:  num(r.wTransferach),
       pozost: Math.max(0, +r.PozostUwzgTransfery || 0),
       rp4:    pos(r.RP4_x_Transfery),
     }));
@@ -1229,7 +1230,7 @@ function renderDetail() {
 
             // Synthetic rows (transfers, wniosek, wolne)
             const mainRow  = allRawRecords.find(r => r.id === sr.sygId);
-            const transVal = mainRow ? pos(mainRow.wTransferach) : 0;
+            const transVal = mainRow ? num(mainRow.wTransferach) : 0;
             const wolneVal = mainRow ? Math.max(0, +mainRow.PozostUwzgTransfery || 0) : 0;
 
             const transferRow = transVal > 0 ? `
@@ -1366,10 +1367,10 @@ function recordsToGroups(records) {
         map.set(konto, { konto, zaks:0, zaang:0, exp:0, trans:0, pozost:0, rp4:0 });
       }
       const g = map.get(konto);
-      g.zaks   += pos(r.Zaks);
-      g.zaang  += pos(r.Zaang);
-      g.exp    += pos(r.Expected_Menu);
-      g.trans  += pos(r.wTransferach);
+      g.zaks   += num(r.Zaks);
+      g.zaang  += num(r.Zaang);
+      g.exp    += num(r.Expected_Menu);
+      g.trans  += num(r.wTransferach);
       g.pozost += Math.max(0, +r.PozostUwzgTransfery || 0);
       g.rp4    += pos(r.RP4_x_Transfery);
     });
